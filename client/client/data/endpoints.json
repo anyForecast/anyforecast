@@ -1,0 +1,26 @@
+{
+  "partitions": [{
+    "defaults": {
+      "hostname": "{service}:{port}{dnsSuffix}"
+    },
+    "dnsSuffix" : "",
+    "partition" : "aws",
+    "partitionName" : "AWS Standard",
+    "protocols" : ["http"],
+    "services" : {
+      "minio" : {
+        "endpoints": {
+          "9000": {}
+        },
+        "partitionEndpoint": "9000"
+      },
+      "forecast": {
+        "endpoints": {
+          "9002": {}
+        },
+        "partitionEndpoint": "9002"
+      }
+      }
+    }
+  ]
+}
