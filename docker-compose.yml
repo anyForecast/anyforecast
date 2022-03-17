@@ -1,0 +1,155 @@
+version: "3"
+services:
+  client:
+    # `client` container aims to be an installable python 
+    # library that will serve as a http client for the mlapi 
+    # service.
+    restart: always
+    build: ./client
+    image: client
+    container_name: client
+    environment:
+      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
+      - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
+      - MLFLOW_TRACKING_URI=http://mlflow:${MLFLOW_PORT}
+    volumes:
+    - ./client:/home/worker/client
+    networks:
+      - frontend
+      - backend
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    command:
+      # Keep a main bash session always active.
+      - bash
+
+  mlapi:
+    # Container with the purpose of offering machine learning as a service.
+    # This `mlapi` service uses FastAPI for handling http requests.
+    restart: always
+    build: ./mlapi
+    image: mlapi
+    container_name: mlapi
+    environment:
+      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
+      - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
+      - MLFLOW_TRACKING_URI=http://mlflow:${MLFLOW_PORT}
+    expose:
+      - ${MLAPI_PORT}
+    ports:
+      - ${MLAPI_PORT}:${MLAPI_PORT} 
+    volumes:
+      - ./mlapi:/home/worker/mlapi
+    # (Temporary) Keep a main bash session always active.
+    networks:
+      - frontend
+      - backend
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    command:
+      - bash
+  
+  jupyter:
+    # `jupyter` container serves jupyterlab services for experimental purposes.
+    restart: always
+    build: ./jupyter
+    image: jupyter
+    container_name: jupyter
+    environment:
+      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
+      - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
+      - MLFLOW_TRACKING_URI=http://mlflow:${MLFLOW_PORT}
+    networks:
+      - frontend
+      - backend
+    ports:
+      - ${JUPYTER_PORT}:${JUPYTER_PORT}
+    volumes:
+      - ./jupyter/work:/home/jovyan/work
+    depends_on:
+      - mlflow
+      
+  postgres:
+    restart: always
+    build: ./postgres
+    image: postgres
+    container_name: postgres
+    expose:
+      - ${POSTGRES_PORT}
+    ports:
+      - 6543:${POSTGRES_PORT}
+    networks:
+      - backend
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  minio:
+    restart: always
+    image: minio/minio
+    container_name: minio
+    working_dir: /minio/storage
+    expose:
+      - ${MINIO_API_PORT}
+    ports:
+      - ${MINIO_API_PORT}:${MINIO_API_PORT}
+      - ${MINIO_CONSOLE_PORT}:${MINIO_CONSOLE_PORT}
+    networks:
+      - frontend
+      - backend
+    environment:
+      # Both keys are the same as aws keys (see mlflow environmet)
+      - MINIO_ROOT_USER=$MINIO_ACCESS_KEY
+      - MINIO_ROOT_PASSWORD=$MINIO_SECRET_KEY
+    volumes:
+      - minio_data:/data
+    command: server /minio/storage --console-address :${MINIO_CONSOLE_PORT}
+
+  mlflow:
+    build: ./mlflow
+    image: mlflow
+    container_name: mlflow
+    expose:
+      - ${MLFLOW_PORT}
+    ports:
+      - ${MLFLOW_PORT}:${MLFLOW_PORT}
+    networks:
+      - frontend
+      - backend
+    environment:
+      - BACKEND=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/mlflow
+      # For artifact store in local: (note mlrun_data volume must also be uncommented)
+      # - ARTIFACTS=/mlruns
+      # Otherwise, for artifact store in AWS S3: (note boto was installed in container)
+      - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
+      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}      
+    command:
+      - sh  # (sh allows for var substitution of BACKEND and ARTIFACTS)
+      - -c
+      - mlflow server 
+          --host 0.0.0.0
+          --port ${MLFLOW_PORT}
+          --backend-store-uri $${BACKEND} 
+          --default-artifact-root ${ARTIFACT_PATH}
+    depends_on:
+      - postgres
+      - minio
+    # volumes:
+    #   - mlrun_data:/mlruns
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+
+# When you use a named volume like "data:/container/path", you must declare it at the docker-compose file.
+# This is not necessary when volumes are host paths.
+volumes:
+  pg_data:
+  minio_data:
