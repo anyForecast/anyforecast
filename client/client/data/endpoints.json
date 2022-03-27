@@ -1,7 +1,7 @@
 {
   "partitions": [{
     "defaults": {
-      "hostname": "{service}:{port}{dnsSuffix}"
+      "hostname": "{service}:{port}/{endpoint}{dnsSuffix}"
     },
     "dnsSuffix" : "",
     "partition" : "aws",
@@ -9,18 +9,16 @@
     "protocols" : ["http"],
     "services" : {
       "minio" : {
-        "endpoints": {
-          "9000": {}
-        },
-        "partitionEndpoint": "9000"
+        "port": "9000",
+        "endpoints": {}
       },
       "forecast": {
-        "endpoints": {
-          "9002": {}
+        "defaults" : {
+          "hostname" : "mlapi:{port}/{service}{dnsSuffix}"
         },
-        "partitionEndpoint": "9002"
-      }
+        "port": "80",
+        "endpoints": {}
       }
     }
-  ]
+  }]
 }

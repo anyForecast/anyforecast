@@ -146,3 +146,8 @@ class BaseEndpointResolverError(BaseError):
 class NoRegionError(BaseEndpointResolverError):
     """No region/endpoint_name was specified."""
     fmt = 'You must specify a region/endpoint name.'
+
+
+class InvalidEndpointForService(BaseEndpointResolverError):
+    """Endpoint does not exist for the selected service."""
+    fmt = 'Endpoint {endpoint} does not exist for selected service {service}.'
