@@ -69,6 +69,8 @@ services:
       - ${JUPYTER_PORT}:${JUPYTER_PORT}
     volumes:
       - ./jupyter/work:/home/jovyan/work
+      - ./client:/home/jovyan/client
+      - ./mlapi:/home/jovyan/mlapi
     depends_on:
       - mlflow
       

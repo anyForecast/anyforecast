@@ -1,15 +1,17 @@
 from mooncake.nn import SeqToSeq, TemporalFusionTransformer as TFT
-
-ESTIMATORS = {
-    'seq2seq': SeqToSeq,
-    'tft': TFT
-}
+from mooncake.helper import common_callbacks
+from torch.optim.lr_scheduler import OneCycleLR
 
 
 class EstimatorCreator:
-    def __init__(self, predictor, target_dataset):
+    ESTIMATORS = {
+        'seq2seq': SeqToSeq,
+        'tft': TFT
+    }
+
+    def __init__(self, predictor, dataset_collector):
         self.predictor = predictor
-        self.target_dataset = target_dataset
+        self.dataset_collector = dataset_collector
 
     def create_estimator(self):
         cls = self._get_estimator_class()
@@ -17,16 +19,40 @@ class EstimatorCreator:
         return cls(**estimator_args)
 
     def _get_estimator_class(self):
-        return ESTIMATORS[self.predictor.algorithm]
+        return self.ESTIMATORS[self.predictor.algorithm]
 
     def _get_estimator_args(self):
-        pass
+        args_creator = EstimatorArgsCreator(self.predictor,
+                                            self.dataset_collector)
+        return args_creator.get_estimator_args()
 
 
 class EstimatorArgsCreator:
-    def __init__(self, predictor, target_dataset):
+    def __init__(self, predictor, dataset_collector):
         self.predictor = predictor
-        self.target_dataset = target_dataset
+        self.dataset_collector = dataset_collector
 
     def get_estimator_args(self):
-        pass
+        time_segmentation = self.dataset_collector.get_names(include_pk=False)
+        group_ids = self.dataset_collector.get_group_ids()
+        max_prediction_length = self.predictor.forecast_horizon
+        time_idx = 'time_idx'
+
+        # Callbacks.
+        lr_scheduler = dict(
+            policy=OneCycleLR,
+            step_every='batch',
+            max_lr=1e-3,
+            steps_per_epoch='iterations',
+            epochs='max_epochs'
+        )
+        callbacks = common_callbacks(lr_scheduler, gradient_clipping=True)
+
+        return {
+            'group_ids': group_ids,
+            'max_prediction_length': max_prediction_length,
+            'time_idx': time_idx,
+            'max_encoder_length': 20,
+            'callbacks': callbacks,
+            **time_segmentation
+        }

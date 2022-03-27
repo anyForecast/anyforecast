@@ -4,7 +4,8 @@ import logging
 from .client import ClientCreator
 from .configprovider import DEFAULT_SESSION_VARIABLES
 from .credentials import Credentials, create_credential_resolver
-from .exceptions import PartialCredentialsError, NoRegionError
+from .exceptions import (PartialCredentialsError, NoRegionError,
+                         InvalidEndpointForService)
 from .loaders import create_loader
 
 
@@ -62,9 +63,10 @@ class Session:
         """
         self._credentials = Credentials(access_key, secret_key, token)
 
-    def create_client(self, service_name, endpoint_url=None,
-                      access_key_id=None, secret_access_key=None,
-                      session_token=None, is_secure=True):
+    def create_client(self, service_name, endpoint_name=None,
+                      endpoint_url=None, access_key_id=None,
+                      secret_access_key=None, session_token=None,
+                      is_secure=True):
         """Create a low-level service client by name.
 
         Parameters
@@ -113,7 +115,8 @@ class Session:
 
         endpoint_resolver = self._get_internal_component('endpoint_resolver')
         client_creator = ClientCreator(loader, endpoint_resolver)
-        return client_creator.create_client(service_name, is_secure=is_secure,
+        return client_creator.create_client(service_name, endpoint_name,
+                                            is_secure=is_secure,
                                             endpoint_url=endpoint_url,
                                             credentials=credentials)
 
@@ -193,7 +196,7 @@ class ComponentLocator:
 
 
 LOG = logging.getLogger(__name__)
-DEFAULT_URI_TEMPLATE = '{service}.{region}.{dnsSuffix}'
+DEFAULT_URI_TEMPLATE = '{service}:{port}/{endpoint}.{dnsSuffix}'
 DEFAULT_SERVICE_DATA = {'endpoints': {}}
 
 
@@ -254,16 +257,30 @@ class EndpointResolver:
         """
         return self._endpoint_data['endpoints']
 
-    def _endpoint_for_partition(self, partition, service_name, endpoint_name):
-        # Get the service from the partition, or an empty template.
-        service_data = partition['services'].get(
-            service_name, DEFAULT_SERVICE_DATA)
+    def _get_endpoint_name(self, service_data, service_name, endpoint_name):
         # Use the partition endpoint if no region is supplied.
         if endpoint_name is None:
             if 'partitionEndpoint' in service_data:
                 endpoint_name = service_data['partitionEndpoint']
+            elif not service_data['endpoints']:
+                endpoint_name = ''
             else:
                 raise NoRegionError()
+        else:
+            # Attempt to resolve the exact endpoint name.
+            if endpoint_name not in service_data['endpoints']:
+                raise InvalidEndpointForService(endpoint=endpoint_name,
+                                                service=service_name)
+
+        return endpoint_name
+
+    def _endpoint_for_partition(self, partition, service_name, endpoint_name):
+        # Get the service from the partition, or an empty template.
+        service_data = partition['services'].get(
+            service_name, DEFAULT_SERVICE_DATA)
+
+        endpoint_name = self._get_endpoint_name(service_data, service_name,
+                                                endpoint_name)
 
         resolve_kwargs = {
             'partition': partition,
@@ -287,6 +304,9 @@ class EndpointResolver:
         partition_defaults = partition.get('defaults', {})
         result = endpoint_data
 
+        # If a port is included in service_data
+        port = service_data.get('port', '')
+
         # If dnsSuffix has not already been consumed from a variant definition
         if 'dnsSuffix' not in result:
             result['dnsSuffix'] = partition['dnsSuffix']
@@ -301,7 +321,7 @@ class EndpointResolver:
 
         result['hostname'] = self._expand_template(
             partition, result['hostname'], service_name, endpoint_name,
-            result['dnsSuffix']
+            result['dnsSuffix'], port
         )
 
         return result
@@ -312,10 +332,10 @@ class EndpointResolver:
                 result[key] = from_data[key]
 
     def _expand_template(self, partition, template, service_name,
-                         endpoint_name, dnsSuffix):
+                         endpoint_name, dnsSuffix, port):
         return template.format(
-            service=service_name, port=endpoint_name,
-            dnsSuffix=dnsSuffix)
+            service=service_name, endpoint=endpoint_name,
+            dnsSuffix=dnsSuffix, port=port)
 
     def get_service_endpoints_data(self, service_name, partition_name='aws'):
         """Obtains endpoint data for a particular partition-service

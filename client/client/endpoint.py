@@ -2,7 +2,7 @@ import logging
 import re
 from urllib.parse import urlsplit
 
-from .httpsession import LiveServerSession
+from requests import Session as HttpSession
 
 logger = logging.getLogger(__name__)
 DEFAULT_TIMEOUT = 60
@@ -55,11 +55,16 @@ class Endpoint:
         self._response_parser_factory = response_parser_factory
         self.http_session = http_session
         if self.http_session is None:
-            self.http_session = LiveServerSession()
+            self.http_session = HttpSession()
 
     def make_request(self, request_dict):
         logger.debug("Making request with params: %s", request_dict)
         return self._send_request(request_dict)
+
+    def _send_request(self, request_dict):
+        http_response = self.http_session.post(url=self.host,
+                                               json=request_dict)
+        return http_response, http_response.json()
 
     def __repr__(self):
         return '%s(%s)' % (self._endpoint_prefix, self.host)
@@ -73,7 +78,7 @@ class EndpointCreator:
             self, service_name, endpoint_url,
             verify=None, response_parser_factory=None,
             timeout=DEFAULT_TIMEOUT, max_pool_connections=MAX_POOL_CONNECTIONS,
-            http_session_cls=LiveServerSession, proxies=None,
+            http_session_cls=HttpSession, proxies=None,
             socket_options=None,
             client_cert=None, proxies_config=None
     ):
@@ -84,14 +89,7 @@ class EndpointCreator:
             raise ValueError("Invalid endpoint: %s" % endpoint_url)
 
         endpoint_prefix = service_name
-        http_session = http_session_cls(
-            timeout=timeout,
-            proxies=proxies,
-            max_pool_connections=max_pool_connections,
-            socket_options=socket_options,
-            client_cert=client_cert,
-            proxies_config=proxies_config
-        )
+        http_session = http_session_cls()
 
         return Endpoint(
             endpoint_url,

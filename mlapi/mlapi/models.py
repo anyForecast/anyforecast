@@ -1,4 +1,3 @@
-from fastapi import FastAPI
 from pydantic import BaseModel
 
 
@@ -8,11 +7,3 @@ class Predictor(BaseModel):
     forecast_horizon = int
     perform_hpo: bool = False
     bucket_name: str
-
-
-app = FastAPI()
-
-
-@app.post("/forecast")
-async def create_predictor(predictor: Predictor):
-    return predictor
