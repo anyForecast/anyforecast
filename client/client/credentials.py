@@ -72,6 +72,13 @@ class Credentials:
             method = 'explicit'
         self.method = method
 
+    def resolve(self):
+        return {
+            'access_key': self.access_key,
+            'secret_key': self.secret_key,
+            'token': self.token
+        }
+
 
 class CredentialResolver:
     def __init__(self, providers):

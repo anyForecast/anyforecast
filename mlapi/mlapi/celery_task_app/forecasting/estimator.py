@@ -9,9 +9,9 @@ class EstimatorCreator:
         'tft': TFT
     }
 
-    def __init__(self, predictor, dataset_collector):
+    def __init__(self, predictor, merger):
         self.predictor = predictor
-        self.dataset_collector = dataset_collector
+        self.merger = merger
 
     def create_estimator(self):
         cls = self._get_estimator_class()
@@ -22,19 +22,18 @@ class EstimatorCreator:
         return self.ESTIMATORS[self.predictor.algorithm]
 
     def _get_estimator_args(self):
-        args_creator = EstimatorArgsCreator(self.predictor,
-                                            self.dataset_collector)
+        args_creator = EstimatorArgsCreator(self.predictor, self.merger)
         return args_creator.get_estimator_args()
 
 
 class EstimatorArgsCreator:
-    def __init__(self, predictor, dataset_collector):
+    def __init__(self, predictor, merger):
         self.predictor = predictor
-        self.dataset_collector = dataset_collector
+        self.merger = merger
 
     def get_estimator_args(self):
-        time_segmentation = self.dataset_collector.get_names(include_pk=False)
-        group_ids = self.dataset_collector.get_group_ids()
+        time_segmentation = self.merger.resolve_names()
+        group_ids = self.merger.get_group_ids()
         max_prediction_length = self.predictor.forecast_horizon
         time_idx = 'time_idx'
 

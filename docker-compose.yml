@@ -1,9 +1,9 @@
 version: "3"
 services:
   client:
-    # `client` container aims to be an installable python 
-    # library that will serve as a http client for the mlapi 
-    # service.
+    # `client` container contains a 'client' directory which aims 
+    # to be an installable python library that will serve as a http 
+    # client for the mlapi service.
     restart: always
     build: ./client
     image: client

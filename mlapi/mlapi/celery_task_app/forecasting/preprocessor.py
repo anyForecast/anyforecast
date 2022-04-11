@@ -24,7 +24,7 @@ class PreprocessorCreator:
 
         steps = [
             ("groups", GroupTransformer(group_trans, self.group_ids)),
-            ("outer", DataframeColumnTransformer(outer_trans))
+            #("outer", DataframeColumnTransformer(outer_trans))
         ]
         return Pipeline(steps=steps)
 

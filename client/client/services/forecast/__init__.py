@@ -1,4 +1,4 @@
-from .forecast import Forecast
+from ._forecast import Forecast
 
 __all__ = [
     'Forecast'
