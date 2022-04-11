@@ -9,8 +9,8 @@ from ..base import BaseService
 class MinioClient(BaseService):
     DATA_ROOT = 'data'
 
-    def __init__(self, endpoint, loader, credentials):
-        super().__init__(endpoint, loader, credentials)
+    def __init__(self, endpoint, credentials):
+        super().__init__(endpoint, credentials)
 
     def _create_minio_client(self):
         args_creator = MinioArgsCreator(self.endpoint, self._credentials)

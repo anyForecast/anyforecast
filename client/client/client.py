@@ -9,11 +9,15 @@ SERVICES = {
 
 
 class ClientCreator:
-    """Creates service clients.
+    """Service client creator.
+
+    Parameters
+    ----------
+    endpoint_resolver :
+        Resolver for endpoint data.
     """
 
-    def __init__(self, loader, endpoint_resolver):
-        self._loader = loader
+    def __init__(self, endpoint_resolver):
         self._endpoint_resolver = endpoint_resolver
 
     def create_client(self, service_name, endpoint_name, is_secure=True,
@@ -33,7 +37,7 @@ class ClientCreator:
 
     def _get_client_args(self, service_name, endpoint_name, endpoint_bridge,
                          is_secure, endpoint_url, credentials):
-        args_creator = ClientArgsCreator(self._loader)
+        args_creator = ClientArgsCreator()
         return args_creator.get_client_args(
             service_name, endpoint_name, is_secure, endpoint_url,
             credentials, endpoint_bridge
@@ -41,22 +45,25 @@ class ClientCreator:
 
 
 class ClientArgsCreator:
-    def __init__(self, loader):
-        self._loader = loader
+    """Creates client args.
+
+    Since services share a common interface, a consistent procedure for
+    obtaining their constructor arguments can be achieved.
+    """
 
     def get_client_args(self, service_name, endpoint_name, is_secure,
                         endpoint_url, credentials, endpoint_bridge):
-        final_args = self.compute_client_args(service_name, endpoint_name,
-                                              endpoint_bridge, endpoint_url,
-                                              is_secure)
 
-        endpoint = self._get_endpoint(final_args['endpoint_config'])
+        # Resolve endpoint data.
+        resolved = self._resolve_endpoint(
+            service_name, endpoint_name, endpoint_url, is_secure,
+            endpoint_bridge)
 
-        return {
-            'endpoint': endpoint,
-            'loader': self._loader,
-            'credentials': credentials,
-        }
+        # Create endpoint object.
+        endpoint_config = resolved['endpoint_config']
+        endpoint = self._get_endpoint(endpoint_config)
+
+        return {'endpoint': endpoint, 'credentials': credentials}
 
     def _get_endpoint(self, endpoint_config):
         endpoint_creator = EndpointCreator()
@@ -66,32 +73,6 @@ class ClientArgsCreator:
             endpoint_url=endpoint_config['endpoint_url']
         )
         return endpoint
-
-    def compute_client_args(self, service_name, endpoint_name, endpoint_bridge,
-                            endpoint_url, is_secure):
-        endpoint_config = self._compute_endpoint_config(
-            service_name=service_name,
-            endpoint_name=endpoint_name,
-            endpoint_url=endpoint_url,
-            is_secure=is_secure,
-            endpoint_bridge=endpoint_bridge
-        )
-
-        return {
-            'service_name': service_name,
-            'endpoint_config': endpoint_config,
-        }
-
-    def _compute_endpoint_config(self, service_name, endpoint_name,
-                                 endpoint_url, is_secure, endpoint_bridge):
-        resolve_endpoint_kwargs = {
-            'service_name': service_name,
-            'endpoint_name': endpoint_name,
-            'endpoint_url': endpoint_url,
-            'is_secure': is_secure,
-            'endpoint_bridge': endpoint_bridge,
-        }
-        return self._resolve_endpoint(**resolve_endpoint_kwargs)
 
     def _resolve_endpoint(self, service_name, endpoint_name, endpoint_url,
                           is_secure, endpoint_bridge):

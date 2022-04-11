@@ -1,7 +1,6 @@
 class BaseService:
-    def __init__(self, endpoint, loader, credentials):
+    def __init__(self, endpoint, credentials):
         self.endpoint = endpoint
-        self._loader = loader
         self._credentials = credentials
 
     def _make_api_call(self, api_params, annon=False):
