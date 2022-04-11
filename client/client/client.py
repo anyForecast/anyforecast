@@ -1,8 +1,9 @@
 from .endpoint import EndpointCreator
 from .exceptions import UnknownServiceError
-from .services import Forecast
+from .services import Forecast, MinioClient
 
 SERVICES = {
+    'minio': MinioClient,
     'forecast': Forecast
 }
 
@@ -49,18 +50,12 @@ class ClientArgsCreator:
                                               endpoint_bridge, endpoint_url,
                                               is_secure)
 
-        # Every client requires two endpoints: one for the actual service and
-        # the other for s3 (minio).
-        service_endpoint = self._get_endpoint(
-            final_args['service_endpoint_config']
-        )
-        s3_endpoint = self._get_endpoint(final_args['s3_endpoint_config'])
+        endpoint = self._get_endpoint(final_args['endpoint_config'])
 
         return {
-            'endpoint': service_endpoint,
+            'endpoint': endpoint,
             'loader': self._loader,
             'credentials': credentials,
-            's3_endpoint': s3_endpoint
         }
 
     def _get_endpoint(self, endpoint_config):
@@ -74,24 +69,17 @@ class ClientArgsCreator:
 
     def compute_client_args(self, service_name, endpoint_name, endpoint_bridge,
                             endpoint_url, is_secure):
-        service_endpoint_config = self._compute_endpoint_config(
+        endpoint_config = self._compute_endpoint_config(
             service_name=service_name,
             endpoint_name=endpoint_name,
             endpoint_url=endpoint_url,
             is_secure=is_secure,
             endpoint_bridge=endpoint_bridge
         )
-        s3_endpoint_config = self._compute_endpoint_config(
-            service_name='minio',
-            endpoint_name=endpoint_name,
-            endpoint_url=None,
-            is_secure=False,
-            endpoint_bridge=endpoint_bridge
-        )
+
         return {
             'service_name': service_name,
-            'service_endpoint_config': service_endpoint_config,
-            's3_endpoint_config': s3_endpoint_config
+            'endpoint_config': endpoint_config,
         }
 
     def _compute_endpoint_config(self, service_name, endpoint_name,

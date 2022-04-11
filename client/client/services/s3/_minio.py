@@ -2,35 +2,40 @@ import s3fs
 from minio import Minio
 from pyarrow import parquet as pq
 
-from .dataset import make_dataset
+from ._dataset import make_dataset
+from ..base import BaseService
 
 
-class MinioClient:
+class MinioClient(BaseService):
+    DATA_ROOT = 'data'
+
     def __init__(self, endpoint, loader, credentials):
-        self.loader = loader
-        self._args_creator = MinioArgsCreator(endpoint, credentials)
-        self._minio_client = self._create_minio_client()
+        super().__init__(endpoint, loader, credentials)
 
     def _create_minio_client(self):
-        client_args = self._args_creator.create_args()
+        args_creator = MinioArgsCreator(self.endpoint, self._credentials)
+        client_args = args_creator.create_args()
         return Minio(**client_args)
 
     def create_dataset(self, df, schema, dataset_type, name):
-        if not self._minio_client.bucket_exists(bucket_name=name):
-            self._minio_client.make_bucket(bucket_name=name)
+        minio_client = self._create_minio_client()
+        if not minio_client.bucket_exists(bucket_name=name):
+            minio_client.make_bucket(bucket_name=name)
 
         dataset = make_dataset(df, schema, dataset_type)
         self._write_dataset_to_s3(dataset, name)
 
     def _get_s3_filesystem(self):
-        client_args = self._args_creator.create_args_for_s3_filesystem()
+        args_creator = MinioArgsCreator(self.endpoint, self._credentials)
+        client_args = args_creator.create_args_for_s3_filesystem()
         return s3fs.S3FileSystem(
             anon=False,
             use_ssl=False,
             client_kwargs=client_args
         )
 
-    def _get_s3_root_path(self, bucket_name, *args, include_s3_prefix=True):
+    def _get_dataset_root_path(self, bucket_name, *args,
+                               include_s3_prefix=True):
         path = bucket_name + '/' + '/'.join(args)
         if include_s3_prefix:
             return "s3://" + path
@@ -38,11 +43,16 @@ class MinioClient:
 
     def _write_dataset_to_s3(self, dataset, name):
         fs = self._get_s3_filesystem()
-        root_path = self._get_s3_root_path(
-            name, dataset.type, include_s3_prefix=False)
-        pq.write_to_dataset(dataset.to_pyarrow(), root_path, filesystem=fs,
-                            use_dictionary=True, compression="snappy",
-                            version="2.4")
+        args = [self.DATA_ROOT, dataset.type]
+        dataset_root_path = self._get_dataset_root_path(
+            name, *args, include_s3_prefix=False)
+
+        # Notice `dataset_root_path` has the form:
+        # <bucket_name>/DATA_ROOT/<dataset.type>
+
+        pq.write_to_dataset(dataset.to_pyarrow(), dataset_root_path,
+                            filesystem=fs, use_dictionary=True,
+                            compression="snappy", version="2.4")
 
 
 class MinioArgsCreator:

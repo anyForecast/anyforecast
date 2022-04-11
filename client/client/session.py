@@ -1,7 +1,7 @@
 import copy
 import logging
 
-from .client import ClientCreator
+from .client import ClientCreator, SERVICES
 from .configprovider import DEFAULT_SESSION_VARIABLES
 from .credentials import Credentials, create_credential_resolver
 from .exceptions import (PartialCredentialsError, NoRegionError,
@@ -157,7 +157,7 @@ class Session:
         services : list
             List of services names
         """
-        return self.SERVICES
+        return list(SERVICES)
 
 
 class ComponentLocator:
