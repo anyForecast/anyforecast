@@ -3,8 +3,8 @@ from ..base import BaseService
 
 class Forecast(BaseService):
 
-    def __init__(self, endpoint, loader, credentials):
-        super().__init__(endpoint, loader, credentials)
+    def __init__(self, endpoint, credentials):
+        super().__init__(endpoint, credentials)
 
     def create_predictor(self, name, algorithm, forecast_horizon,
                          bucket_name, minio_host, perform_hpo=False):

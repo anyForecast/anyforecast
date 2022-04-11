@@ -10,13 +10,15 @@ from .loaders import create_loader
 
 
 class Session:
-    """The Session object collects together useful functionality as well as
+    """A session stores configuration state and allows you to create service
+    clients.
+
+    It also collects together useful functionality as well as
     important data such as configuration information and credentials into a
     single, easy-to-use object.
     """
     # TODO: support for ``session_vars`` parameter.
     # Remainder: a Session is a collection of components.
-    SERVICES = ['forecast']
     SESSION_VARIABLES = copy.copy(DEFAULT_SESSION_VARIABLES)
 
     def __init__(self):
@@ -67,14 +69,16 @@ class Session:
                       endpoint_url=None, access_key_id=None,
                       secret_access_key=None, session_token=None,
                       is_secure=True):
-        """Create a low-level service client by name.
+        """Creates service client by name.
 
         Parameters
         ----------
         service_name : str
-            The name of a service, e.g. 'forecast' or 'another_service'. You
-            can get a list of available services via
-            :py:meth:`get_available_services`.
+            Name of the service. To list available services call method
+            :meth:`get_available_services`.
+
+        endpoint_name : str
+            Endpoint for the passed service.
 
         endpoint_url : str, default=None
             The complete URL to use for the constructed
@@ -97,8 +101,11 @@ class Session:
         session_token : str, default=None
             The session token to use when creating
             the client.  Same semantics as aws_access_key_id above.
+
+        is_secure : bool, default=True
+            Whether or not to use SSL.  By default, SSL is used.
+            Note that not all services support non-ssl connections.
         """
-        loader = self.get_component('data_loader')
         if access_key_id is not None and secret_access_key is not None:
             credentials = Credentials(
                 access_key=access_key_id,
@@ -114,7 +121,7 @@ class Session:
             credentials = self.get_credentials()
 
         endpoint_resolver = self._get_internal_component('endpoint_resolver')
-        client_creator = ClientCreator(loader, endpoint_resolver)
+        client_creator = ClientCreator(endpoint_resolver)
         return client_creator.create_client(service_name, endpoint_name,
                                             is_secure=is_secure,
                                             endpoint_url=endpoint_url,
