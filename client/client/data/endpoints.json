@@ -14,9 +14,23 @@
       },
       "forecast": {
         "defaults" : {
-          "hostname" : "mlapi:{port}/{service}{dnsSuffix}"
+          "hostname" : "mlapi:{port}/{service}/{endpoint}{dnsSuffix}"
         },
         "port": "80",
+        "endpoints": {}
+      },
+      "login": {
+        "defaults": {
+          "hostname": "mlapi:{port}/{service}{dnsSuffix}"
+        },
+        "port": "80",
+        "endpoints": {}
+      },
+      "authenticator": {
+        "defaults": {
+          "hostname" : "mlapi:{port}/users/me"
+        },
+        "port": 80,
         "endpoints": {}
       }
     }

@@ -1,6 +1,6 @@
 import pyarrow as pa
 
-from ...exceptions import (
+from client.exceptions import (
     MissingGroupIds,
     TypeNotSupported,
     MissingFeatureKey,

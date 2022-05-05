@@ -1,9 +1,9 @@
-from .merger import TimeSeriesMerger
 from .estimator import EstimatorCreator
+from .parquet_resolver import TimeSeriesResolver
 from .preprocessor import PreprocessorCreator
 
 __all__ = [
-    'TimeSeriesMerger',
     'EstimatorCreator',
+    'TimeSeriesResolver',
     'PreprocessorCreator'
 ]

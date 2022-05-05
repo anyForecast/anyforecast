@@ -1,5 +1,21 @@
 version: "3"
 services:
+  
+  rabbitmq:
+    # Message broker for Celery.
+    restart: always
+    build: ./rabbitmq
+    image: rabbitmq
+    container_name: rabbitmq
+    expose:
+      - ${RABBITMQ_PORT}
+    ports:
+      - ${RABBITMQ_PORT}:${RABBITMQ_PORT}
+    networks:
+      - backend
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq/data
+
   client:
     # `client` container contains a 'client' directory which aims 
     # to be an installable python library that will serve as a http 
@@ -26,7 +42,8 @@ services:
 
   mlapi:
     # Container with the purpose of offering machine learning as a service.
-    # This `mlapi` service uses FastAPI for handling http requests.
+    # This `mlapi` service uses FastAPI for handling http requests and 
+    # Celery for task queues.
     restart: always
     build: ./mlapi
     image: mlapi
@@ -155,3 +172,5 @@ networks:
 volumes:
   pg_data:
   minio_data:
+  rabbitmq_data:
+
