@@ -1,7 +1,9 @@
 from .forecast import Forecast
-from .s3 import MinioClient
+from .minio import MinioClient
+from .login import Login
 
 __all__ = [
     'Forecast',
-    'MinioClient'
+    'MinioClient',
+    'Login'
 ]
