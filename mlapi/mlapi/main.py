@@ -55,11 +55,13 @@ class UserInDB(User):
 
 
 class Forecaster(BaseModel):
-    name: str
+    task_name: str
+    dataset_group_name: str
+    dataset_name: str
     algorithm: str
     forecast_horizon: int
-    dataset_name: str
-    perform_hpo: bool
+    perform_hpo: Optional[bool] = False
+    inference_folder: Optional[str] = None
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -182,5 +184,6 @@ async def create_forecaster(
         forecaster: Forecaster,
         current_user: User = Depends(get_current_active_user)
 ):
-    task_id = CreateForecasterTask.delay(dict(forecaster), dict(current_user))
+    forecaster, current_user = map(dict, (forecaster, current_user))
+    task_id = CreateForecasterTask.delay(forecaster, current_user)
     return {'task_id': str(task_id), 'status': 'Processing'}

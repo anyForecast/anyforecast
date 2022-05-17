@@ -5,8 +5,24 @@ import pyarrow.parquet as pq
 from .exceptions import UniqueGroupIdsError, GroupIdsNotFound
 
 
+def make_parquet_resolver(name, **kwargs):
+    """Function fabric for parquet resolvers.
+
+    Parameters
+    ----------
+    name : str
+        Name for parquet resolver.
+
+    kwargs : named parquet Datasets.
+    """
+    parquet_resolvers = {
+        'timeseries_resolver': TimeSeriesResolver
+    }
+    return parquet_resolvers[name](**kwargs)
+
+
 class BaseParquetResolver:
-    """Base class for parquet mergers.
+    """Base class for parquet resolver.
 
     Parameters
     ----------
@@ -36,7 +52,7 @@ class BaseParquetResolver:
         -------
         arrow_schema : pyarrow.lib.Schema
         """
-        return dataset.schema.to_arrow_schema()
+        return dataset.schema
 
     def get_features(self, include_none=True):
         """Returns features for each dataset.
@@ -80,27 +96,22 @@ class BaseParquetResolver:
     def _validate_kwargs(self, **kwargs):
         for key, o in kwargs.items():
             if o is not None:
-                if not isinstance(o, pq.ParquetDataset):
+                if not isinstance(o, pq._ParquetDatasetV2):
+                    o_name = o.__class__.__name__
                     raise TypeError(
-                        'Not None parameters must be parquet datasets. '
-                        'Instead, kwarg {} received type {}'.format(key,
-                                                                    o.__class__.__name__))
+                        'Not "None" parameters must be parquet datasets V2, '
+                        'that is, :class:`pyarrow.parquet._ParquetDatasetV2`. '
+                        'Instead, kwarg "{}" received type "{}"'.format(key,
+                                                                    o_name))
 
 
 class TimeSeriesResolver(BaseParquetResolver):
-    def __init__(
-            self,
-            target,
-            time_varying_known_reals=None,
-            time_varying_unknown_reals=None,
-            static_categoricals=None
-    ):
-        super().__init__(
-            target=target,
-            time_varying_known_reals=time_varying_known_reals,
-            time_varying_unknown_reals=time_varying_unknown_reals,
-            static_categoricals=static_categoricals
-        )
+    def __init__(self, target, time_varying_known_reals=None,
+                 time_varying_unknown_reals=None, static_categoricals=None):
+        super().__init__(target=target,
+                         time_varying_known_reals=time_varying_known_reals,
+                         time_varying_unknown_reals=time_varying_unknown_reals,
+                         static_categoricals=static_categoricals)
         self._validate()
 
     def _validate(self):
@@ -126,7 +137,7 @@ class TimeSeriesResolver(BaseParquetResolver):
         # Raise error if group_ids were not found.
         group_ids = unique_group_ids[0]
         if not group_ids:
-            raise GroupIdsNotFound
+            raise GroupIdsNotFound()
 
         self._group_ids = group_ids
 

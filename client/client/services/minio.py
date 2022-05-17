@@ -9,34 +9,39 @@ from ..credentials import Credentials
 
 
 class MinioClient(BaseService):
-    DATA_ROOT = 'data'
+    DATASETS_BUCKET = 'datasets'
 
     def __init__(self, endpoint, loader, access_token):
         super().__init__(endpoint, loader, access_token)
 
-    def create_dataset(self, df, schema, dataset_type, name):
+    def create_dataset(self, dataset_group_name, dataset_name, data, schema,
+                       dataset_type):
         """Writes dataset to s3 bucket.
 
         Parameters
         ----------
-        df : pd.DataFrame
-            Training data
+        dataset_group_name : str
+            "Folder" under which the dataset will be stored.
+
+        dataset_name : str
+            Dataset name. Name for identifying the dataset inside the project.
+
+        data : pd.DataFrame
+            Data to upload to s3.
 
         schema : dict
-            Schema from `df`.
+            Schema for ``data``.
 
         dataset_type : str, {'target'}
             Dataset type.
-
-        name : str
-            Dataset name.
         """
         minio_client = self._create_minio_client()
-        if not minio_client.bucket_exists(bucket_name=name):
-            minio_client.make_bucket(bucket_name=name)
+        if not minio_client.bucket_exists(bucket_name=self.DATASETS_BUCKET):
+            minio_client.make_bucket(bucket_name=self.DATASETS_BUCKET)
 
-        dataset = make_dataset(df, schema, dataset_type)
-        self._write_dataset_to_s3(dataset, name)
+        dataset = make_dataset(data, schema, dataset_type)
+        return self._write_dataset_to_s3(dataset, dataset_group_name,
+                                         dataset_name)
 
     def _create_minio_client(self):
         credentials = self._get_credentials()
@@ -66,21 +71,22 @@ class MinioClient(BaseService):
             client_kwargs=client_args
         )
 
-    def _get_dataset_root_path(self, bucket_name, *args,
-                               include_s3_prefix=True):
-        path = bucket_name + '/' + '/'.join(args)
+    def _get_dataset_root_path(self, *args, include_s3_prefix=True):
+        args = list(args)
+        args.insert(0, self.DATASETS_BUCKET)
+        path = '/'.join(args)
         if include_s3_prefix:
             return "s3://" + path
         return path
 
-    def _write_dataset_to_s3(self, dataset, name):
+    def _write_dataset_to_s3(self, dataset, dataset_group_name, dataset_name):
         fs = self._get_s3_filesystem()
-        args = [self.DATA_ROOT, dataset.type]
 
         # Notice `dataset_root_path` has the form:
-        # <bucket_name>/DATA_ROOT/<dataset.type>
+        # <DATASETS_BUCKET>/<dataset_group_name>/<dataset_name>/<dataset.type>
+        args = [dataset_group_name, dataset_name, dataset.type]
         dataset_root_path = self._get_dataset_root_path(
-            name, *args, include_s3_prefix=False)
+            *args, include_s3_prefix=False)
 
         pq.write_to_dataset(dataset.to_pyarrow(), dataset_root_path,
                             filesystem=fs, use_dictionary=True,
