@@ -59,10 +59,10 @@ services:
       - ${MLAPI_PORT}:${MLAPI_PORT} 
     volumes:
       - ./mlapi:/home/worker/mlapi
-    # (Temporary) Keep a main bash session always active.
     networks:
       - frontend
       - backend
+    # (Temporary) Keep a main bash session always active.
     stdin_open: true # docker run -i
     tty: true        # docker run -t
     command:
