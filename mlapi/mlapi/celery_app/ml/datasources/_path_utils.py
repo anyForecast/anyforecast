@@ -1,6 +1,3 @@
-"""Utility functions for path operations.
-"""
-
 import os
 
 

@@ -1,67 +1,79 @@
 import celery
-from mlflow.models.signature import infer_signature
+import mlflow
 from sklearn.pipeline import Pipeline
 
 from .celery import app
 from .client_args import ClientArgs
-from .ml.datasources.parquet_loader import S3ParquetLoader
+from .ml.datasources import S3ParquetLoader
 from .ml.estimator import EstimatorCreator
-from .ml.logger import MlFlowLogger
 from .ml.parquet_resolver import make_parquet_resolver
 from .ml.preprocessor import PreprocessorCreator
-from .ml.utils.data import AttrDict, get_history
-from .ml.wrappers import wrap_pipeline
-from .ml.utils.s3 import make_s3_path
+from .ml.mlflow_log import MlFlowLogger
+
+DATASETS_BUCKET = 'datasets'
+
+
+class _AttrDict(dict):
+    """Auxiliary class for accessing dictionary keys like attributes.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__dict__ = self
+
+
+def _create_client_args(user):
+    """Private function for creating a :class:`ClientArgs` instance.
+    """
+    client_args = {
+        "s3_endpoint": user.s3_endpoint,
+        "access_key": user.access_key,
+        "secret_key": user.secret_key,
+        'secure': False
+    }
+    return ClientArgs(**client_args)
+
+
+def _resolve_parquet_datasets(dataset, user):
+    """Private function for resolving parquet datasets.
+    """
+    client_args = _create_client_args(user)
+
+    # Load all available parquets.
+    parquet_loader = S3ParquetLoader(client_args)
+    prefix = [dataset.dataset_group_name, dataset.dataset_name]
+    datasets = parquet_loader.load_many(DATASETS_BUCKET, *prefix)
+
+    # Resolve parquets.
+    resolver = make_parquet_resolver('timeseries_resolver', **datasets)
+    return resolver.resolve()
 
 
 class CreateForecasterTask(celery.Task):
-    """Loads, preprocess and fits data from s3.
+    """Loads, preprocess and fits timeseries data.
     """
 
-    METRICS = ['train_loss']
-    DATASETS_BUCKET = 'datasets'
+    def run(self, forecaster, dataset, user):
+        forecaster, dataset, user = map(_AttrDict, (forecaster, dataset, user))
 
-    def run(self, forecaster_data, user_data):
-        forecaster = AttrDict(forecaster_data)
-        user = AttrDict(user_data)
+        with mlflow.start_run(run_name=forecaster.task_name):
+            resolved = _resolve_parquet_datasets(dataset, user)
+            X = resolved['X']
+            group_ids = resolved['group_ids']
+            timestamp = resolved['timestamp']
+            target = 'target'
 
-        # Load data.
-        resolved = self._resolve_dataset(forecaster, user)
-        X = resolved['X']
-        group_ids = resolved['group_ids']
-        timestamp = resolved['timestamp']
-        target = 'target'
+            preprocessor = self._create_preprocessor(
+                group_ids, target, timestamp)
+            estimator = self._create_estimator(forecaster, group_ids)
+            pipeline = self._fit_pipeline(X, preprocessor, estimator)
 
-        # Create both preprocessor and estimator.
-        preprocessor = self._create_preprocessor(group_ids, target, timestamp)
-        estimator = self._create_estimator(forecaster, group_ids)
-
-        # Put everything inside a sklearn Pipeline and fit.
-        pipeline = self._fit_pipeline(X, preprocessor, estimator)
-
-        # Save metrics
-        logger = MlFlowLogger()
-        for metric in self.METRICS:
-            estimator = pipeline['estimator']
-            history = get_history(estimator, metric)
-            logger.save_metric(name=metric, values=history)
-
-        # Save model the model with a signature that defines the schema of
-        # the model's inputs and outputs. When the model is deployed, this
-        # signature will be used to validate inputs.
-        wrapped_pipeline = wrap_pipeline(pipeline)
-        signature = infer_signature(X, wrapped_pipeline.predict(None, X))
-        logger.save_python_model(
-            name='pipeline', python_model=wrapped_pipeline,
-            signature=signature,
-            artifacts=self._create_inference_artifacts(forecaster))
-
-        # Log all
-        logger.log_all()
+            logger = MlFlowLogger(pipeline, X)
+            logger.log(run_name=forecaster.task_name)
 
     def _fit_pipeline(self, X, preprocessor, estimator):
         """Collects both `preprocessor` and `estimator` into a single
-        :class:`sklearn.pipeline.Pipeline` object and fits X.
+        sklearn pipeline object and fits X.
         """
         steps = [('preprocessor', preprocessor), ('estimator', estimator)]
         pipeline = Pipeline(steps)
@@ -91,38 +103,26 @@ class CreateForecasterTask(celery.Task):
         preprocessor = preprocessor_creator.create_preprocessor()
         return preprocessor
 
-    def _resolve_dataset(self, forecaster, user):
-        """Calls :meth:`resolve` from :class:`TimeSeriesResolver`.
-
-        Returns
-        -------
-        dict : str -> obj
-        """
-        client_args = {
-            "s3_endpoint": user.s3_endpoint,
-            "access_key": user.access_key,
-            "secret_key": user.secret_key,
-            'secure': False
-        }
-        client_args = ClientArgs(**client_args)
-        parquet_loader = S3ParquetLoader(client_args)
-
-        # Parquet loading.
-        bucket_name = self.DATASETS_BUCKET
-        prefix = [forecaster.dataset_group_name, forecaster.dataset_name]
-        datasets = parquet_loader.load_many(bucket_name, *prefix)
-
-        timeseries_resolver = make_parquet_resolver('timeseries_resolver')(
-            **datasets)
-        return timeseries_resolver.resolve()
-
-    def _create_inference_artifacts(self, forecaster):
-        if forecaster.inference_folder is not None:
-            bucket_name = self.DATASETS_BUCKET
-            args = [forecaster.dataset_group_name, forecaster.inference_folder]
-            inference_path = make_s3_path(bucket_name, *args)
-            return {"inference": inference_path}
-        return None
-
 
 CreateForecasterTask = app.register_task(CreateForecasterTask())
+
+
+class PredictTask(celery.Task):
+
+    def run(self, model, dataset, user):
+        model, dataset, user = map(_AttrDict, (model, dataset, user))
+
+        model_input = self._load_model_input(dataset, user)
+        model = self._load_model(model)
+        model_output = model.predict(model_input)
+        return model_output.to_json()
+
+    def _load_model_input(self, dataset, user):
+        resolved = _resolve_parquet_datasets(dataset, user)
+        return resolved['X']
+
+    def _load_model(self, model):
+        return mlflow.pyfunc.load_model(f"models:/{model.name}/production")
+
+
+PredictTask = app.register_task(PredictTask())

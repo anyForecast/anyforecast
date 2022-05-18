@@ -42,7 +42,7 @@ class PreprocessorCreator:
         2. Group transformations:
             Transformations defined here will act group by group.
 
-        3. Column transformation:
+        3. Column transformations:
             Transformations defined here will act on the entire data.
 
         Parameters

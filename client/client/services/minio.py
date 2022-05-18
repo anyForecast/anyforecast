@@ -55,9 +55,8 @@ class MinioClient(BaseService):
 
     def _authenticate(self):
         authenticator = Authenticator.initialize(
-            loader=self.loader, service_name='authenticator',
-            endpoint_name=None, is_secure=False, endpoint_url=None,
-            access_token=self.access_token)
+            loader=self.loader,  endpoint_name=None, is_secure=False,
+            endpoint_url=None, access_token=self.access_token)
 
         return authenticator.authenticate()
 

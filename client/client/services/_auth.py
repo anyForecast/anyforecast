@@ -14,8 +14,9 @@ class Authenticator(BaseService):
         return self._make_api_call(annon=False)
 
     @classmethod
-    def initialize(cls, loader, service_name, endpoint_name, is_secure,
+    def initialize(cls, loader, endpoint_name, is_secure,
                    endpoint_url, access_token):
+        service_name = 'authenticator'
         endpoint_data = loader.load_data('endpoints')
         endpoint_resolver = EndpointResolver(endpoint_data)
         endpoint_bridge = ClientEndpointBridge(endpoint_resolver)
