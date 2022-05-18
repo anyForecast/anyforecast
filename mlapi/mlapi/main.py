@@ -7,7 +7,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 
-from celery_app.tasks import CreateForecasterTask
+from celery_app.tasks import CreateForecasterTask, PredictTask
 
 # To get a string like this run:
 # openssl rand -hex 32
@@ -50,18 +50,24 @@ class User(BaseModel):
     s3_endpoint: Optional[str] = None
 
 
+class Dataset(BaseModel):
+    dataset_group_name: str
+    dataset_name: str
+
+
 class UserInDB(User):
     hashed_password: str
 
 
+class Model(BaseModel):
+    name: str
+
+
 class Forecaster(BaseModel):
     task_name: str
-    dataset_group_name: str
-    dataset_name: str
     algorithm: str
     forecast_horizon: int
     perform_hpo: Optional[bool] = False
-    inference_folder: Optional[str] = None
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -173,17 +179,27 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
 
 
-@app.get("/users/me/items/")
-async def read_own_items(
-        current_user: User = Depends(get_current_active_user)):
-    return [{"item_id": "Foo", "owner": current_user.username}]
-
-
 @app.post("/forecast/")
 async def create_forecaster(
         forecaster: Forecaster,
+        dataset: Dataset,
         current_user: User = Depends(get_current_active_user)
 ):
-    forecaster, current_user = map(dict, (forecaster, current_user))
-    task_id = CreateForecasterTask.delay(forecaster, current_user)
+    task_id = CreateForecasterTask.delay(
+        *map(dict, (forecaster, dataset, current_user))
+    )
     return {'task_id': str(task_id), 'status': 'Processing'}
+
+
+@app.post("/predict/")
+async def predict(
+        model: Model,
+        dataset: Dataset,
+        current_user: User = Depends(get_current_active_user)
+):
+    """Requests predictions.
+    """
+    json = PredictTask.run(
+        *map(dict, (model, dataset, current_user))
+    )
+    return json

@@ -24,6 +24,11 @@ def make_parquet_resolver(name, **kwargs):
 class BaseParquetResolver:
     """Base class for parquet resolver.
 
+    Derived classes are not meant to be constructed
+    directly. Instead, instances of derived classes are constructed and
+    returned from :py:func:`make_parquet_resolver`
+    <celery_app.parquet_resolver.make_parquet_resolver>`.
+
     Parameters
     ----------
     **kwargs : named parquet datasets
@@ -52,6 +57,13 @@ class BaseParquetResolver:
         -------
         arrow_schema : pyarrow.lib.Schema
         """
+        if isinstance(dataset, pq.ParquetDataset):
+            return dataset.schema.to_arrow_schema()
+
+        # Parquet datasets constructed from
+        # :class:`pyarrow.parquet._ParquetDatasetV2` (the other allowed parquet
+        # dataset type, see :meth:`self._validate_kwargs`) contain the arrow
+        # schema directly on the schema attribute, i.e., `dataset.schema`.
         return dataset.schema
 
     def get_features(self, include_none=True):
@@ -94,15 +106,17 @@ class BaseParquetResolver:
         return merged_df
 
     def _validate_kwargs(self, **kwargs):
+        allowed_types = (pq.ParquetDataset, pq._ParquetDatasetV2)
+
         for key, o in kwargs.items():
             if o is not None:
-                if not isinstance(o, pq._ParquetDatasetV2):
+                if not isinstance(o, allowed_types):
                     o_name = o.__class__.__name__
                     raise TypeError(
                         'Not "None" parameters must be parquet datasets V2, '
                         'that is, :class:`pyarrow.parquet._ParquetDatasetV2`. '
                         'Instead, kwarg "{}" received type "{}"'.format(key,
-                                                                    o_name))
+                                                                        o_name))
 
 
 class TimeSeriesResolver(BaseParquetResolver):

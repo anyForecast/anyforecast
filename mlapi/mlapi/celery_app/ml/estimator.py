@@ -61,7 +61,7 @@ class EstimatorArgsCreator:
             'max_encoder_length': 5,
             'callbacks': callbacks,
             'cv_split': 1,
-            'max_epochs': 2,
+            'max_epochs': 20,
             **features_time_dependence
         }
 
