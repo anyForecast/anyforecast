@@ -6,14 +6,14 @@ from .celery import app
 from .client_args import ClientArgs
 from .ml.datasources import S3ParquetLoader
 from .ml.estimator import EstimatorCreator
-from .ml.parquet_resolver import make_parquet_resolver
+from .ml.parquet_resolvers import make_parquet_resolver
 from .ml.preprocessor import PreprocessorCreator
 from .ml.mlflow_log import MlFlowLogger
 
 DATASETS_BUCKET = 'datasets'
 
 
-class _AttrDict(dict):
+class AttrDict(dict):
     """Auxiliary class for accessing dictionary keys like attributes.
     """
 
@@ -54,7 +54,7 @@ class CreateForecasterTask(celery.Task):
     """
 
     def run(self, forecaster, dataset, user):
-        forecaster, dataset, user = map(_AttrDict, (forecaster, dataset, user))
+        forecaster, dataset, user = map(AttrDict, (forecaster, dataset, user))
 
         with mlflow.start_run(run_name=forecaster.task_name):
             resolved = _resolve_parquet_datasets(dataset, user)
@@ -110,7 +110,7 @@ CreateForecasterTask = app.register_task(CreateForecasterTask())
 class PredictTask(celery.Task):
 
     def run(self, model, dataset, user):
-        model, dataset, user = map(_AttrDict, (model, dataset, user))
+        model, dataset, user = map(AttrDict, (model, dataset, user))
 
         model_input = self._load_model_input(dataset, user)
         model = self._load_model(model)
