@@ -89,55 +89,68 @@ def _create_minio_client(client_args):
     minio_client : `minio.Minio`
         Instance from :class:`minio.Minio`.
     """
-    client_args = {
-        'access_key': client_args.access_key,
-        'secret_key': client_args.secret_key,
-        'endpoint': client_args.s3_endpoint,
-        'secure': client_args.secure
-    }
-    return Minio(**client_args)
+    minio_args = {'access_key': client_args.access_key,
+                  'secret_key': client_args.secret_key,
+                  'endpoint': client_args.s3_endpoint,
+                  'secure': client_args.secure}
+    return Minio(**minio_args)
 
 
-class ParquetLoader:
-    """Loader for parquet datasets.
+def _load_parquet_dataset(partition_path, **kwargs):
+    """Private function for creating parquet datasets.
+    """
+    return pq.ParquetDataset(partition_path, **kwargs)
+
+
+class MultiParquetLoader:
+    """Loads multiple parquet partitions into a single dictionary.
     """
 
-    def load(self, partition_path, **kwargs):
-        """Loads parquet dataset given a partition path.
+    def load(self, folder, use_legacy_dataset=False):
+        """Loads multiple parquet partitions into a single dictionary.
 
         Parameters
         ----------
-        partition_path : str
-        """
-        parquet_dataset = pq.ParquetDataset(
-            partition_path, use_legacy_dataset=False, **kwargs)
-        return parquet_dataset
+        folder : str
+            Path to folder containing multiple parquet partitions.
 
-    def load_many(self, folder):
-        many = {}
+        Returns
+        -------
+        dict : str -> pyarrow.parquet._ParquetDatasetV2
+        """
+        d = {}
         subfolders = list_subfolders(folder)
 
         # Each element from `subfolders` is a partition for a parquet dataset.
         for sub in subfolders:
             name = get_last_element_from_path(sub)
-            many[name] = self.load(sub)
-        return many
+            d[name] = _load_parquet_dataset(
+                sub, use_legacy_dataset=use_legacy_dataset)
+        return d
 
+    def load_from_s3(self, client_args, bucket_name, prefix):
+        """Loads multiple parquet partitions from a s3 bucket into a single
+        dictionary.
 
-class S3ParquetLoader:
-    def __init__(self, client_args):
-        self.client_args = client_args
-        self._loader = ParquetLoader()
+        Parameters
+        ----------
+        client_args : celery_app.client_args.ClientArgs
+            Used to create minio client.
 
-    def load(self, partition_path, filesystem):
-        return self._loader.load(partition_path, filesystem=filesystem)
+        bucket_name : str
+            Name of the bucket.
 
-    def load_many(self, bucket_name, *args):
-        many = {}
-        minio_client = _create_minio_client(self.client_args)
-        prefix = self._make_prefix(args)
+        prefix : str
+            Parquet partition objects start with this prefix.
+        """
+        d = {}
+
+        # Get objects inside s3 location.
+        minio_client = _create_minio_client(client_args)
         objects = minio_client.list_objects(bucket_name, prefix=prefix)
-        fs = _make_s3_filesystem(self.client_args)
+
+        # Make s3 filesystem.
+        fs = _make_s3_filesystem(client_args)
 
         for obj in objects:
             object_name = obj.object_name
@@ -145,11 +158,12 @@ class S3ParquetLoader:
             partition_path = _make_s3_path(bucket_name, *partition_args,
                                            include_s3_prefix=False)
             name = get_last_element_from_path(partition_path)
-            many[name] = self.load(partition_path, fs)
+            d[name] = _load_parquet_dataset(
+                partition_path, use_legacy_dataset=False, filesystem=fs)
 
-        return many
+        return d
 
-    def _make_prefix(self, args):
+    def make_prefix(self, args):
         prefix = '/'.join(args)
 
         # Important: add final slash!

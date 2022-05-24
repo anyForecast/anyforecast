@@ -1,5 +1,5 @@
 from .estimator import EstimatorCreator
-from .parquet_resolver import TimeSeriesResolver
+from .parquet_resolvers import TimeSeriesResolver
 from .preprocessor import PreprocessorCreator
 
 __all__ = [

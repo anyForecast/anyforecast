@@ -60,10 +60,9 @@ class BaseParquetResolver:
         if isinstance(dataset, pq.ParquetDataset):
             return dataset.schema.to_arrow_schema()
 
-        # Parquet datasets constructed from
-        # :class:`pyarrow.parquet._ParquetDatasetV2` (the other allowed parquet
-        # dataset type, see :meth:`self._validate_kwargs`) contain the arrow
-        # schema directly on the schema attribute, i.e., `dataset.schema`.
+        # Parquet datasets constructed from class
+        # :class:`pyarrow.parquet._ParquetDatasetV2` contain the arrow
+        # schema directly on the schema attribute, i.e. `dataset.schema`.
         return dataset.schema
 
     def get_features(self, include_none=True):
@@ -115,8 +114,8 @@ class BaseParquetResolver:
                     raise TypeError(
                         'Not "None" parameters must be parquet datasets V2, '
                         'that is, :class:`pyarrow.parquet._ParquetDatasetV2`. '
-                        'Instead, kwarg "{}" received type "{}"'.format(key,
-                                                                        o_name))
+                        'Instead, kwarg "{}" received type "{}"'.format(
+                            key, o_name))
 
 
 class TimeSeriesResolver(BaseParquetResolver):

@@ -1,6 +1,5 @@
-from ._parquet_loader import ParquetLoader, S3ParquetLoader
+from ._parquet_loader import MultiParquetLoader
 
 __all__ = [
-    'ParquetLoader',
-    'S3ParquetLoader'
+    'MultiParquetLoader'
 ]
