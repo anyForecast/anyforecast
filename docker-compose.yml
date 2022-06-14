@@ -40,29 +40,30 @@ services:
       # Keep a main bash session always active.
       - bash
 
-  mlapi:
+  api:
     # Container with the purpose of offering machine learning as a service.
     # This `mlapi` service uses FastAPI for handling http requests and 
     # Celery for task queues.
     restart: always
-    build: ./mlapi
-    image: mlapi
-    container_name: mlapi
+    build: ./api
+    image: api
+    container_name: api
     environment:
       - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
       - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
       - MLFLOW_TRACKING_URI=http://mlflow:${MLFLOW_PORT}
     expose:
-      - ${MLAPI_PORT}
+      - ${API_PORT}
     ports:
-      - ${MLAPI_PORT}:${MLAPI_PORT} 
+      - ${API_PORT}:${API_PORT} 
     volumes:
-      - ./mlapi:/home/worker/mlapi
+      - ./api:/home/worker/api
     networks:
       - frontend
       - backend
-    # (Temporary) Keep a main bash session always active.
+      - hadoop-spark-docker_hadoop_net
+    # Keep a main bash session always active.
     stdin_open: true # docker run -i
     tty: true        # docker run -t
     command:
@@ -82,8 +83,12 @@ services:
     networks:
       - frontend
       - backend
+      - hadoop-spark-docker_hadoop_net
     ports:
-      - ${JUPYTER_PORT}:${JUPYTER_PORT}
+      # It is sufficient to map port <JUPYTER_PORT> outside to 8888 inside the container.
+      # Note: The displayed connection URL will be incorrect, you’ll need to replace 8888 with <JUPYTER_PORT>, 
+      # that is, http://127.0.0.1:<JUPYTER_PORT>/?token=TOKEN should work.
+      - ${JUPYTER_PORT}:8888
     volumes:
       - ./jupyter/work:/home/jovyan/work
       - ./client:/home/jovyan/client
@@ -166,6 +171,8 @@ networks:
     driver: bridge
   backend:
     driver: bridge
+  hadoop-spark-docker_hadoop_net:
+    external: true
 
 # When you use a named volume like "data:/container/path", you must declare it at the docker-compose file.
 # This is not necessary when volumes are host paths.
