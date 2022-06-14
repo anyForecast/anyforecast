@@ -5,4 +5,4 @@ pyarrow>=7.0.0
 fastparquet>=0.8.0
 s3fs>=2022.2.0
 requests>=2.27.1
-ipython
+jupyterlab
