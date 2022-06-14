@@ -13,6 +13,6 @@ WORKDIR /home/worker
 COPY --chown=worker:worker . /home/worker/client
 
 # Install deps and add user bin to PATH
-RUN pip install --user -r client/requirements.txt
+RUN pip install --user --default-timeout=100 -r client/requirements.txt
 ENV PATH="/home/worker/.local/bin:${PATH}"
 
