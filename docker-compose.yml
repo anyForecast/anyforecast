@@ -13,13 +13,14 @@ services:
       - ${RABBITMQ_PORT}:${RABBITMQ_PORT}
     networks:
       - backend
+      - hadoop-spark-docker_hadoop_net
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq/data
 
   client:
     # `client` container contains a 'client' directory which aims 
     # to be an installable python library that will serve as a http 
-    # client for the mlapi service.
+    # client for the `api` service.
     restart: always
     build: ./client
     image: client
@@ -34,6 +35,7 @@ services:
     networks:
       - frontend
       - backend
+      - hadoop-spark-docker_hadoop_net
     stdin_open: true # docker run -i
     tty: true        # docker run -t
     command:
@@ -42,7 +44,7 @@ services:
 
   api:
     # Container with the purpose of offering machine learning as a service.
-    # This `mlapi` service uses FastAPI for handling http requests and 
+    # This `api` service uses FastAPI for handling http requests and 
     # Celery for task queues.
     restart: always
     build: ./api
@@ -92,7 +94,7 @@ services:
     volumes:
       - ./jupyter/work:/home/jovyan/work
       - ./client:/home/jovyan/client
-      - ./mlapi:/home/jovyan/mlapi
+      - ./api:/home/jovyan/api
     depends_on:
       - mlflow
       
@@ -107,6 +109,7 @@ services:
       - 6543:${POSTGRES_PORT}
     networks:
       - backend
+      - hadoop-spark-docker_hadoop_net
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
@@ -125,6 +128,7 @@ services:
     networks:
       - frontend
       - backend
+      - hadoop-spark-docker_hadoop_net
     environment:
       # Both keys are the same as aws keys (see mlflow environmet)
       - MINIO_ROOT_USER=$MINIO_ACCESS_KEY
@@ -144,6 +148,7 @@ services:
     networks:
       - frontend
       - backend
+      - hadoop-spark-docker_hadoop_net
     environment:
       - BACKEND=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/mlflow
       # For artifact store in local: (note mlrun_data volume must also be uncommented)
