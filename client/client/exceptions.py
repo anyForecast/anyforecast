@@ -56,6 +56,15 @@ class BucketDoesNotExist(BaseError):
     fmt = 'Bucket "{name}" does not exist. Create one using `create_bucket`.'
 
 
+class FeatureError(BaseError):
+    """Base exceptions for feature error"""
+
+
+class UnknownFeatureTypeError(FeatureError):
+    """Unknown feature type"""
+    fmt = 'Unknown feature type "{feature_type}".'
+
+
 class DatasetSchemaError(BaseError):
     """Base error for schema validations"""
 
@@ -71,11 +80,11 @@ class MissingDoubleUnderscore(DatasetSchemaError):
     fmt = "The group ids in a multi group ids schema must contain '__'."
 
 
-class TypeNotSupported(DatasetSchemaError):
+class DtypeNotSupported(DatasetSchemaError):
     """Feature in schema contains a different type from the supported ones.
     """
-    fmt = "Feature '{name}' contains type {type} which is not supported. " \
-          "Supported types: {supported_types}"
+    fmt = "Feature '{name}' contains type {dtype} which is not supported. " \
+          "Supported types: {supported_dtypes}"
 
 
 class MissingFeatureKey(DatasetSchemaError):
@@ -87,7 +96,8 @@ class MissingFeatureKey(DatasetSchemaError):
 class TypesMismatch(DatasetSchemaError):
     """Dataframe dtype does not match schema type.
     """
-    fmt = "Schema type '{type}' does not match pandas dtype '{dtype}'."
+    fmt = "Schema dtype '{schema_dtype}' does not match pandas " \
+          "dtype '{pandas_dtype}' for feature '{name}'."
 
 
 class DatasetTypeNotKnown(DatasetSchemaError):
@@ -120,19 +130,27 @@ class TargetDatasetError(DatasetSchemaError):
     """
 
 
+class ExtraFeaturesInPandasError(DatasetSchemaError):
+    """Dataset contains different features than schema.
+    """
+    fmt = "The following features inside pandas `DataFrame` are not part " \
+          "of the `schema` and must be either removed from the `DataFrame` " \
+          "or added to the `schema`: {extras}. "
+
+
+class ExtraFeaturesInSchemaError(DatasetSchemaError):
+    """Schema contains different features than dataset.
+    """
+    fmt = "The following features inside `schema` are not part of " \
+          "the `DataFrame` and must be either removed from the `schema` or " \
+          "added to the `DataFrame`: {extras}. "
+
+
 class MissingTarget(TargetDatasetError):
     """Schema for Target dataset does not contain a target feature.
     """
     fmt = "Schema for dataset_type='target' requires a 'target' feature of " \
           "type 'float'"
-
-
-class ExtraFeatures(TargetDatasetError):
-    """Target dataset contains extra features.
-    """
-    fmt = "Schema for dataset_type='target' only accepts the triplet " \
-          "(group_ids, timestamp,  target) as features. However, the " \
-          "following extra features were found: {extras}"
 
 
 class BaseEndpointResolverError(BaseError):

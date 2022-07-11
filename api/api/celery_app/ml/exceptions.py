@@ -26,20 +26,18 @@ class BaseError(Exception):
         return _exception_from_packed_args, (self.__class__, None, self.kwargs)
 
 
-class BaseParquetMergerError(BaseError):
-    """Base class for parquet merger validations.
+class BaseParquetResolverError(BaseError):
+    """Base class for :class:`ParquetResolver` validations.
     """
 
 
-class UniqueGroupIdsError(BaseParquetMergerError):
-    """Parquet merger datasets do not contain unique group_ids.
-
-    That is, different group_ids exist for different parquet datasets.
+class UniqueGroupIdsError(BaseParquetResolverError):
+    """:class:`ParquetResolver` datasets do not contain unique group_ids.
     """
     fmt = 'All parquet datasets must have the same group ids.'
 
 
-class GroupIdsNotFound(BaseParquetMergerError):
+class GroupIdsNotFound(BaseParquetResolverError):
     """Parquet datasets do not contain group_ids.
     """
     fmt = 'Parquet datasets do not contain group_ids.'

@@ -8,8 +8,8 @@ from .loaders import create_loader
 
 
 class Session:
-    """A session stores configuration state and allows you to create service
-    clients.
+    """A :class:`Session` object stores configuration state and allows you to
+    create service clients using :meth:`create_client` method.
 
     It also collects together useful functionality as well as
     important data such as configuration information and credentials into a

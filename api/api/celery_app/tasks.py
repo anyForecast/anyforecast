@@ -4,7 +4,7 @@ from sklearn.pipeline import Pipeline
 
 from .celery import app
 from .client_args import ClientArgs
-from .ml.datasources import S3ParquetLoader
+from .ml.datasources import MultiParquetLoader
 from .ml.estimator import EstimatorCreator
 from .ml.parquet_resolvers import make_parquet_resolver
 from .ml.preprocessor import PreprocessorCreator
@@ -40,9 +40,10 @@ def _resolve_parquet_datasets(dataset, user):
     client_args = _create_client_args(user)
 
     # Load all available parquets.
-    parquet_loader = S3ParquetLoader(client_args)
+    parquet_loader = MultiParquetLoader()
     prefix = [dataset.dataset_group_name, dataset.dataset_name]
-    datasets = parquet_loader.load_many(DATASETS_BUCKET, *prefix)
+    prefix = '/'.join(prefix) + '/'
+    datasets = parquet_loader.load_from_s3(client_args, DATASETS_BUCKET, prefix)
 
     # Resolve parquets.
     resolver = make_parquet_resolver('timeseries_resolver', **datasets)

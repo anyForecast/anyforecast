@@ -8,27 +8,30 @@
     "partitionName" : "AWS Standard",
     "protocols" : ["http"],
     "services" : {
-      "minio" : {
+      "writer" : {
+        "defaults": {
+          "hostname": "minio:{port}"
+        },
         "port": "9000",
         "endpoints": {}
       },
       "forecast": {
         "defaults" : {
-          "hostname" : "mlapi:{port}/{service}/{endpoint}{dnsSuffix}"
+          "hostname" : "api:{port}/{service}/{endpoint}{dnsSuffix}"
         },
         "port": "80",
         "endpoints": {}
       },
       "login": {
         "defaults": {
-          "hostname": "mlapi:{port}/{service}{dnsSuffix}"
+          "hostname": "api:{port}/{service}{dnsSuffix}"
         },
         "port": "80",
         "endpoints": {}
       },
       "authenticator": {
         "defaults": {
-          "hostname" : "mlapi:{port}/users/me"
+          "hostname" : "api:{port}/users/me"
         },
         "port": 80,
         "endpoints": {}

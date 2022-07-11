@@ -1,9 +1,9 @@
-from .forecast import Forecast
-from .minio import MinioClient
-from .login import Login
+from .forecast import ForecastService
+from .writer import WriterService
+from .login import LoginService
 
 __all__ = [
-    'Forecast',
-    'MinioClient',
-    'Login'
+    'ForecastService',
+    'WriterService',
+    'LoginService'
 ]

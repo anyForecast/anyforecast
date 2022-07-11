@@ -21,7 +21,7 @@ def make_parquet_resolver(name, **kwargs):
     return parquet_resolvers[name](**kwargs)
 
 
-class BaseParquetResolver:
+class ParquetResolver:
     """Base class for parquet resolver.
 
     Derived classes are not meant to be constructed
@@ -29,15 +29,19 @@ class BaseParquetResolver:
     returned from :py:func:`make_parquet_resolver`
     <celery_app.parquet_resolver.make_parquet_resolver>`.
 
+    :class:`ParquetResolver` classes are meant for receiving multiple
+    parquet datasets and merge them using common columns between them.
+    Different derived :class:`ParquetResolver` require different columns
+    to perform the merging process.
+
     Parameters
     ----------
-    **kwargs : named parquet datasets
+    **kwargs : named parquet.ParquetDataset or parquet._ParquetDatasetV2
     """
 
     def __init__(self, **kwargs):
         self._validate_kwargs(**kwargs)
         self.kwargs = kwargs
-        vars(self).update(self.kwargs)
 
     def get_dataset_by_name(self, name):
         """Returns dataset by name.
@@ -118,7 +122,7 @@ class BaseParquetResolver:
                             key, o_name))
 
 
-class TimeSeriesResolver(BaseParquetResolver):
+class TimeSeriesResolver(ParquetResolver):
     def __init__(self, target, time_varying_known_reals=None,
                  time_varying_unknown_reals=None, static_categoricals=None):
         super().__init__(target=target,
@@ -160,9 +164,11 @@ class TimeSeriesResolver(BaseParquetResolver):
         datasets = self._get_datasets()
         for ds in datasets:
             arrow_schema = self.get_arrow_schema(ds)
+
             # The following call to :meth:`field` method already raises an
             # error if the field does not exist.
             arrow_schema.field('timestamp')
+
         self._timestamp = 'timestamp'
 
     def _get_dataset_group_ids(self, dataset):
