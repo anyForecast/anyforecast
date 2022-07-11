@@ -26,12 +26,6 @@ class DatasetValidator(metaclass=ABCMeta):
 
 
 class DtypesValidator(DatasetValidator):
-    _DTYPES_TO_PANDAS = {
-        'float': ['float64', 'float32'],
-        'int': ['int64', 'int32'],
-        'string': ['object'],
-        'timestamp': ['datetime64[ns]']
-    }
 
     def __init__(self, df, schema_resolver):
         super().__init__(df, schema_resolver)
@@ -44,8 +38,14 @@ class DtypesValidator(DatasetValidator):
     def _validate_dtype(self, name, dtype):
         """Validates df dtypes coincide schema types.
         """
+        dtype_to_pandas = {
+            'float': ['float64', 'float32'],
+            'int': ['int64', 'int32'],
+            'string': ['object'],
+            'timestamp': ['datetime64[ns]']
+        }
         pandas_dtype = self._get_pandas_dtype(name)
-        if pandas_dtype not in self._DTYPES_TO_PANDAS[dtype]:
+        if pandas_dtype not in dtype_to_pandas[dtype]:
             raise TypesMismatch(name=name,
                                 schema_dtype=dtype,
                                 pandas_dtype=pandas_dtype)
@@ -96,12 +96,6 @@ class Dataset(metaclass=ABCMeta):
     .. note::
         This class should not be used directly. Use derived classes instead.
     """
-    _DTYPES_TO_PYARROW = {
-        'float': pa.float32(),
-        'int': pa.int32(),
-        'string': pa.string(),
-        'timestamp': pa.timestamp(unit='s')
-    }
 
     def __init__(self, df, schema_resolver):
         self.df = df
@@ -114,10 +108,16 @@ class Dataset(metaclass=ABCMeta):
             validator(self.df, self._schema_resolver).validate()
 
     def _schema_to_pyarrow_schema(self):
+        dtype_to_pyarrow = {
+            'float': pa.float32(),
+            'int': pa.int32(),
+            'string': pa.string(),
+            'timestamp': pa.timestamp(unit='s')
+        }
         names_to_dtypes = self._schema_resolver.get_names_to_dtype()
         pyarrow_schema = {}
         for name, dtype in names_to_dtypes.items():
-            pyarrow_schema[name] = self._DTYPES_TO_PYARROW[dtype]
+            pyarrow_schema[name] = dtype_to_pyarrow[dtype]
         return pa.schema(pyarrow_schema)
 
     def to_pyarrow(self):
