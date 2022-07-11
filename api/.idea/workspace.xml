@@ -2,12 +2,28 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f3a138f5-b6b2-4d92-b807-6ea9c5d6b8f8" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../.env" beforeDir="false" afterPath="$PROJECT_DIR$/../.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/celery_app/ml/estimator.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/celery_app/ml/estimator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/celery_app/ml/exceptions.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/celery_app/ml/exceptions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/celery_app/ml/mlflow_log.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/celery_app/ml/mlflow_log.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/celery_app/ml/parquet_resolvers.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/celery_app/ml/parquet_resolvers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/celery_app/ml/preprocessor.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/celery_app/ml/preprocessor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/celery_app/ml/wrappers.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/celery_app/ml/wrappers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/celery_app/tasks.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/celery_app/tasks.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../client/client/args.py" beforeDir="false" afterPath="$PROJECT_DIR$/../client/client/args.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../client/client/client.py" beforeDir="false" afterPath="$PROJECT_DIR$/../client/client/client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../client/client/data/endpoints.json" beforeDir="false" afterPath="$PROJECT_DIR$/../client/client/data/endpoints.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../client/client/exceptions.py" beforeDir="false" afterPath="$PROJECT_DIR$/../client/client/exceptions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../client/client/services/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/../client/client/services/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../client/client/services/_dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/../client/client/services/_dataset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../client/client/services/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/../client/client/services/base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../client/client/services/forecast.py" beforeDir="false" afterPath="$PROJECT_DIR$/../client/client/services/forecast.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../client/client/services/login.py" beforeDir="false" afterPath="$PROJECT_DIR$/../client/client/services/login.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../client/client/services/minio.py" beforeDir="false" afterPath="$PROJECT_DIR$/../client/client/services/writer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../client/client/session.py" beforeDir="false" afterPath="$PROJECT_DIR$/../client/client/session.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/../docker-compose.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../jupyter/work/.ipynb_checkpoints/client_workflow-checkpoint.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../jupyter/work/.ipynb_checkpoints/client_workflow-checkpoint.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../jupyter/work/features.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../jupyter/work/fresh_harvest/fresh_harvest_etl.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../jupyter/work/fresh_harvest/ventas_2021.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../jupyter/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/../jupyter/Dockerfile" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -127,6 +143,8 @@
       <workItem from="1651778596635" duration="20768000" />
       <workItem from="1652391600177" duration="70010000" />
       <workItem from="1653943171371" duration="598000" />
+      <workItem from="1656998133352" duration="15299000" />
+      <workItem from="1657522840923" duration="700000" />
     </task>
     <servers />
   </component>

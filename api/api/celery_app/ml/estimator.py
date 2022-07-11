@@ -60,8 +60,8 @@ class EstimatorArgsCreator:
             'max_prediction_length': max_prediction_length,
             'max_encoder_length': 5,
             'callbacks': callbacks,
-            'cv_split': 1,
-            'max_epochs': 20,
+            'cv_split': 4,
+            'max_epochs': 50,
             **features_time_dependence
         }
 

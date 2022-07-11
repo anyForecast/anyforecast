@@ -1,12 +1,12 @@
 from .args import ClientArgsCreator
 from .exceptions import UnknownServiceError
-from .services import Forecast, MinioClient, Login
+from .services import ForecastService, LoginService, WriterService
 from .endpoint import ClientEndpointBridge
 
 SERVICES = {
-    'minio': MinioClient,
-    'forecast': Forecast,
-    'login': Login
+    'writer': WriterService,
+    'forecast': ForecastService,
+    'login': LoginService
 }
 
 

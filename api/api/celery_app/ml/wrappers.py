@@ -6,7 +6,7 @@ def _get_class_name(obj):
 
 
 def wrap_pipeline(pipeline):
-    """Function fabric for model wrappers.
+    """Factory function for model wrappers.
     """
     cls_name = _get_class_name(pipeline['estimator'])
     wrapper_catalog = {

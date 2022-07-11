@@ -153,15 +153,16 @@ class MlFlowLogger:
         A history is any collection values recorded during training under a
         given name. Histories can be error metrics, loss functions, flags, etc.
         For any fitted mooncake estimator, histories are stored inside the
-        `history` attribute inside the skorch model, i.e., estimator.net_.history.
+        `history` attribute inside the skorch model, i.e.,
+        estimator.net_.history.
 
         Parameters
         ----------
         estimator : mooncake estimator
-            Fitted blue meth estimator
+            Fitted estimator.
 
         name : str
-            Name of the metric
+            Name of the metric.
 
         Returns
         -------

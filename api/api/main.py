@@ -20,7 +20,7 @@ fake_users_db = {
         "username": "johndoe",
         "full_name": "John Doe",
         "email": "johndoe@example.com",
-        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
+        "hashed_password": "$2b$12$a4GcDvUhphOAMpuGNNpUIutn/u81gvEBMrdOEfHgrqK.rteDHa22y",
         "access_key": "johndoe",
         "secret_key": "password",
         "s3_endpoint": "minio:9000",
@@ -81,6 +81,8 @@ def verify_password(plain_password, hashed_password):
     """Utility function to verify if a received password matches the hash
     stored.
     """
+    print(f'Plain password: {plain_password}')
+    print(f'Hashed password: {hashed_password}')
     return pwd_context.verify(plain_password, hashed_password)
 
 

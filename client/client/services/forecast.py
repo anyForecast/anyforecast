@@ -1,7 +1,7 @@
 from client.services.base import BaseService
 
 
-class Forecast(BaseService):
+class ForecastService(BaseService):
 
     def __init__(self, endpoint, loader, access_token):
         super().__init__(endpoint, loader, access_token)

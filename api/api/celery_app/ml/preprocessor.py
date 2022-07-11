@@ -12,13 +12,30 @@ from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 
 
 class PreprocessorCreator:
-    """
+    """Creates a preprocessor in the form of a
+    :class:`sklearn.pipeline.Pipeline`.
+
+    The preprocessor transforms the data into a numerical space suitable
+    for the learning algorithm and includes the following steps:
+
+    - Target transformations:
+        Transformations defined here will act only in the target variable.
+
+    - Group transformations:
+        Transformations defined here will act group by group.
+
+    - Column transformations:
+        Transformations defined here will act on the entire data
+
     Parameters
     ----------
-    group_ids = str or list of str.
+    group_ids : str or list of str.
         Group ids identifying each time series.
 
-    timestamp : str, default=None
+    target : str
+        Name of target column.
+
+    timestamp : str, default='timestamp'
         Name of datetime column.
     """
 
@@ -33,24 +50,12 @@ class PreprocessorCreator:
         """Creates a preprocessor in the form of a
         :class:`sklearn.pipeline.Pipeline`.
 
-        The preprocessor transforms the data into a numerical space suitable
-        for the learning algorithm and it is done in three steps:
-
-        1. Target transformations:
-            Transformations defined here will act only in the target variable.
-
-        2. Group transformations:
-            Transformations defined here will act group by group.
-
-        3. Column transformations:
-            Transformations defined here will act on the entire data.
-
         Parameters
         ----------
-        scaler : sklearn transformer, default=`MinMaxScaler()`
+        scaler : transformer object, default=MinMaxScaler()
             Scaler for numerical columns.
 
-        encoder : sklearn encoder, default=`OneHotEncoder()`
+        encoder : transformer object, default=OneHotEncoder()
             Encoder for categorical columns.
 
         cyclical_dates : bool, default=True
@@ -58,6 +63,10 @@ class PreprocessorCreator:
 
         add_time_index : bool, default=True
             Whether or not to include an extra time index column.
+
+        Returns
+        -------
+        preprocessor : sklearn.pipeline.Pipeline
         """
         target_transformer = self._create_target_transformer(scaler)
         group_transformer = self._create_group_transformer(
@@ -70,10 +79,11 @@ class PreprocessorCreator:
             ('column_transformer', column_transformer),
             ('group_transformer', group_transformer)
         ]
-        preprocessor = Pipeline(steps)
-        return preprocessor
+        return Pipeline(steps)
 
     def _create_target_transformer(self, scaler):
+        """Transformers defined here will act only in the target variable.
+        """
         target_transformer_triplet = [('target', scaler, [self.target])]
         target_transformer = GroupColumnTransformer(
             target_transformer_triplet, self.group_ids)
@@ -128,8 +138,9 @@ class PreprocessorCreator:
             dtype = np.dtype('<M8[ns]')
             identity_transformer = IdentityTransformer(
                 time_index_name, cast_to_object=True, dtype=dtype)
-            time_index_triplet = (
-                'identity', identity_transformer, [self.timestamp])
+            time_index_triplet = ('identity',
+                                  identity_transformer,
+                                  [self.timestamp])
         else:
             time_index_triplet = ('time_index',
                                   TimeIndex(extra_timestamps=100),

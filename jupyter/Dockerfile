@@ -1,4 +1,4 @@
-FROM jupyter/scipy-notebook
+FROM jupyter/scipy-notebook:python-3.9.5
 
 # Provide password-less sudo to NB_USER
 USER root
@@ -14,8 +14,8 @@ RUN \
 # libpq-dev is necessary for psycopg2.
 USER $NB_UID
 RUN sudo apt-get update && \
-	sudo apt-get -y install gcc && \
-	sudo apt-get -y install g++ && \
+    sudo apt-get -y install gcc && \
+    sudo apt-get -y install g++ && \
     sudo apt-get -y install libpq-dev
 
 # Installing minio client

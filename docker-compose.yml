@@ -82,6 +82,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
       - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
       - MLFLOW_TRACKING_URI=http://mlflow:${MLFLOW_PORT}
+      - JUPYTER_ENABLE_LAB=yes  # Enable jupyter lab.
     networks:
       - frontend
       - backend
