@@ -1,5 +1,5 @@
 from .forecast import ForecastService
-from .writer import WriterService
+from .writer.service import WriterService
 from .login import LoginService
 
 __all__ = [
