@@ -1,7 +1,10 @@
 from mooncake.nn import SeqToSeq, TemporalFusionTransformer as TFT
+from mooncake.helper import common_callbacks
+from torch.optim.lr_scheduler import OneCycleLR
 
 
 class EstimatorCreator:
+
     ESTIMATORS = {
         'seq2seq': SeqToSeq,
         'tft': TFT
@@ -11,30 +14,30 @@ class EstimatorCreator:
         self.predictor = predictor
 
     def create_estimator(
-            self, group_ids, target, time_varying_known_reals=None,
-            time_varying_unknown_reals=None, static_categoricals=None,
+            self, group_ids, target, time_varying_known=None,
+            time_varying_unknown=None, static_categoricals=None,
             callbacks=None, time_idx='time_idx'
     ):
         cls = self._get_estimator_class()
         estimator_args = self._get_estimator_args(
-            group_ids, target, time_varying_known_reals,
-            time_varying_unknown_reals, static_categoricals,
+            group_ids, target, time_varying_known,
+            time_varying_unknown, static_categoricals,
             callbacks, time_idx
         )
         return cls(**estimator_args)
 
     def _get_estimator_class(self):
-        return self.ESTIMATORS[self.predictor.algorithm]
+        return self.ESTIMATORS[self.predictor['algorithm']]
 
     def _get_estimator_args(
-            self, group_ids, target, time_varying_known_reals,
-            time_varying_unknown_reals, static_categoricals,
+            self, group_ids, target, time_varying_known,
+            time_varying_unknown, static_categoricals,
             callbacks, time_idx
     ):
         args_creator = EstimatorArgsCreator(self.predictor)
         return args_creator.get_estimator_args(
-            group_ids, target, time_varying_known_reals,
-            time_varying_unknown_reals, static_categoricals,
+            group_ids, target, time_varying_known,
+            time_varying_unknown, static_categoricals,
             callbacks, time_idx
         )
 
@@ -44,32 +47,31 @@ class EstimatorArgsCreator:
         self.predictor = predictor
 
     def get_estimator_args(
-            self, group_ids, target, time_varying_known_reals,
-            time_varying_unknown_reals, static_categoricals,
+            self, group_ids, target, time_varying_known,
+            time_varying_unknown, static_categoricals,
             callbacks, time_idx
     ):
-        features_time_dependence = self._get_features_time_dependence(
-            time_varying_known_reals, time_varying_unknown_reals,
-            static_categoricals)
-        max_prediction_length = self.predictor.forecast_horizon
+        lr_scheduler = {
+            'policy': OneCycleLR,
+            'step_every': 'batch',
+            'max_lr': 1e-3,
+            'steps_per_epoch': 'iterations',
+            'epochs': 'max_epochs'
+        }
+        if callbacks is None:
+            callbacks = common_callbacks(lr_scheduler, early_stopping=True,
+                                         gradient_clipping=True, patience=100)
 
         return {
-            'target': target,
+            'target': target[0],
             'group_ids': group_ids,
             'time_idx': time_idx,
-            'max_prediction_length': max_prediction_length,
-            'max_encoder_length': 5,
+            'time_varying_known_reals': time_varying_known,
+            'time_varying_unknown_reals': time_varying_unknown + target,
+            'static_categoricals': static_categoricals,
+            'max_prediction_length': self.predictor['forecast_horizon'],
+            'max_encoder_length': 10,
             'callbacks': callbacks,
             'cv_split': 4,
-            'max_epochs': 50,
-            **features_time_dependence
-        }
-
-    def _get_features_time_dependence(self, time_varying_known_reals,
-                                      time_varying_unknown_reals,
-                                      static_categoricals):
-        return {
-            'time_varying_known_reals': time_varying_known_reals,
-            'time_varying_unknown_reals': time_varying_unknown_reals,
-            'static_categoricals': static_categoricals
+            'max_epochs': 100,
         }

@@ -39,9 +39,10 @@ class PreprocessorCreator:
         Name of datetime column.
     """
 
-    def __init__(self, group_ids, target, timestamp='timestamp'):
+    def __init__(self, group_ids, target, freq, timestamp='timestamp'):
         self.group_ids = group_ids
         self.target = target
+        self.freq = freq
         self.timestamp = timestamp
 
     def create_preprocessor(self, scaler=MinMaxScaler(),
@@ -84,7 +85,7 @@ class PreprocessorCreator:
     def _create_target_transformer(self, scaler):
         """Transformers defined here will act only in the target variable.
         """
-        target_transformer_triplet = [('target', scaler, [self.target])]
+        target_transformer_triplet = [('target', scaler, self.target)]
         target_transformer = GroupColumnTransformer(
             target_transformer_triplet, self.group_ids)
         return target_transformer
@@ -93,7 +94,7 @@ class PreprocessorCreator:
         """Transformers defined here will act group by group.
         """
         selector = self._create_column_selector(
-            ['float'], to_exclude=[self.target])
+            ['float'], to_exclude=self.target)
         scaler_triplet = ('cont', scaler, selector)
         transformers = [scaler_triplet]
 
@@ -140,10 +141,11 @@ class PreprocessorCreator:
                 time_index_name, cast_to_object=True, dtype=dtype)
             time_index_triplet = ('identity',
                                   identity_transformer,
-                                  [self.timestamp])
+                                  self.timestamp)
         else:
             time_index_triplet = ('time_index',
-                                  TimeIndex(extra_timestamps=100),
+                                  TimeIndex(extra_timestamps=100,
+                                            freq=self.freq),
                                   time_index_name)
 
         return time_index_triplet
@@ -154,4 +156,4 @@ class PreprocessorCreator:
                 '`timestamp` init param cannot be None for '
                 '`cyclical_dates=True` .'
             )
-        return 'cyclical_dates', CyclicalDates(), self.timestamp
+        return 'cyclical_dates', CyclicalDates(), self.timestamp[0]

@@ -1,5 +1,6 @@
-from ._features import FeatureLocator
-from .writers import JsonWriter
+from .exceptions import UnknownFeatureTypeError
+from .features import FeatureLocator
+from .services.writer.writers import JsonWriter
 
 
 class SchemaCreator:
@@ -95,6 +96,18 @@ class Schema:
                 dtype = feat['FeatureDtype']
                 names_to_dtype[name] = dtype
         return names_to_dtype
+
+    def get_names_by_type(self, feature_type):
+        try:
+            features = self._features_data[feature_type]
+        except KeyError:
+            raise UnknownFeatureTypeError(feature_type=feature_type)
+
+        names = []
+        for feat in features:
+            name = feat['FeatureName']
+            names.append(name)
+        return names
 
     def get_names(self):
         return list(self.get_names_to_dtype())

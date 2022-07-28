@@ -1,18 +1,14 @@
 import mlflow
-
-
-def _get_class_name(obj):
-    return obj.__class__.__name__
+from mooncake.nn import SeqToSeq
 
 
 def wrap_pipeline(pipeline):
     """Factory function for model wrappers.
     """
-    cls_name = _get_class_name(pipeline['estimator'])
-    wrapper_catalog = {
-        'SeqToSeq': Seq2SeqModelWrapper
+    wrappers = {
+        SeqToSeq: Seq2SeqModelWrapper
     }
-    return wrapper_catalog[cls_name](pipeline)
+    return wrappers[type(pipeline['estimator'])](pipeline)
 
 
 class Seq2SeqModelWrapper(mlflow.pyfunc.PythonModel):

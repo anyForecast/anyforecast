@@ -1,9 +1,9 @@
 from .estimator import EstimatorCreator
-from .parquet_resolvers import TimeSeriesResolver
+from .schema_resolver import SchemaResolver
 from .preprocessor import PreprocessorCreator
 
 __all__ = [
     'EstimatorCreator',
-    'TimeSeriesResolver',
+    'SchemaResolver',
     'PreprocessorCreator'
 ]

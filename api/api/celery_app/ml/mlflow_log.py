@@ -142,7 +142,8 @@ class MlFlowLogger:
         # the model's inputs and outputs. When the model is deployed, this
         # signature will be used to validate inputs.
         wrapped_pipeline = wrap_pipeline(self.model_pipeline)
-        signature = infer_signature(self.X, wrapped_pipeline.predict(None, self.X))
+        model_output = wrapped_pipeline.predict(None, self.X)
+        signature = infer_signature(self.X, model_output=model_output)
         self.logs_storage.save_python_model(
             name='pipeline', python_model=wrapped_pipeline,
             signature=signature)
@@ -201,7 +202,10 @@ class MlFlowLogger:
 
         params = {}
         for k, v in estimator.get_params().items():
-            if isinstance(v, allowed_types) or v is None:
+            if k == 'callbacks':
+                for name, obj in v:
+                    params[name] = obj.__class__.__name__
+            elif isinstance(v, allowed_types) or v is None:
                 params[k] = v
             else:
                 params[k] = v.__name__

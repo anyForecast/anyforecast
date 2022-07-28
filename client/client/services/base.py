@@ -1,4 +1,5 @@
 import http
+from abc import ABCMeta, abstractmethod
 
 
 class HTTPException(Exception):
@@ -13,11 +14,15 @@ class HTTPException(Exception):
         return f"{class_name}(status_code={self.status_code}, detail={self.detail})"
 
 
-class BaseService:
+class BaseService(metaclass=ABCMeta):
     def __init__(self, endpoint, loader, access_token):
         self._endpoint = endpoint
         self._loader = loader
         self._access_token = access_token
+
+    @abstractmethod
+    def post(self, *args, **kwargs):
+        pass
 
     def get_endpoint(self):
         return self._endpoint
