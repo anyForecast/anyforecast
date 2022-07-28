@@ -40,7 +40,7 @@ class UnknownCredentialError(BaseError):
 
 
 class UnknownServiceError(BaseError):
-    fmt = 'Service named {name} not found.'
+    fmt = 'Service named "{name}" not found.'
 
 
 class DataNotFoundError(BaseError):
@@ -69,17 +69,6 @@ class DatasetSchemaError(BaseError):
     """Base error for schema validations"""
 
 
-class MissingGroupIds(DatasetSchemaError):
-    """Schema does not contain group ids"""
-    fmt = "Schema does not contain group ids."
-
-
-class MissingDoubleUnderscore(DatasetSchemaError):
-    """The schema is a multiple group ids schema but with incorrect format.
-    """
-    fmt = "The group ids in a multi group ids schema must contain '__'."
-
-
 class DtypeNotSupported(DatasetSchemaError):
     """Feature in schema contains a different type from the supported ones.
     """
@@ -87,47 +76,11 @@ class DtypeNotSupported(DatasetSchemaError):
           "Supported types: {supported_dtypes}"
 
 
-class MissingFeatureKey(DatasetSchemaError):
-    """Feature data misses needed keys.
-    """
-    fmt = "Key '{key}' is missing for feature with position {position}."
-
-
 class TypesMismatch(DatasetSchemaError):
     """Dataframe dtype does not match schema type.
     """
     fmt = "Schema dtype '{schema_dtype}' does not match pandas " \
           "dtype '{pandas_dtype}' for feature '{name}'."
-
-
-class DatasetTypeNotKnown(DatasetSchemaError):
-    """Dataset type not known.
-    """
-    fmt = "Dataset type '{type}' not known. Available types: {available}"
-
-
-class DistinctNumberOfFeatures(DatasetSchemaError):
-    """Schema and dataframe have different number of features
-    """
-    fmt = "Expected {n_schema} number of features in dataframe, but found " \
-          "{n_df}"
-
-
-class MissingTimestamp(DatasetSchemaError):
-    """Schema does not contain timestamp type.
-    """
-    fmt = "Schema does not contain the 'timestamp' feature."
-
-
-class DuplicatedFeature(DatasetSchemaError):
-    """Schema contains duplicated feature.
-    """
-    fmt = "Schema contains duplicated feature '{name}'."
-
-
-class TargetDatasetError(DatasetSchemaError):
-    """Base class for Target dataset errors
-    """
 
 
 class ExtraFeaturesInPandasError(DatasetSchemaError):
@@ -144,13 +97,6 @@ class ExtraFeaturesInSchemaError(DatasetSchemaError):
     fmt = "The following features inside `schema` are not part of " \
           "the `DataFrame` and must be either removed from the `schema` or " \
           "added to the `DataFrame`: {extras}. "
-
-
-class MissingTarget(TargetDatasetError):
-    """Schema for Target dataset does not contain a target feature.
-    """
-    fmt = "Schema for dataset_type='target' requires a 'target' feature of " \
-          "type 'float'"
 
 
 class BaseEndpointResolverError(BaseError):

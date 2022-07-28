@@ -1,15 +1,11 @@
-from getpass import getpass
-
-from client.services.base import BaseService
+from .base import BaseService
 
 
 class LoginService(BaseService):
     def __init__(self, endpoint, loader, access_token):
         super().__init__(endpoint, loader, access_token)
 
-    def login(self):
-        username = input('Username: ')
-        password = getpass('Password: ')
+    def post(self, username, password):
         api_params = {
             'username': username,
             'password': password,
@@ -17,4 +13,3 @@ class LoginService(BaseService):
 
         # Notice ``annon`` param is set to True.
         return self._make_api_call(data=api_params, annon=True)
-

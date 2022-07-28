@@ -16,7 +16,7 @@ class RelatedFeature(Feature):
         super().__init__(dtype)
 
 
-class GroupId(MetaFeature):
+class GroupIds(MetaFeature):
     def __init__(self):
         super().__init__(dtype='string')
 
@@ -41,7 +41,7 @@ class TimeVaryingUnknown(RelatedFeature):
         super().__init__(dtype='float')
 
 
-class StaticCategorical(RelatedFeature):
+class StaticCategoricals(RelatedFeature):
     def __init__(self):
         super().__init__(dtype='string')
 
@@ -49,8 +49,8 @@ class StaticCategorical(RelatedFeature):
 _FEATURES_CATALOG = {
     'time_varying_known': TimeVaryingKnown,
     'time_varying_unknown': TimeVaryingUnknown,
-    'static_categorical': StaticCategorical,
-    'group_id': GroupId,
+    'static_categorical': StaticCategoricals,
+    'group_id': GroupIds,
     'timestamp': Timestamp,
     'target': Target
 }

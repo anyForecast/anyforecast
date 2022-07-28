@@ -1,6 +1,6 @@
-from .base import BaseService
-from ..args import ClientArgsCreator
-from ..endpoint import ClientEndpointBridge, EndpointResolver
+from ...args import ClientArgsCreator
+from ...endpoint import ClientEndpointBridge, EndpointResolver
+from ...services.base import BaseService
 
 
 class Authenticator(BaseService):
@@ -10,7 +10,7 @@ class Authenticator(BaseService):
     def __init__(self, endpoint, loader, access_token):
         super().__init__(endpoint, loader, access_token)
 
-    def authenticate(self):
+    def post(self):
         return self._make_api_call(annon=False)
 
     @classmethod

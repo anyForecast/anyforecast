@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABCMeta
 
-from client.exceptions import (
+from ...exceptions import (
     TypesMismatch,
     ExtraFeaturesInPandasError,
     ExtraFeaturesInSchemaError

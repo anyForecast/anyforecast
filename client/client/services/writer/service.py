@@ -1,23 +1,21 @@
 import s3fs
 from minio import Minio
 
-from client.credentials import Credentials
-from client.services._auth import Authenticator
-from client.services.base import BaseService
+from ._auth import Authenticator
 from ._validations import validate_dataframe_and_schema
-from ._wrappers import make_dataframe
+from ._wrappers import make_dataframe_wrapper
 from ...args import CloudArgsCreator
+from ...credentials import Credentials
+from ...services.base import BaseService
 
 
 class WriterService(BaseService):
 
-    BUCKET_NAME = 'datasets'
-
     def __init__(self, endpoint, loader, access_token):
         super().__init__(endpoint, loader, access_token)
 
-    def write(self, dataset_group_name, dataset_name, data, schema=None,
-              format='parquet'):
+    def post(self, dataset_group_name, dataset_name, data, schema=None,
+             format='parquet', bucket_name='datasets'):
         """Writes :class:`pandas.DataFrame` to s3 bucket.
 
         Parameters
@@ -36,20 +34,29 @@ class WriterService(BaseService):
 
         format : str {'parquet', 'csv'}, default='parquet'
             Writing format.
+
+        bucket_name : str, default='datasets'
+            Name of bucket to write data.
         """
-        dataframe = make_dataframe(data)
-        validate_dataframe_and_schema(dataframe, schema)
-        path = self._create_df_path(dataset_group_name, dataset_name, format)
+        dataframe_wrapper = make_dataframe_wrapper(data)
+        validate_dataframe_and_schema(dataframe_wrapper, schema)
+        path = self._create_df_path(bucket_name, dataset_group_name,
+                                    dataset_name, format)
         fs = self._create_s3_filesystem()
-        dataframe.write.parquet(path, fs)
+
+        # Write data inside ``dataframe_wrapper``.
+        # Notice the ``group_ids`` columns are used to partition the dataset.
+        group_ids = schema.get_names_by_type('GroupIds')
+        dataframe_wrapper.write.parquet(path, fs, partition_cols=group_ids)
 
         if schema is not None:
             path = self._create_schema_path(dataset_group_name, dataset_name)
             minio_client = self._create_minio_client()
-            schema.write.json(path, minio_client, self.BUCKET_NAME)
+            schema.write.json(path, minio_client, bucket_name)
 
-    def _create_df_path(self, dataset_group_name, dataset_name, format):
-        args = [self.BUCKET_NAME, dataset_group_name, dataset_name, format]
+    def _create_df_path(self, bucket_name, dataset_group_name, dataset_name,
+                        format):
+        args = [bucket_name, dataset_group_name, dataset_name, format]
         return self._create_path(*args)
 
     def _create_schema_path(self, dataset_group_name, dataset_name):
@@ -65,7 +72,7 @@ class WriterService(BaseService):
             loader=self._loader, endpoint_name=None, is_secure=False,
             endpoint_url=None, access_token=self._access_token)
 
-        return authenticator.authenticate()
+        return authenticator.post()
 
     def _create_s3_filesystem(self):
         cloud_client_args = self._create_cloud_args('S3FileSystem')

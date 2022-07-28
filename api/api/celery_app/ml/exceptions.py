@@ -26,24 +26,5 @@ class BaseError(Exception):
         return _exception_from_packed_args, (self.__class__, None, self.kwargs)
 
 
-class BaseParquetResolverError(BaseError):
-    """Base class for :class:`ParquetResolver` validations.
-    """
-
-
-class UniqueGroupIdsError(BaseParquetResolverError):
-    """:class:`ParquetResolver` datasets do not contain unique group_ids.
-    """
-    fmt = 'All parquet datasets must have the same group ids.'
-
-
-class GroupIdsNotFound(BaseParquetResolverError):
-    """Parquet datasets do not contain group_ids.
-    """
-    fmt = 'Parquet datasets do not contain group_ids.'
-
-
-
-
-
-
+class UnknownSchemaKeyError(BaseError):
+    fmt = 'Schema key "{key}" does not exist.'

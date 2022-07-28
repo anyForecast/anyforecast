@@ -60,6 +60,9 @@ class Endpoint:
             self.http_session = HttpSession()
 
     def make_request(self, json=None, data=None, headers=None):
+        print(f'json: {json}')
+        print(f'data: {data}')
+        print(f'headers: {headers}')
         http_response = self.http_session.post(
             url=self.host, json=json, data=data, headers=headers)
         return http_response

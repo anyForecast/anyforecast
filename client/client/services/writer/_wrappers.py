@@ -1,10 +1,24 @@
 from abc import ABCMeta, abstractmethod
 
-from ...writers import PandasWriter, SparkWriter
+from .writers import PandasWriter, SparkWriter
+import pandas as pd
 
 
-def make_dataframe(data):
-    return PandasWrapper(data)
+def make_dataframe_wrapper(data):
+    """Factory function for DataFrame wrappers.
+
+    Parameters
+    ----------
+    data : DataFrame_like
+
+    Returns
+    -------
+    dataframe_wrapper : DataFrameWrapper
+    """
+    wrappers = {
+        pd.core.frame.DataFrame: PandasWrapper
+    }
+    return wrappers[type(data)](data)
 
 
 class DataFrameWrapper(metaclass=ABCMeta):

@@ -10,11 +10,11 @@ class PandasWriter:
     def __init__(self, data):
         self.data = data
 
-    def parquet(self, path, fs):
+    def parquet(self, path, fs, **kwargs):
         table = pa.Table.from_pandas(self.data)
-        pq.write_to_dataset(table, path, filesystem=fs,
-                            use_dictionary=True, compression="snappy",
-                            version="2.4")
+        pq.write_to_dataset(table, path, filesystem=fs, use_dictionary=True,
+                            compression="snappy", version="2.4",
+                            **kwargs)
 
 
 class SparkWriter:
