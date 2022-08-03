@@ -1,6 +1,7 @@
 def create_client_args(user):
     """Auxiliary function for creating a :class:`ClientArgs` instance.
     """
+    print(user)
     client_args = {
         "s3_endpoint": user['s3_endpoint'],
         "access_key": user['access_key'],

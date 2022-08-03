@@ -1,11 +1,17 @@
 from .args import ClientArgsCreator
-from .exceptions import UnknownServiceError
-from .services import ForecastService, LoginService, WriterService
 from .endpoint import ClientEndpointBridge
+from .exceptions import UnknownServiceError
+from .services import (
+    TrainerService,
+    LoginService,
+    WriterService,
+    PredictionService
+)
 
 SERVICES = {
     'writer': WriterService,
-    'forecast': ForecastService,
+    'trainer': TrainerService,
+    'prediction': PredictionService,
     'login': LoginService
 }
 

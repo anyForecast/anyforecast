@@ -28,3 +28,8 @@ class BaseError(Exception):
 
 class UnknownSchemaKeyError(BaseError):
     fmt = 'Schema key "{key}" does not exist.'
+
+
+class UnknownPandasSerializer(BaseError):
+    fmt = 'Pandas serializer "{name}" does not exist.'
+

@@ -1,47 +1,38 @@
 import mlflow
 from sklearn.pipeline import Pipeline
 
-from ._client_args import create_client_args
-from ..celery import app
+from ._pandas_loader import PandasLoader
+from .base_task import BaseTask
 from ..ml.estimator import EstimatorCreator
-from ..ml.loaders import DataLoader
 from ..ml.mlflow_log import MlFlowLogger
 from ..ml.preprocessor import PreprocessorCreator
-from ..ml.schema_resolver import SchemaResolver
 
 
-class CreateForecasterTask:
+class TrainingTask(BaseTask):
     """Loads, preprocess and fits timeseries data.
     """
 
-    def run(self, forecaster, dataset, user):
-        with mlflow.start_run(run_name=forecaster['task_name']):
-            # Create :class:`DataLoader` object.
-            client_args = create_client_args(user)
-            loader = DataLoader(client_args)
+    def __init__(self, serializer=None, task_name='training_task', bind=True):
+        super().__init__(serializer, task_name, bind)
 
-            # Create :class:`SchemaResolver` object.
-            schema_data = loader.load_schema(**dataset)
-            schema_resolver = SchemaResolver(schema_data)
-
-            # Load parquet
-            arrow_schema = schema_resolver.to_arrow()
-            parquet = loader.load_parquet(**dataset, schema=arrow_schema)
-
-            # Convert to parquet to pandas :class:`DataFrame`.
-            X = parquet.read_pandas().to_pandas()
+    def run(self, trainer, dataset, user, self_task):
+        task_id = self.get_task_id(self_task)
+        with mlflow.start_run(run_name=task_id):
+            pandas_loader = PandasLoader(dataset, user)
+            X, schema_resolver = pandas_loader.load_pandas(
+                return_schema_resolver=True)
 
             # Preprocess -----
             #                |--> Pipeline.
             # Estimator -----
             preprocessor = self._create_preprocessor(
-                forecaster, schema_resolver)
-            estimator = self._create_estimator(forecaster, schema_resolver)
+                trainer, schema_resolver)
+            estimator = self._create_estimator(trainer, schema_resolver)
             pipeline = self._fit_pipeline(X, preprocessor, estimator)
 
             # Save model.
             logger = MlFlowLogger(pipeline, X)
-            logger.log(run_name=forecaster['task_name'])
+            logger.log(run_name=task_id)
 
     def _fit_pipeline(self, X, preprocessor, estimator):
         """Collects both ``preprocessor`` and ``estimator`` into a single
@@ -52,7 +43,7 @@ class CreateForecasterTask:
         pipeline.fit(X)
         return pipeline
 
-    def _create_estimator(self, forecaster, schema_resolver):
+    def _create_estimator(self, trainer, schema_resolver):
         """Creates time series estimator.
         """
         args_keys = [
@@ -62,13 +53,13 @@ class CreateForecasterTask:
             'time_varying_unknown',
             'static_categoricals'
         ]
-        estimator_creator = EstimatorCreator(forecaster)
+        estimator_creator = EstimatorCreator(trainer)
         args = schema_resolver.get_names_for(args_keys)
         estimator = estimator_creator.create_estimator(
             **args, time_idx='time_index')
         return estimator
 
-    def _create_preprocessor(self, forecaster, schema_resolver):
+    def _create_preprocessor(self, trainer, schema_resolver):
         """Creates sklearn preprocessor.
 
         Notice the ``preprocessor`` is itself a sklearn
@@ -80,12 +71,7 @@ class CreateForecasterTask:
             'timestamp'
         ]
         args = schema_resolver.get_names_for(args_keys)
-        args['freq'] = forecaster['freq']
+        args['freq'] = trainer['freq']
         preprocessor_creator = PreprocessorCreator(**args)
         preprocessor = preprocessor_creator.create_preprocessor()
         return preprocessor
-
-
-@app.task(name='create_forecaster')
-def create_forecaster_task(forecaster, dataset, user):
-    CreateForecasterTask().run(forecaster, dataset, user)
