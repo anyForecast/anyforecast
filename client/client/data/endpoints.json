@@ -8,6 +8,13 @@
     "partitionName" : "AWS Standard",
     "protocols" : ["http"],
     "services" : {
+      "trainer": {
+        "defaults": {
+          "hostname": "api:{port}/{service}/{endpoint}{dnsSuffix}"
+        },
+        "port": "80",
+        "endpoints": {}
+      },
       "writer" : {
         "defaults": {
           "hostname": "minio:{port}"
@@ -15,7 +22,7 @@
         "port": "9000",
         "endpoints": {}
       },
-      "forecast": {
+      "prediction": {
         "defaults" : {
           "hostname" : "api:{port}/{service}/{endpoint}{dnsSuffix}"
         },

@@ -1,7 +1,7 @@
 from client.services.base import BaseService
 
 
-class ForecastService(BaseService):
+class TrainerService(BaseService):
 
     def __init__(self, endpoint, loader, access_token):
         super().__init__(endpoint, loader, access_token)
@@ -9,7 +9,7 @@ class ForecastService(BaseService):
     def post(self, task_name, dataset_group_name, dataset_name,
              algorithm, forecast_horizon, freq, perform_hpo=False):
         api_params = {
-            'forecaster': {
+            'trainer': {
                 'task_name': task_name,
                 'algorithm': algorithm,
                 'forecast_horizon': forecast_horizon,

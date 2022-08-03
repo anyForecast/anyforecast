@@ -1,10 +1,10 @@
 from .login import LoginService
 from .prediction import PredictionService
-from .forecast import ForecastService
+from .trainer import TrainerService
 from .writer.service import WriterService
 
 __all__ = [
-    'ForecastService',
+    'TrainerService',
     'WriterService',
     'LoginService',
     'PredictionService'

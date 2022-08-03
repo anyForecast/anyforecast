@@ -3,6 +3,10 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+class Predictor(BaseModel):
+    task_id: str
+
+
 class Token(BaseModel):
     """Pydantic Model that will be used in the token endpoint for the response.
     """
@@ -38,7 +42,7 @@ class Model(BaseModel):
     name: str
 
 
-class Forecaster(BaseModel):
+class Trainer(BaseModel):
     task_name: str
     algorithm: str
     forecast_horizon: int
