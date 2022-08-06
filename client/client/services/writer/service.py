@@ -3,7 +3,7 @@ from minio import Minio
 
 from ._auth import Authenticator
 from ._validations import validate_dataframe_and_schema
-from ._wrappers import make_dataframe_wrapper
+from ._dataframe_wrappers import make_dataframe_wrapper
 from ...args import CloudArgsCreator
 from ...credentials import Credentials
 from ...services.base import BaseService
@@ -47,7 +47,12 @@ class WriterService(BaseService):
         # Write data inside ``dataframe_wrapper``.
         # Notice the ``group_ids`` columns are used to partition the dataset.
         group_ids = schema.get_names_by_type('GroupIds')
-        dataframe_wrapper.write.parquet(path, fs, partition_cols=group_ids)
+        dataframe_wrapper.write.parquet(
+            data=dataframe_wrapper.data,
+            path=path,
+            fs=fs,
+            partition_cols=group_ids
+        )
 
         if schema is not None:
             path = self._create_schema_path(dataset_group_name, dataset_name)
@@ -57,11 +62,11 @@ class WriterService(BaseService):
     def _create_df_path(self, bucket_name, dataset_group_name, dataset_name,
                         format):
         args = [bucket_name, dataset_group_name, dataset_name, format]
-        return self._create_path(*args)
+        return self._create_path(*args, s3_prefix=True)
 
     def _create_schema_path(self, dataset_group_name, dataset_name):
         args = [dataset_group_name, dataset_name, 'schema.json']
-        return self._create_path(*args)
+        return self._create_path(*args, s3_prefix=False)
 
     def get_credentials(self):
         credentials = self._authenticate()
@@ -79,8 +84,11 @@ class WriterService(BaseService):
         return s3fs.S3FileSystem(anon=False, use_ssl=False,
                                  client_kwargs=cloud_client_args)
 
-    def _create_path(self, *args):
-        return '/'.join(args)
+    def _create_path(self, *args, s3_prefix=True):
+        path = '/'.join(args)
+        if s3_prefix:
+            path = 's3://' + path
+        return path
 
     def _create_cloud_args(self, name):
         credentials = self.get_credentials()
