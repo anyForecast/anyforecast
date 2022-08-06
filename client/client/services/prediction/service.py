@@ -7,16 +7,20 @@ class PredictionService(BaseService):
         super().__init__(endpoint, loader, access_token)
 
     def post(self, training_task_id, dataset_group_name, dataset_name,
-             what_ifs=None):
-        self._validate_what_ifs(what_ifs)
+             group_ids, pivot):
+
         api_params = {
-            'estimator': {
+            'predictor': {
                 'task_id': training_task_id
             },
             'dataset': {
                 'dataset_group_name': dataset_group_name,
                 'dataset_name': dataset_name
-            }
+            },
+            'pivot': {
+                'pivot': pivot
+            },
+            'group_ids': group_ids
         }
         return self._make_api_call(api_params)
 

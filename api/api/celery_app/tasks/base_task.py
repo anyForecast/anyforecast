@@ -1,4 +1,6 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
+
+from ..dataloaders import make_dataframe_loader
 
 
 class BaseTask(metaclass=ABCMeta):
@@ -9,9 +11,8 @@ class BaseTask(metaclass=ABCMeta):
         self.task_name = task_name
         self.bind = bind
 
-    @abstractmethod
-    def run(self, *args, **kwargs):
-        pass
+    def get_dataframe_loader(self, format, dataset, user):
+        return make_dataframe_loader(format, dataset, user)
 
     def serialize_result(self, result):
         return self.serializer.serialize(**result)
@@ -43,7 +44,7 @@ class CeleryTasksMaker:
         if self.bind:
             @decorator
             def celery_task(self_task, *args, **kwargs):
-                return task_obj.run(*args, **kwargs, self_task=self_task)
+                return task_obj.run(self_task, *args, **kwargs)
 
         else:
             @decorator

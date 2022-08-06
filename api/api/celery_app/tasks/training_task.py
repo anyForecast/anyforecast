@@ -1,7 +1,6 @@
 import mlflow
 from sklearn.pipeline import Pipeline
 
-from ._pandas_loader import PandasLoader
 from .base_task import BaseTask
 from ..ml.estimator import EstimatorCreator
 from ..ml.mlflow_log import MlFlowLogger
@@ -12,22 +11,21 @@ class TrainingTask(BaseTask):
     """Loads, preprocess and fits timeseries data.
     """
 
-    def __init__(self, serializer=None, task_name='training_task', bind=True):
+    def __init__(self, serializer=None, task_name='TrainingTask', bind=True):
         super().__init__(serializer, task_name, bind)
 
-    def run(self, trainer, dataset, user, self_task):
+    def run(self, self_task, trainer, dataset, user):
         task_id = self.get_task_id(self_task)
         with mlflow.start_run(run_name=task_id):
-            pandas_loader = PandasLoader(dataset, user)
-            X, schema_resolver = pandas_loader.load_pandas(
-                return_schema_resolver=True)
+            pandas_loader = self.get_dataframe_loader('pandas', dataset, user)
+            X = pandas_loader.load()
+            schema = pandas_loader.load_schema()
 
             # Preprocess -----
             #                |--> Pipeline.
             # Estimator -----
-            preprocessor = self._create_preprocessor(
-                trainer, schema_resolver)
-            estimator = self._create_estimator(trainer, schema_resolver)
+            preprocessor = self._create_preprocessor(trainer, schema)
+            estimator = self._create_estimator(trainer, schema)
             pipeline = self._fit_pipeline(X, preprocessor, estimator)
 
             # Save model.
@@ -43,7 +41,7 @@ class TrainingTask(BaseTask):
         pipeline.fit(X)
         return pipeline
 
-    def _create_estimator(self, trainer, schema_resolver):
+    def _create_estimator(self, trainer, schema):
         """Creates time series estimator.
         """
         args_keys = [
@@ -54,12 +52,12 @@ class TrainingTask(BaseTask):
             'static_categoricals'
         ]
         estimator_creator = EstimatorCreator(trainer)
-        args = schema_resolver.get_names_for(args_keys)
+        args = schema.get_names_for(args_keys)
         estimator = estimator_creator.create_estimator(
             **args, time_idx='time_index')
         return estimator
 
-    def _create_preprocessor(self, trainer, schema_resolver):
+    def _create_preprocessor(self, trainer, schema):
         """Creates sklearn preprocessor.
 
         Notice the ``preprocessor`` is itself a sklearn
@@ -70,7 +68,7 @@ class TrainingTask(BaseTask):
             'target',
             'timestamp'
         ]
-        args = schema_resolver.get_names_for(args_keys)
+        args = schema.get_names_for(args_keys)
         args['freq'] = trainer['freq']
         preprocessor_creator = PreprocessorCreator(**args)
         preprocessor = preprocessor_creator.create_preprocessor()

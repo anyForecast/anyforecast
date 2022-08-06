@@ -1,5 +1,5 @@
 from .estimator import EstimatorCreator
-from .schema_resolver import SchemaResolver
+from api.celery_app.dataloaders._schema_resolver import SchemaResolver
 from .preprocessor import PreprocessorCreator
 
 __all__ = [

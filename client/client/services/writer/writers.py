@@ -1,27 +1,29 @@
 import io
 import json
 
-import pyarrow as pa
-from pyarrow import parquet as pq
+import awswrangler as wr
 
 
 class PandasWriter:
 
-    def __init__(self, data):
-        self.data = data
+    def __init__(self):
+        pass
 
-    def parquet(self, path, fs, **kwargs):
-        table = pa.Table.from_pandas(self.data)
-        pq.write_to_dataset(table, path, filesystem=fs, use_dictionary=True,
-                            compression="snappy", version="2.4",
-                            **kwargs)
+    def parquet(self, data, path, fs, **kwargs):
+        self._set_awswrangler_endpoint(fs)
+        wr.s3.to_parquet(df=data, path=path, dataset=True, mode="overwrite",
+                         **kwargs)
+
+    def _set_awswrangler_endpoint(self, fs):
+        endpoint_url = fs.client_kwargs['endpoint_url']
+        wr.config.s3_endpoint_url = endpoint_url
 
 
 class SparkWriter:
-    def __init__(self, data):
-        self.data = data
+    def __init__(self):
+        pass
 
-    def parquet(self):
+    def parquet(self, data):
         pass  # self.data.write.parquet...
 
 

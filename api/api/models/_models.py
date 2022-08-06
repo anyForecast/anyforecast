@@ -3,6 +3,10 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+class Pivot(BaseModel):
+    pivot: bool
+
+
 class Predictor(BaseModel):
     task_id: str
 

@@ -56,7 +56,7 @@ class PandasWrapper(DataFrameWrapper):
 
     @property
     def write(self):
-        return PandasWriter(self.data)
+        return PandasWriter()
 
 
 class SparkWrapper(DataFrameWrapper):
