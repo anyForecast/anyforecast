@@ -52,17 +52,28 @@ class DataNotFoundError(BaseError):
 
 
 class BucketDoesNotExist(BaseError):
-    """Bucket does not exist"""
+    """Bucket does not exist."""
     fmt = 'Bucket "{name}" does not exist. Create one using `create_bucket`.'
 
 
 class FeatureError(BaseError):
-    """Base exceptions for feature error"""
+    """Base exceptions for feature error."""
 
 
-class UnknownFeatureTypeError(FeatureError):
-    """Unknown feature type"""
+class InvalidFeatureType(FeatureError):
+    """Unknown feature type."""
     fmt = 'Unknown feature type "{feature_type}".'
+
+
+class InvalidFeatureDtype(FeatureError):
+    """Invalid feature dtype."""
+    fmt = 'Invalid feature dtype "{feature_dtype}".'
+
+
+class MissingFeatureTypeError(FeatureError):
+    """Missing feature type in feature data.
+    """
+    fmt = 'Feature type {feature_type} missing in `feature_data`.'
 
 
 class DatasetSchemaError(BaseError):

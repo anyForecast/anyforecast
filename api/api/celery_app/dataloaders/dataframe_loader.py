@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
-from ._s3_loaders import S3Loader
+from .s3_loaders import S3Loader
 from ..client_args import create_client_args
 
 
@@ -42,14 +42,9 @@ class PandasLoader(DataFrameLoader):
     def __init__(self, dataset, user):
         super().__init__(dataset, user)
 
-    def load(self, category_as_object=True, partition_filter=None, **kwargs):
-        pandas = self.s3_loader.parquet.to_pandas(
+    def load(self, partition_filter=None, **kwargs):
+        return self.s3_loader.parquet.to_pandas(
             partition_filter=partition_filter, **kwargs)
-
-        if category_as_object:
-            pandas.loc[:, pandas.dtypes == 'category'] = pandas.select_dtypes(
-                ['category']).apply(lambda x: x.astype('object'))
-        return pandas
 
 
 class SparkLoader(DataFrameLoader):

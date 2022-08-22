@@ -26,6 +26,10 @@ class BaseError(Exception):
         return _exception_from_packed_args, (self.__class__, None, self.kwargs)
 
 
+class UnknownAlgorithmError(BaseError):
+    fmt = "Algorithm {algorithm} does not exist. "
+
+
 class UnknownSchemaKeyError(BaseError):
     fmt = 'Schema key "{key}" does not exist.'
 

@@ -1,5 +1,5 @@
-from .exceptions import UnknownFeatureTypeError
-from .features import FeatureLocator
+from .exceptions import InvalidFeatureType, MissingFeatureTypeError
+from .features import FeatureLocator, FEATURE_TYPES
 from .services.writer.writers import JsonWriter
 
 
@@ -14,37 +14,38 @@ class SchemaCreator:
         If you have only one time series, set this to the name of column that
         is constant.
 
-    timestamp : str
-        Timestamp feature.
+    timestamp_col : str
+        Timestamp column/feature.
 
-    target : str
-        Target feature. Feature containing the values to be predicted.
+    target_col : str
+        Target column/feature. Feature containing the values to be predicted.
     """
 
-    def __init__(self, group_ids, timestamp, target):
+    def __init__(self, group_ids, target_col, timestamp_col):
         self.group_ids = group_ids
-        self.timestamp = timestamp
-        self.target = target
-
+        self.target_col = target_col
+        self.timestamp_col = timestamp_col
         self._features_locator = FeatureLocator()
-        self._register_pk_features()
-        self._register_target()
+        self._register_features()
 
-    def _register_pk_features(self):
+    def _register_features(self):
         self._register_group_ids()
         self._register_timestamp()
-
-    def _register_timestamp(self):
-        self._features_locator.register_feature(self.timestamp, 'timestamp')
+        self._register_target()
 
     def _register_group_ids(self):
         for group_id in self.group_ids:
             self._features_locator.register_feature(group_id, 'group_id')
 
-    def _register_target(self):
-        self._features_locator.register_feature(self.target, 'target')
+    def _register_timestamp(self):
+        if self.timestamp_col is not None:
+            self._features_locator.register_feature(
+                self.timestamp_col, 'timestamp')
 
-    def add_feature(self, name, feature_type):
+    def _register_target(self):
+        self._features_locator.register_feature(self.target_col, 'target')
+
+    def register_feature(self, name, feature_type, dtype=None):
         """Adds feature to schema.
 
         Parameters
@@ -66,7 +67,7 @@ class SchemaCreator:
             - static_categoricals: List of categorical variables that do not
             change over time (also known as `time independent variables`).
         """
-        self._features_locator.register_feature(name, feature_type)
+        self._features_locator.register_feature(name, feature_type, dtype)
 
     def create_schema(self):
         """Creates :class:`Schema` object.
@@ -76,32 +77,54 @@ class SchemaCreator:
         schema : client.schema.Schema
             :class:`Schema` object.
         """
-        features_data = self._features_locator.get_by_type()
+        features_data = self._features_locator.get_features_data()
         return Schema(features_data)
 
 
 class Schema:
+    """Schema.
+
+    Holds information for all feature types and dtypes.
+
+    Parameters
+    ----------
+    features_data : dict
+        mapping from feature type to a list of features
+        having such type. Currently, the following feature types exist and all
+        must be included: TimeVaryingKnown,TimeVaryingUnknown,
+        StaticCategoricals, GroupIds, Timestamp, Target.
+    """
+
     def __init__(self, features_data):
-        self._features_data = features_data
-        self.write = JsonWriter(self.to_dict())
+        self._check_features_data(features_data)
+        self.features_data = features_data
 
-    def to_dict(self):
-        return self._features_data
+    def dict(self):
+        return self.features_data
 
-    def get_names_to_dtype(self):
+    def _check_features_data(self, features_data):
+        for feature_type in FEATURE_TYPES:
+            if feature_type not in features_data:
+                raise MissingFeatureTypeError(feature_type=feature_type)
+
+    @property
+    def write(self):
+        return JsonWriter(self.features_data)
+
+    def get_dtypes(self):
         names_to_dtype = {}
-        for _, features in self._features_data.items():
+        for _, features in self.features_data.items():
             for feat in features:
                 name = feat['FeatureName']
                 dtype = feat['FeatureDtype']
                 names_to_dtype[name] = dtype
         return names_to_dtype
 
-    def get_names_by_type(self, feature_type):
+    def get_names_by_feature_type(self, feature_type):
         try:
-            features = self._features_data[feature_type]
+            features = self.features_data[feature_type]
         except KeyError:
-            raise UnknownFeatureTypeError(feature_type=feature_type)
+            raise InvalidFeatureType(feature_type=feature_type)
 
         names = []
         for feat in features:
@@ -110,4 +133,4 @@ class Schema:
         return names
 
     def get_names(self):
-        return list(self.get_names_to_dtype())
+        return list(self.get_dtypes())

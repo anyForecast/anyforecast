@@ -1,5 +1,5 @@
-from .prediction_tasks import FromDataset
-from .training_task import TrainingTask
+from .prediction import FromDataset
+from .training import TrainingTask
 from ..celery import app
 
 training_task = TrainingTask().make_celery_task(app)

@@ -15,7 +15,7 @@ class WriterService(BaseService):
         super().__init__(endpoint, loader, access_token)
 
     def post(self, dataset_group_name, dataset_name, data, schema=None,
-             format='parquet', bucket_name='datasets'):
+             format='parquet', bucket_name='datasets', partition_cols=None):
         """Writes :class:`pandas.DataFrame` to s3 bucket.
 
         Parameters
@@ -37,6 +37,10 @@ class WriterService(BaseService):
 
         bucket_name : str, default='datasets'
             Name of bucket to write data.
+
+        partition_cols : list, default None
+            Column names by which to partition the dataset.
+            Columns are partitioned in the order they are given.
         """
         dataframe_wrapper = make_dataframe_wrapper(data)
         validate_dataframe_and_schema(dataframe_wrapper, schema)
@@ -46,13 +50,9 @@ class WriterService(BaseService):
 
         # Write data inside ``dataframe_wrapper``.
         # Notice the ``group_ids`` columns are used to partition the dataset.
-        group_ids = schema.get_names_by_type('GroupIds')
         dataframe_wrapper.write.parquet(
-            data=dataframe_wrapper.data,
-            path=path,
-            fs=fs,
-            partition_cols=group_ids
-        )
+            data=dataframe_wrapper.data, path=path, fs=fs,
+            partition_cols=partition_cols)
 
         if schema is not None:
             path = self._create_schema_path(dataset_group_name, dataset_name)
