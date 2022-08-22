@@ -5,15 +5,10 @@
 FROM python:3.9
 RUN pip install --upgrade pip
 
-# Create new user.
-RUN useradd --create-home --shell /bin/bash worker
-USER worker
-WORKDIR /home/worker
 
 # Copy `api` python library and its deps.
-COPY --chown=worker:worker . /home/worker/api
+COPY . /home/worker/api
 
-# Install deps and add user bin to PATH
-RUN pip install --user -r api/requirements.txt
-RUN pip install --user api/mooncake/.
-ENV PATH="/home/worker/.local/bin:${PATH}"
+# Install deps.
+RUN pip install -r /home/worker/api/requirements.txt
+RUN pip install /home/worker/api/mooncake/.

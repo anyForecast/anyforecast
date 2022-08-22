@@ -22,6 +22,18 @@ class BaseTask(metaclass=ABCMeta):
             self.task_name, self.bind, self.serializer)
         return task_maker.make_task(app, self)
 
+    def load_pandas_and_schema(self, dataset, user, partition_filter=None,
+                               enforce_schema_dtypes=True):
+        pandas_loader = self.get_dataframe_loader('pandas', dataset, user)
+        pandas = pandas_loader.load(partition_filter=partition_filter)
+        schema = pandas_loader.load_schema()
+
+        if enforce_schema_dtypes:
+            dtypes = schema.get_dtypes_for('all', exclude='timestamp')
+            pandas = pandas.astype(dtypes)
+
+        return pandas, schema
+
     def get_task_id(self, task_obj):
         return task_obj.request.id.__str__()
 

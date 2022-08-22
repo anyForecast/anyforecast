@@ -38,5 +38,6 @@ RUN pip install --user /opt/mooncake/. && \
     pip install --user s3fs && \
     pip install --user fastapi && \
     pip install --user "uvicorn[standard]" && \
+    pip install --user awswrangler==2.16.1 && \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"    

@@ -1,6 +1,7 @@
 from mooncake.nn import SeqToSeq, TemporalFusionTransformer as TFT
 from mooncake.helper import common_callbacks
 from torch.optim.lr_scheduler import OneCycleLR
+from ..exceptions import UnknownAlgorithmError
 
 
 class EstimatorCreator:
@@ -27,7 +28,11 @@ class EstimatorCreator:
         return cls(**estimator_args)
 
     def _get_estimator_class(self):
-        return self.ESTIMATORS[self.predictor['algorithm']]
+        algorithm = self.predictor['algorithm']
+        try:
+            return self.ESTIMATORS[algorithm]
+        except KeyError:
+            raise UnknownAlgorithmError(algorithm=algorithm)
 
     def _get_estimator_args(
             self, group_ids, target, time_varying_known,
@@ -62,6 +67,11 @@ class EstimatorArgsCreator:
             callbacks = common_callbacks(lr_scheduler, early_stopping=True,
                                          gradient_clipping=True, patience=100)
 
+        kwargs = self.predictor['kwargs']
+        if kwargs is None:
+            kwargs = {}
+        print(f'Extra kwargs: {kwargs}')
+
         return {
             'target': target[0],
             'group_ids': group_ids,
@@ -72,6 +82,7 @@ class EstimatorArgsCreator:
             'max_prediction_length': self.predictor['forecast_horizon'],
             'max_encoder_length': 10,
             'callbacks': callbacks,
-            'cv_split': 4,
-            'max_epochs': 100,
+            'cv_split': 2,
+            'max_epochs': 50,
+            **kwargs
         }

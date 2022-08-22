@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from pydantic import BaseModel
 
@@ -9,6 +9,52 @@ class Pivot(BaseModel):
 
 class Predictor(BaseModel):
     task_id: str
+
+
+class PredictionModel(BaseModel):
+    """Base model for prediction tasks.
+    """
+
+
+class DateRange(BaseModel):
+    """Defines date range.
+    """
+    start: str
+    end: str
+
+
+class WhatIf(PredictionModel):
+    """Defines a "what if" scenario.
+
+    Parameters
+    ----------
+    feature : str
+        Feature to modify.
+
+    value : int or float
+        Value to insert
+    """
+    feature: str
+    value: Union[int, float]
+
+
+class GroupIdPrediction(PredictionModel):
+    """Defines how a prediction for a single group_id is computed.
+
+    Parameters
+    ----------
+    group_id : dict, str -> str
+        Dictionary that maps from group_id label to its value. For example,
+        >>> group_id = {"product_id": "10"}  # single-valued group_id
+        or
+        >>> group_id = {"product_id": "10", "store_id": "1"}  # multi-value group_id
+
+    what_if : None or WhatIf, default=None
+        Include this parameter to perform a "what if" scenario on the given
+        group_id.
+    """
+    group_id: dict
+    what_if: Optional[WhatIf] = None
 
 
 class Token(BaseModel):
@@ -52,3 +98,4 @@ class Trainer(BaseModel):
     forecast_horizon: int
     freq: str
     perform_hpo: Optional[bool] = False
+    kwargs: Optional[dict] = None

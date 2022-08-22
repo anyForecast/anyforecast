@@ -6,8 +6,8 @@ from abc import ABCMeta
 import s3fs
 from minio import Minio
 
-from ._parquet_loader import ParquetToPandas, ParquetToSpark
-from ._schema_resolver import SchemaResolver
+from .parquet_loader import ParquetToPandas, ParquetToSpark
+from .schema_resolver import SchemaResolver
 
 
 def _make_path(*args, trailing_slash=False):

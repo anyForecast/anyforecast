@@ -3,9 +3,6 @@ from itertools import chain
 
 import mlflow
 import numpy as np
-from mlflow.models.signature import infer_signature
-
-from .wrappers import wrap_pipeline
 
 
 class BaseMlFLowLog(metaclass=ABCMeta):
@@ -41,19 +38,32 @@ class ParametersLog(BaseMlFLowLog):
         mlflow.log_params(self.params)
 
 
-class PythonModelLog(BaseMlFLowLog):
-    def __init__(self, name, python_model, conda_env, signature, artifacts):
-        self.name = name
-        self.python_model = python_model
+class ModelLog(BaseMlFLowLog):
+    def __init__(self, model, conda_env, signature,
+                 use_sklearn_logger=False, artifact_path='model'):
+        self.model = model
         self.conda_env = conda_env
         self.signature = signature
-        self.artifacts = artifacts
+        self.use_sklearn_logger = use_sklearn_logger
+        self.artifact_path = artifact_path
 
     def log(self):
-        mlflow.pyfunc.log_model(
-            self.name, python_model=self.python_model,
-            conda_env=self.conda_env, signature=self.signature,
-            artifacts=self.artifacts)
+        logger = mlflow.sklearn if self.use_sklearn_logger else mlflow.pyfunc
+        kwargs = self._create_kwargs()
+        logger.log_model(**kwargs)
+
+    def _create_kwargs(self):
+        kwargs = {
+            'artifact_path': self.artifact_path,
+            'signature': self.signature,
+            'conda_env': self.conda_env
+        }
+        if self.use_sklearn_logger:
+            kwargs['sk_model'] = self.model
+        else:
+            kwargs['python_model'] = self.model
+
+        return kwargs
 
 
 class MlFlowLogsStorage:
@@ -61,92 +71,73 @@ class MlFlowLogsStorage:
     """
 
     def __init__(self):
-        log_keys = ['metrics', 'params', 'models']
-        self.log_storage = dict.fromkeys(log_keys, [])
+        self._log_storage = dict.fromkeys(('metrics', 'models', 'params'), [])
 
-    def save_metric(self, name, values):
-        key = 'metrics'
+    def store_metric(self, name, values):
         log = MetricsLog(name, values)
-        self.log_storage[key].append(log)
+        self._log_storage['metrics'].append(log)
 
     def get_logs(self):
-        return list(chain.from_iterable(self.log_storage.values()))
+        return self._log_storage
 
-    def save_python_model(self, name, python_model, conda_env=None,
-                          signature=None, artifacts=None):
-        """Saves python model.
+    def get_chained_logs(self):
+        return list(chain.from_iterable(self._log_storage.values()))
 
-        For more reference on what mlflow refers to as a "PythonModel" please
-        visit:
-        - https://www.mlflow.org/docs/latest/python_api/mlflow.pyfunc.html
-        - :class:`mlflow.pyfunc.model.PythonModel`.
+    def store_model(self, model, conda_env=None, signature=None,
+                    use_sklearn_logger=False):
+        """Stores Python model.
 
         Parameters
         ----------
-        name : str
-            The run-relative artifact path to which to log the Python model.
-
-        python_model :  An instance of a subclass of :class:`~PythonModel`.
+        model :  An instance of a subclass of :class:`~PythonModel`.
 
         conda_env: {{ conda_env }}
 
         signature: :py:class:`ModelSignature <mlflow.models.ModelSignature>`
             Describes model input and output
             :py:class:`Schema <mlflow.types.Schema>`.
-
-        artifacts : dict, str -> str.
-             A dictionary containing ``<name, artifact_uri>`` entries.
-
-        References
-        ----------
-        See docstring from `mlflow.pyfunc.log_model`.
         """
-        key = 'models'
-        log = PythonModelLog(name, python_model, conda_env, signature,
-                             artifacts)
-        self.log_storage[key].append(log)
+        log = ModelLog(model, conda_env, signature, use_sklearn_logger)
+        self._log_storage['models'].append(log)
 
-    def save_params(self, params):
-        key = 'params'
+    def store_params(self, params):
         log = ParametersLog(params)
-        self.log_storage[key].append(log)
+        self._log_storage['params'].append(log)
 
 
 class MlFlowLogger:
-    def __init__(self, model_pipeline, X):
-        self.logs_storage = MlFlowLogsStorage()
-        self.model_pipeline = model_pipeline
-        self.X = X
+    def __init__(self, model, use_sklearn_logger=False):
+        self.model = model
+        self.use_sklearn_logger = use_sklearn_logger
+        self._logs_storage = MlFlowLogsStorage()
 
-    def log(self, run_id=None, experiment_id=None, run_name=None):
-        self.save_metrics()
-        self.save_params()
-        self.save_pipeline()
-        for log in self.logs_storage.get_logs():
+    def log(self):
+        self._store_metrics()
+        self._store_params()
+        self._store_model()
+        for log in self._logs_storage.get_chained_logs():
             log.log()
 
-    def save_metrics(self):
+    def _store_metrics(self):
         metrics = ['train_loss', 'valid_loss']
         for metric in metrics:
-            estimator = self.model_pipeline['estimator']
+            estimator = self.model.estimator
             history = self._get_metric_from_estimator(estimator, metric)
-            self.logs_storage.save_metric(name=metric, values=history)
+            self._logs_storage.store_metric(name=metric, values=history)
 
-    def save_params(self):
-        estimator = self.model_pipeline['estimator']
+    def _store_params(self):
+        estimator = self.model.estimator
         params = self._get_estimator_params(estimator)
-        self.logs_storage.save_params(params)
+        self._logs_storage.store_params(params)
 
-    def save_pipeline(self):
-        # Save model with a signature that defines the schema of
-        # the model's inputs and outputs. When the model is deployed, this
-        # signature will be used to validate inputs.
-        wrapped_pipeline = wrap_pipeline(self.model_pipeline)
-        model_output = wrapped_pipeline.predict(None, self.X)
-        signature = infer_signature(self.X, model_output=model_output)
-        self.logs_storage.save_python_model(
-            name='pipeline', python_model=wrapped_pipeline,
-            signature=signature)
+    def _store_model(self):
+        # TODO: Save model with a signature that defines the schema of
+        #  the model's inputs and outputs. When the model is deployed, this
+        #  signature will be used to validate inputs.
+        self._logs_storage.store_model(
+            model=self.model,
+            use_sklearn_logger=self.use_sklearn_logger
+            )
 
     def _get_metric_from_estimator(self, estimator, name):
         """Obtains history from estimator.

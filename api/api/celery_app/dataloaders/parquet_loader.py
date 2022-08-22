@@ -25,7 +25,8 @@ class ParquetToPandas(ParquetLoader):
         self._set_awswrangler_endpoint()
         return wr.s3.read_parquet(
             self.base_dir, dataset=True, partition_filter=partition_filter,
-            **kwargs)
+            use_threads=True, map_types=False, **kwargs
+        )
 
     def _set_awswrangler_endpoint(self):
         endpoint_url = self.s3_filesystem.client_kwargs['endpoint_url']

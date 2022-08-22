@@ -1,9 +1,9 @@
 from abc import ABCMeta
 
-import mlflow
 import pandas as pd
 
 from .base_task import BaseTask
+from ..dataloaders import MlFlowLoader
 from ..serialize import PandasSerializer
 
 
@@ -15,6 +15,7 @@ class BasePredictionTask(BaseTask, metaclass=ABCMeta):
             bind=False
     ):
         super().__init__(serializer, task_name, bind)
+        self.mlflow_loader = MlFlowLoader()
 
     def predict(self, X, predictor):
         mlflow_predictor = self.load_mlflow_predictor(predictor)
@@ -24,10 +25,9 @@ class BasePredictionTask(BaseTask, metaclass=ABCMeta):
         return pd.pivot(data, columns=group_ids, values=target,
                         index=timestamp).reset_index()
 
-    def load_mlflow_predictor(self, predictor):
-        model_id = predictor['task_id']
-        url = f"models:/{model_id}/production"
-        return mlflow.pyfunc.load_model(url)
+    def load_mlflow_predictor(self, predictor, stage='production'):
+        model_name = predictor['task_id']
+        return self.mlflow_loader.load_predictor(model_name, stage)
 
 
 class FromDataset(BasePredictionTask):
@@ -35,22 +35,25 @@ class FromDataset(BasePredictionTask):
     def __init__(self):
         super().__init__(task_name='PredictionFromDataset')
 
-    def run(self, predictor, dataset, user, group_ids, pivot):
-        partition_filter = self._make_partition_filter(group_ids)
+    def run(self, predictor, dataset, user, date_range, prediction_params,
+            pivot):
+        partition_filter = self._make_partition_filter(prediction_params)
         pandas_loader = self.get_dataframe_loader('pandas', dataset, user)
-        X = pandas_loader.load(partition_filter=partition_filter)
-        output = self.predict(X, predictor)
-        if pivot:
-            schema = pandas_loader.load_schema()
-            keys = ('group_ids', 'target', 'timestamp')
-            pivot_kwargs = schema.get_names_for(keys)
-            pivot_kwargs['target'] = pivot_kwargs['target'][0]
-            output = self.pivot_timeseries_data(X, **pivot_kwargs)
-            print(output)
+        return pandas_loader, partition_filter
 
-        return self.serialize_result({'data': output})
+    def _create_group_transformer(self):
+        pass
 
-    def _make_partition_filter(self, group_ids):
+    def _get_group_ids(self, prediction_params):
+        group_ids = []
+        for param in prediction_params:
+            group_id = param['group_id']
+            group_ids.append(group_id)
+        return group_ids
+
+    def _make_partition_filter(self, prediction_params):
+        group_ids = self._get_group_ids(prediction_params)
+
         def filter_function(partition):
             return partition in group_ids
 

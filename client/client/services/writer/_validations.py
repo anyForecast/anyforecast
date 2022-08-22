@@ -45,27 +45,22 @@ class DtypesValidator(DatasetValidator):
         super().__init__(df, schema)
 
     def validate(self):
-        names_to_dtype = self.schema.get_names_to_dtype()
-        for name, dtype in names_to_dtype.items():
-            self._validate_dtype(name, dtype)
+        schema_dtypes = self.schema.get_dtypes()
+        df_dtypes = self.df.get_dtypes()
+        for name, schema_dtype in schema_dtypes.items():
+            df_dtype = df_dtypes[name]
+            self._validate_dtype(name, schema_dtype, df_dtype)
 
-    def _validate_dtype(self, name, dtype):
-        """Validates df dtypes coincide schema types.
-        """
-        dtype_to_pandas = {
+    def _validate_dtype(self, name, schema_dtype, pandas_dtype):
+        schema_dtype_to_pandas_dtype = {
             'float': ['float64', 'float32'],
             'int': ['int64', 'int32'],
-            'string': ['object'],
+            'object': ['object'],
             'timestamp': ['datetime64[ns]']
         }
-        pandas_dtype = self._get_pandas_dtype(name)
-        if pandas_dtype not in dtype_to_pandas[dtype]:
-            raise TypesMismatch(name=name,
-                                schema_dtype=dtype,
+        if pandas_dtype not in schema_dtype_to_pandas_dtype[schema_dtype]:
+            raise TypesMismatch(name=name, schema_dtype=schema_dtype,
                                 pandas_dtype=pandas_dtype)
-
-    def _get_pandas_dtype(self, col_name):
-        return self.df.get_dtypes()[col_name]
 
 
 class NamesValidator(DatasetValidator):
@@ -76,10 +71,10 @@ class NamesValidator(DatasetValidator):
         names_set = set(self.schema.get_names())
         pandas_set = set(self.df.get_names())
 
-        if not names_set.issubset(pandas_set):
-            extras = names_set.difference(pandas_set)
-            raise ExtraFeaturesInSchemaError(extras=extras)
-
         if not pandas_set.issubset(names_set):
             extras = pandas_set.difference(names_set)
             raise ExtraFeaturesInPandasError(extras=extras)
+
+        if not names_set.issubset(pandas_set):
+            extras = names_set.difference(pandas_set)
+            raise ExtraFeaturesInSchemaError(extras=extras)
