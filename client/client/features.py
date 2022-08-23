@@ -2,9 +2,12 @@ from .exceptions import InvalidFeatureType
 
 
 class Feature:
+    """Base class for Features.
+    """
     def __init__(self, FeatureName, FeatureDtype):
         self.FeatureName = FeatureName
         self.FeatureDtype = FeatureDtype
+        self._checkFeatureDtype(FeatureDtype)
 
     def keys(self):
         return ["FeatureName", "FeatureDtype"]
@@ -13,7 +16,7 @@ class Feature:
         return getattr(self, key)
 
     def _checkFeatureDtype(self, FeatureDtype):
-        allowed_dtypes = ['object', 'int', 'float']
+        allowed_dtypes = ['object', 'int', 'float', 'timestamp', 'string']
         if FeatureDtype not in allowed_dtypes:
             raise
 
@@ -23,13 +26,11 @@ class GroupIds(Feature):
 
     Parameters
     ----------
-    dtype : None
-        Compatibility purposes. GroupIds dtype is always 'string'.
-
+    name : str
+        Feature name.
     """
-
-    def __init__(self, name, dtype=None):
-        super().__init__(FeatureName=name, FeatureDtype='string')
+    def __init__(self, name):
+        super().__init__(FeatureName=name, FeatureDtype='object')
 
 
 class Timestamp(Feature):
@@ -37,46 +38,77 @@ class Timestamp(Feature):
 
     Parameters
     ----------
-    dtype : None
-        Compatibility purposes. Timestamp dtype is always 'timestamp'.
-
+    name : str
+        Feature name.
     """
-
-    def __init__(self, name, dtype=None):
+    def __init__(self, name):
         super().__init__(FeatureName=name, FeatureDtype='timestamp')
 
 
 class Target(Feature):
-    """Group ids feature.
+    """Target feature.
 
     Parameters
     ----------
-    dtype : None
-        Compatibility purposes. Target dtype is always 'float'.
+    name : str
+        Feature name.
     """
-
-    def __init__(self, name, dtype=None):
+    def __init__(self, name):
         super().__init__(FeatureName=name, FeatureDtype='float')
 
 
 class TimeVaryingKnown(Feature):
-    def __init__(self, name, dtype=None):
-        if dtype is None:
-            dtype = 'float'
+    """Time varying known feature.
+
+    Continuous variables that change over
+    time and are known in the future (e.g. price of a product, but
+    not demand of a product).
+
+    Parameters
+    ----------
+    name : str
+        Feature name.
+
+    dtype : str, default='float'
+        Feature dtype.
+    """
+    def __init__(self, name, dtype='float'):
         super().__init__(FeatureName=name, FeatureDtype=dtype)
 
 
 class TimeVaryingUnknown(Feature):
-    def __init__(self, name, dtype=None):
-        if dtype is None:
-            dtype = 'float'
+    """Time varying unknown feature.
+
+    Continuous variables that change over time and are not known in the future.
+    For example, the Target variable.
+
+    Parameters
+    ----------
+    name : str
+        Feature name.
+
+    dtype : str, default='float'
+        Feature dtype.
+    """
+    def __init__(self, name, dtype='float'):
         super().__init__(FeatureName=name, FeatureDtype=dtype)
 
 
 class StaticCategoricals(Feature):
-    def __init__(self, name, dtype=None):
-        if dtype is None:
-            dtype = 'string'
+    """Static categorical variables.
+
+    Variables that do not change over time (also known as
+    `time independent variables`).
+
+    Parameters
+    ----------
+    name : str
+        Feature name.
+
+    dtype : str, default='object'
+        Feature dtype.
+    """
+    def __init__(self, name, dtype='object'):
         super().__init__(FeatureName=name, FeatureDtype=dtype)
 
 
@@ -107,17 +139,17 @@ def make_feature(name, feature_type, dtype=None):
         - time_varying_known: Continuous variables that change over
         time and are known in the future (e.g. price of a product, but
         not demand of a product).
-        Default dtype: 'num'.
+        Default dtype: 'float'.
 
         - time_varying_unknown: Continuous variables that change
         over time and are not known in the future.
-        Default dtype: 'num'.
+        Default dtype: 'float'.
 
         - static_categoricals: Categorical variables that do not
         change over time (also known as `time independent variables`).
-        Default dtype: 'string'.
+        Default dtype: 'object'.
 
-    dtype : str, {'string', 'int', 'float'}, default=None
+    dtype : str, {'string', 'int', 'float', 'object', 'timestamp'} default=None
         Feature dtype. If None, the default dtype of each feature type is used.
 
 
@@ -136,6 +168,35 @@ class FeatureLocator:
         self._features = []
 
     def register_feature(self, name, feature_type, dtype=None):
+        """Registers feature.
+
+        Parameters
+        ----------
+        name : str
+            Feature name
+
+        feature_type : str, {'time_varying_known', 'time_varying_unknown',
+        'static_categorical'}
+            Feature type. Description for each:
+
+            - time_varying_known: Continuous variables that change over
+            time and are known in the future (e.g. price of a product, but
+            not demand of a product).
+            Default dtype: 'float'.
+
+            - time_varying_unknown: Continuous variables that change
+            over time and are not known in the future.
+            Default dtype: 'float'.
+
+            - static_categoricals: Categorical variables that do not
+            change over time (also known as `time independent variables`).
+            Default dtype: 'object'.
+
+        dtype : str, {'string', 'int', 'float', 'object', 'timestamp'},
+         default=None
+            Feature dtype. If None, the default dtype of each feature type is
+            used.
+        """
         feature = make_feature(name, feature_type, dtype)
         self._features.append(feature)
 
