@@ -28,10 +28,9 @@ class MlFlowLoader:
         registered_model = self.get_registered_model(model_name)
         return registered_model.latest_versions[-1]
 
-    def get_latest_run_id(self, model_name):
-        latest_model_version = self.get_latest_model_version(model_name)
-        return latest_model_version.run_id
+    def get_client(self):
+        return self.mlflow_client
 
-    def get_run_param(self, run_id, param):
+    def get_run_id_params(self, run_id):
         run = self.mlflow_client.get_run(run_id)
-        return run.to_dictionary()['data']['params'][param]
+        return run.to_dictionary()['data']['params']

@@ -111,23 +111,24 @@ class MlFlowLogger:
         self.use_sklearn_logger = use_sklearn_logger
         self._logs_storage = MlFlowLogsStorage()
 
-    def log(self):
+    def log(self, **kwargs):
         self._store_metrics()
-        self._store_params()
+        self._store_params(**kwargs)
         self._store_model()
         for log in self._logs_storage.get_chained_logs():
             log.log()
 
     def _store_metrics(self):
-        metrics = ['train_loss', 'valid_loss']
+        metrics = ['train_loss'] #, 'valid_loss']
         for metric in metrics:
             estimator = self.model.estimator
             history = self._get_metric_from_estimator(estimator, metric)
             self._logs_storage.store_metric(name=metric, values=history)
 
-    def _store_params(self):
+    def _store_params(self, **kwargs):
         estimator = self.model.estimator
         params = self._get_estimator_params(estimator)
+        params.update(kwargs)
         self._logs_storage.store_params(params)
 
     def _store_model(self):
@@ -150,7 +151,7 @@ class MlFlowLogger:
 
         Parameters
         ----------
-        estimator : mooncake estimator
+        estimator : Estimator
             Fitted estimator.
 
         name : str

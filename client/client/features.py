@@ -4,9 +4,10 @@ from .exceptions import InvalidFeatureType
 class Feature:
     """Base class for Features.
     """
-    def __init__(self, FeatureName, FeatureDtype):
+    def __init__(self, FeatureName, FeatureDtype, validate=True):
         self.FeatureName = FeatureName
         self.FeatureDtype = FeatureDtype
+        self.validate = validate
         self._checkFeatureDtype(FeatureDtype)
 
     def keys(self):
@@ -29,7 +30,7 @@ class GroupIds(Feature):
     name : str
         Feature name.
     """
-    def __init__(self, name):
+    def __init__(self, name, dtype=None, validate=True):
         super().__init__(FeatureName=name, FeatureDtype='object')
 
 
@@ -41,7 +42,7 @@ class Timestamp(Feature):
     name : str
         Feature name.
     """
-    def __init__(self, name):
+    def __init__(self, name, dtype=None, validate=True):
         super().__init__(FeatureName=name, FeatureDtype='timestamp')
 
 
@@ -53,7 +54,7 @@ class Target(Feature):
     name : str
         Feature name.
     """
-    def __init__(self, name):
+    def __init__(self, name, dtype=None, validate=True):
         super().__init__(FeatureName=name, FeatureDtype='float')
 
 
@@ -72,8 +73,9 @@ class TimeVaryingKnown(Feature):
     dtype : str, default='float'
         Feature dtype.
     """
-    def __init__(self, name, dtype='float'):
-        super().__init__(FeatureName=name, FeatureDtype=dtype)
+    def __init__(self, name, dtype='float', validate=True):
+        super().__init__(FeatureName=name, FeatureDtype=dtype,
+                         validate=validate)
 
 
 class TimeVaryingUnknown(Feature):
@@ -90,8 +92,9 @@ class TimeVaryingUnknown(Feature):
     dtype : str, default='float'
         Feature dtype.
     """
-    def __init__(self, name, dtype='float'):
-        super().__init__(FeatureName=name, FeatureDtype=dtype)
+    def __init__(self, name, dtype='float', validate=True):
+        super().__init__(FeatureName=name, FeatureDtype=dtype,
+                         validate=validate)
 
 
 class StaticCategoricals(Feature):
@@ -108,8 +111,9 @@ class StaticCategoricals(Feature):
     dtype : str, default='object'
         Feature dtype.
     """
-    def __init__(self, name, dtype='object'):
-        super().__init__(FeatureName=name, FeatureDtype=dtype)
+    def __init__(self, name, dtype='object', validate=True):
+        super().__init__(FeatureName=name, FeatureDtype=dtype,
+                         validate=validate)
 
 
 _FEATURES_MAP = {
@@ -124,7 +128,7 @@ _FEATURES_MAP = {
 FEATURE_TYPES = [x.__name__ for x in list(_FEATURES_MAP.values())]
 
 
-def make_feature(name, feature_type, dtype=None):
+def make_feature(name, feature_type, dtype=None, validate=True):
     """Factory function for :class:`Feature` objects.
 
     Parameters
@@ -158,7 +162,7 @@ def make_feature(name, feature_type, dtype=None):
     feature: Feature
     """
     try:
-        return _FEATURES_MAP[feature_type](name, dtype)
+        return _FEATURES_MAP[feature_type](name, dtype, validate)
     except KeyError:
         raise InvalidFeatureType(feature_type=feature_type)
 
@@ -167,7 +171,7 @@ class FeatureLocator:
     def __init__(self):
         self._features = []
 
-    def register_feature(self, name, feature_type, dtype=None):
+    def register_feature(self, name, feature_type, dtype=None, validate=True):
         """Registers feature.
 
         Parameters
@@ -218,7 +222,7 @@ class FeatureLocator:
         for feature in self._features:
             # The ``feature_type`` is given by the class name.
             cls_name = feature.__class__.__name__
-            features_by_type[cls_name].append(dict(feature))
+            features_by_type[cls_name].append(feature)
         return features_by_type
 
     def get_features(self):

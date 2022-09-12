@@ -1,5 +1,5 @@
-from .exceptions import InvalidFeatureType, MissingFeatureTypeError
-from .features import FeatureLocator, FEATURE_TYPES
+from .exceptions import InvalidFeatureType
+from .features import FeatureLocator
 from .services.writer.writers import JsonWriter
 
 
@@ -26,9 +26,9 @@ class SchemaCreator:
         self.target_col = target_col
         self.timestamp_col = timestamp_col
         self._features_locator = FeatureLocator()
-        self._register_features()
+        self._register_init_features()
 
-    def _register_features(self):
+    def _register_init_features(self):
         self._register_group_ids()
         self._register_timestamp()
         self._register_target()
@@ -45,7 +45,7 @@ class SchemaCreator:
     def _register_target(self):
         self._features_locator.register_feature(self.target_col, 'target')
 
-    def register_feature(self, name, feature_type, dtype=None):
+    def register_feature(self, name, feature_type, dtype=None, validate=True):
         """Adds feature to schema.
 
         Parameters
@@ -67,7 +67,8 @@ class SchemaCreator:
             - static_categoricals: List of categorical variables that do not
             change over time (also known as `time independent variables`).
         """
-        self._features_locator.register_feature(name, feature_type, dtype)
+        self._features_locator.register_feature(name, feature_type, dtype,
+                                                validate)
 
     def create_schema(self):
         """Creates :class:`Schema` object.
@@ -96,27 +97,31 @@ class Schema:
     """
 
     def __init__(self, features_data):
-        self._check_features_data(features_data)
         self.features_data = features_data
 
     def dict(self):
-        return self.features_data
+        """Converts features data, i.e., ``self.features_data`` into a
+        serializable format.
 
-    def _check_features_data(self, features_data):
-        for feature_type in FEATURE_TYPES:
-            if feature_type not in features_data:
-                raise MissingFeatureTypeError(feature_type=feature_type)
+        Returns
+        -------
+        features_data : dict, str -> list of dict
+        """
+        return {
+            k: [dict(f) for f in features_list]
+            for k, features_list in self.features_data.items()
+        }
 
     @property
     def write(self):
-        return JsonWriter(self.features_data)
+        return JsonWriter(self.dict())
 
     def get_dtypes(self):
         names_to_dtype = {}
         for _, features in self.features_data.items():
             for feat in features:
-                name = feat['FeatureName']
-                dtype = feat['FeatureDtype']
+                name = feat.FeatureName
+                dtype = feat.FeatureDtype
                 names_to_dtype[name] = dtype
         return names_to_dtype
 
@@ -128,7 +133,7 @@ class Schema:
 
         names = []
         for feat in features:
-            name = feat['FeatureName']
+            name = feat.FeatureName
             names.append(name)
         return names
 

@@ -21,12 +21,15 @@ class BasePredictionTask(BaseTask, metaclass=ABCMeta):
         mlflow_predictor = self.load_mlflow_predictor(predictor)
         return mlflow_predictor.predict(X)
 
-    def pivot_timeseries_data(self, data, group_ids, target, timestamp):
+    def pivot_timeseries_data(self, data, schema):
+        group_ids = schema.group_ids.names
+        target = schema.target.names[0]
+        timestamp = schema.timestamp.names[0]
         return pd.pivot(data, columns=group_ids, values=target,
                         index=timestamp).reset_index()
 
     def load_mlflow_predictor(self, predictor, stage='production'):
-        model_name = predictor['task_id']
+        model_name = predictor['model_name']
         return self.mlflow_loader.load_predictor(model_name, stage)
 
 

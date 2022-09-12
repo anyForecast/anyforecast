@@ -10,7 +10,7 @@ RUN \
     chmod g+w /etc/passwd
 
 # Installing extra packages to Debian.
-# gcc and g++ are necessary for mooncake and
+# gcc and g++ are necessary for skorch_forecasting and
 # libpq-dev is necessary for psycopg2.
 USER $NB_UID
 RUN sudo apt-get update && \
@@ -18,20 +18,18 @@ RUN sudo apt-get update && \
     sudo apt-get -y install g++ && \
     sudo apt-get -y install libpq-dev
 
-# Installing minio client
-# RUN \
-#     wget https://dl.min.io/client/mc/release/linux-amd64/mc && \
-#     chmod +x mcc
-
 # Adding Python deps
 # For instructions for pip install in jupyter child Docker images see:
 # https://jupyter-docker-stacks.readthedocs.io/en/latest/using/recipes.html
 # COPY --chown=${NB_UID}:${NB_GID} requirements.txt /tmp/
-COPY --chown=${NB_UID}:${NB_GID} /mooncake /opt/mooncake
-RUN pip install --user /opt/mooncake/. && \
+COPY --chown=${NB_UID}:${NB_GID} /skorch_forecasting /opt/skorch_forecasting
+RUN pip install --user /opt/skorch_forecasting/. && \
+    pip install --user celery && \
+    pip install --user boto3==1.24.59 && \
+    pip install --user cloudpickle==2.1.0 && \
+    pip install --user ipython==8.4.0 && \
     pip install --user psycopg2 && \
     pip install --user mlflow && \
-    pip install --user boto3 && \
     pip install --user minio && \
     pip install --user pyarrow && \
     pip install --user fastparquet && \
