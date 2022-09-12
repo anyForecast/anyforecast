@@ -11,4 +11,4 @@ COPY . /home/worker/api
 
 # Install deps.
 RUN pip install -r /home/worker/api/requirements.txt
-RUN pip install /home/worker/api/mooncake/.
+RUN pip install /home/worker/api/skorch_forecasting/.

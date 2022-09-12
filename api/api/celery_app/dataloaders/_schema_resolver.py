@@ -1,4 +1,5 @@
 import re
+from itertools import chain
 
 
 def upper_to_lower(string):
@@ -32,6 +33,9 @@ class SchemaResolver:
             features_data_obj = FeaturesData(features_data)
             lower_k = upper_to_lower(k)
             setattr(self, lower_k, features_data_obj)
+
+    def get_feature_names(self):
+        return list(chain.from_iterable(self.get_names_for('all').values()))
 
     def get_names_for(self, keys, exclude=None):
         if keys == 'all':

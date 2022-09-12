@@ -1,11 +1,13 @@
 import mlflow
-from mooncake.model_wrappers import PreprocessorEstimatorWrapper
-from mooncake.preprocessing import (
+from skorch_forecasting.model_wrappers import PreprocessorEstimatorWrapper
+from skorch_forecasting.preprocessing import (
     PreprocessorCreator,
     ColumnDuplicator,
     CyclicalDatesEncoder
 )
+from sklearn.preprocessing import MinMaxScaler
 
+from ._features_segmenter import FeaturesSegmenter
 from .base_task import BaseTask
 from ..ml.estimator import EstimatorCreator
 from ..ml.mlflow_log import MlFlowLogger
@@ -18,38 +20,47 @@ class TrainingTask(BaseTask):
     def __init__(self, serializer=None, task_name='TrainingTask', bind=True):
         super().__init__(serializer, task_name, bind)
 
-    def run(self, task_id, trainer, dataset, user):
+    def run(self, task_obj, trainer, dataset, user):
+        task_id = self.get_task_id(task_obj)
         with mlflow.start_run(run_name=task_id):
             X, schema = self.load_pandas_and_schema(dataset, user)
             preprocessor = self.create_preprocessor(trainer, schema)
-            estimator = self.create_estimator(trainer, schema)
+
+            # Segment features.
+            preprocessor.fit(X)
+            segmentation = FeaturesSegmenter(
+                preprocessor,
+                schema,
+                # TODO: In order to avoid this ugly looking param, make a Step
+                #  class with an attribute telling whether or not the step
+                #  should be ignored.
+                steps_to_ignore=['col_duplicator', 'time_index_encoder']
+            ).segment()
+
+            estimator = self.create_estimator(trainer, segmentation, schema)
+
+            # Init model and fit.
+            # The model wraps both ``preprocessor`` and ``estimator`` into a
+            # single sklearn :class:`Pipeline`. Hence, the user can input
+            # non transformed data and the model itself will take care of it.
             model = PreprocessorEstimatorWrapper(
                 estimator=estimator,
                 preprocessor=preprocessor,
-                inverse_transform_steps=[
-                    'time_index_encoder',
-                    'target_transformer'
-                ]
+                inverse_transform_steps=['target_step', 'time_index_encoder']
             )
             model.fit(X)
 
+            # Log metrics and model itself to MlFlow.
             mlflow_logger = MlFlowLogger(model, use_sklearn_logger=True)
-            mlflow_logger.log()
+            mlflow_logger.log(**trainer)
 
-    def create_estimator(self, trainer, schema):
+    def create_estimator(self, trainer, segmentation, schema):
         """Creates time series estimator.
         """
-        args_keys = [
-            'group_ids',
-            'target',
-            'time_varying_known',
-            'time_varying_unknown',
-            'static_categoricals'
-        ]
+        time_idx = schema.timestamp.names[0]
         estimator_creator = EstimatorCreator(trainer)
-        args = schema.get_names_for(args_keys)
         estimator = estimator_creator.create_estimator(
-            **args, time_idx='time_index')
+            **segmentation, time_idx=time_idx)
         return estimator
 
     def create_preprocessor(self, trainer, schema):
@@ -63,13 +74,10 @@ class TrainingTask(BaseTask):
         kwargs['target'] = kwargs['target'][0]
         preprocessor_creator = PreprocessorCreator(**kwargs)
 
-        # Default steps.
-        default_steps = preprocessor_creator.make_default_steps()
-
         # :class:`ColumnDuplicator` step.
         timestamp_col = schema.timestamp.names[0]
-        time_index_col = 'time_index'
-        col_duplicator = ColumnDuplicator(time_index_col)
+        duplicated_col_name = timestamp_col + '_duplicated'
+        col_duplicator = ColumnDuplicator(out_feature=duplicated_col_name)
         col_duplicator_tuple = [(col_duplicator, timestamp_col)]
         col_duplicator_step = preprocessor_creator.make_step(
             'col_duplicator', col_duplicator_tuple)
@@ -77,15 +85,29 @@ class TrainingTask(BaseTask):
         # :class:`TimeIndexEncoding` step.
         freq = trainer['freq']
         time_index_step = preprocessor_creator.make_time_index_encoding_step(
-            time_index_col, extra_timestamps=100, freq=freq)
+            timestamp_col, extra_timestamps=100, freq=freq)
 
         # :class:`CyclicalDatesEncoder` step
-        cyclical_dates_enc = CyclicalDatesEncoder()
-        cyclical_dates_enc_tuple = [(cyclical_dates_enc, timestamp_col)]
+        cyclical_dates_enc = CyclicalDatesEncoder(month=False)
+        cyclical_dates_enc_tuple = [(cyclical_dates_enc, duplicated_col_name)]
         cyclical_dates_step = preprocessor_creator.make_step(
             'cyclical_dates', cyclical_dates_enc_tuple)
 
-        steps = default_steps + [col_duplicator_step, time_index_step,
-                                 cyclical_dates_step]
+        # Target and numerical transformation steps.
+        target_step = preprocessor_creator.make_target_step(
+            transformer=MinMaxScaler(clip=True)
+        )
+        numerical_step = preprocessor_creator.make_numerical_step(
+            transformer=MinMaxScaler(clip=True),
+            to_exclude=[timestamp_col]
+        )
+
+        steps = [
+            col_duplicator_step,
+            time_index_step,
+            cyclical_dates_step,
+            target_step,
+            numerical_step
+        ]
 
         return preprocessor_creator.create_preprocessor(steps)

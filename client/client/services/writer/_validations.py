@@ -2,7 +2,6 @@ from abc import abstractmethod, ABCMeta
 
 from ...exceptions import (
     TypesMismatch,
-    ExtraFeaturesInPandasError,
     ExtraFeaturesInSchemaError
 )
 
@@ -71,9 +70,9 @@ class NamesValidator(DatasetValidator):
         names_set = set(self.schema.get_names())
         pandas_set = set(self.df.get_names())
 
-        if not pandas_set.issubset(names_set):
-            extras = pandas_set.difference(names_set)
-            raise ExtraFeaturesInPandasError(extras=extras)
+        # if not pandas_set.issubset(names_set):
+        #    extras = pandas_set.difference(names_set)
+        #    raise ExtraFeaturesInPandasError(extras=extras)
 
         if not names_set.issubset(pandas_set):
             extras = names_set.difference(pandas_set)

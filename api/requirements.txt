@@ -15,9 +15,10 @@ mlflow==1.25.1
 boto3
 torch>=1.11.0
 numpy>=1.22.4
-scikit-learn>=0.24.1
-skorch>=0.11.0
+scikit-learn>=1.0.0
+skorch>=0.10.0
 matplotlib>=3.5.2
 joblib>=1.1.0
 setuptools>=58.1.0
 awswrangler==2.16.1
+python-multipart==0.0.5

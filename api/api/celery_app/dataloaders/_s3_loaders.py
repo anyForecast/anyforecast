@@ -6,8 +6,8 @@ from abc import ABCMeta
 import s3fs
 from minio import Minio
 
-from .parquet_loader import ParquetToPandas, ParquetToSpark
-from .schema_resolver import SchemaResolver
+from ._parquet_loaders import make_parquet_loader
+from ._schema_resolver import SchemaResolver
 
 
 def _make_path(*args, trailing_slash=False):
@@ -39,8 +39,13 @@ class S3PathMaker:
     def __init__(self):
         pass
 
-    def make_schema_path(self, base_dir):
-        return os.path.join(base_dir, 'schema.json')
+    def make_path(self, base_dir, path):
+        return _make_path(base_dir, path)
+
+    def make_json_path(self, base_dir, path):
+        if not path.endswith('.json'):
+            path += '.json'
+        return self.make_path(base_dir, path)
 
     def make_parquet_path(self, base_dir, s3_filesystem, partitions=None):
         if partitions:
@@ -67,13 +72,12 @@ class S3PathMaker:
         return s3_filesystem.glob(partition_path)
 
 
-class S3Loader:
-    """Interface for S3 loaders.
+class S3LoadersFactory:
+    """Factory for S3 loaders.
 
-    This is an abstraction layer for retrieving the different data types stored
-    in buckets. The actual "loaders" are accessible through their
-    dedicated property (see Properties section). Additionally, each of
-    this loaders inherits from the base abstract class :class:`S3BaseLoader`.
+    The actual "loaders" are accessible through :meth:´get_loader´.
+    Additionally, each of this loaders inherits from the base abstract class
+    :class:`S3BaseLoader`.
 
     Parameters
     ----------
@@ -88,37 +92,39 @@ class S3Loader:
 
     dataset_name : str
         Dataset name
-
-
-    Properties
-    ----------
-    parquet : ParquetLoader
-        Load parquet datasets from s3
-
-    schema : SchemaLoader
-        Load schema objects from s3
     """
 
     def __init__(self, client_args, bucket_name, dataset_group_name,
                  dataset_name):
-        self.kwargs = {
-            'client_args': client_args,
-            'bucket_name': bucket_name,
-            'dataset_group_name': dataset_group_name,
-            'dataset_name': dataset_name
+
+        self.client_args = client_args
+        self.bucket_name = bucket_name
+        self.dataset_group_name = dataset_group_name
+        self.dataset_name = dataset_name
+
+
+    def get_loader(self, name):
+        s3_loaders = {
+            'parquet': ParquetLoader,
+            'json': JsonLoader,
+            'schema': SchemaLoader
+        }
+        kwargs = {
+            'client_args': self.client_args,
+            'bucket_name': self.bucket_name,
+            'dataset_group_name': self.dataset_group_name,
+            'dataset_name': self.dataset_name
         }
 
-    @property
-    def schema(self):
-        return SchemaLoader(**self.kwargs)
+        return s3_loaders[name](**kwargs)
 
-    @property
-    def parquet(self):
-        return ParquetLoader(**self.kwargs)
 
 
 class S3BaseLoader(metaclass=ABCMeta):
     """Base abstract class for S3Loaders.
+
+    Different file extensions (parquet, json, etc) have their own derived class
+    containing the logic to load them from S3.
 
     Parameters
     ----------
@@ -167,8 +173,16 @@ class S3BaseLoader(metaclass=ABCMeta):
 class ParquetLoader(S3BaseLoader):
     """Interface for parquet loaders.
 
-    Similarly to :class:`S3Loader`, the following is only an abstraction layer
-    for the various destination formats the parquet datasets can have.
+    :class:`ParquetLoader` is only an interface layer for the various
+    destination formats the parquet datasets can have (see Properties section).
+
+    Properties
+    ----------
+    to_pandas : ParquetToPandas
+        Parquet -> Pandas loader
+
+    to_spark : ParquetToSpark
+        Parquet -> Spark loader
     """
 
     def __init__(self, client_args, bucket_name, dataset_group_name,
@@ -176,32 +190,42 @@ class ParquetLoader(S3BaseLoader):
         super().__init__(client_args, bucket_name, dataset_group_name,
                          dataset_name)
 
-        self.parquet_loaders_kwargs = {
+        self._kwargs = {
             'base_dir': self.get_base_dir('parquet', s3_prefix=True),
             's3_filesystem': self.make_s3_filesystem()
         }
 
+
+    def _make_parquet_loader(self, name):
+        kwargs = {
+            'base_dir': self.get_base_dir('parquet', s3_prefix=True),
+            's3_filesystem': self.make_s3_filesystem()
+        }
+        return make_parquet_loader(name, **kwargs)
+
     @property
     def to_pandas(self):
-        return ParquetToPandas(**self.parquet_loaders_kwargs)
+        return self._make_parquet_loader('pandas')
 
     @property
     def to_spark(self):
-        return ParquetToSpark(**self.parquet_loaders_kwargs)
+        return self._make_parquet_loader('spark')
 
 
-class SchemaLoader(S3BaseLoader):
+
+
+
+class JsonLoader(S3BaseLoader):
     def __init__(self, client_args, bucket_name, dataset_group_name,
                  dataset_name):
         super().__init__(client_args, bucket_name, dataset_group_name,
                          dataset_name)
 
-    def load(self):
+    def load(self, path):
         base_dir = self.get_base_dir()
-        schema_path = self.path_maker.make_schema_path(base_dir)
-        schema_path = schema_path.replace(self.bucket_name, '')
-        schema_data = self._get_json(schema_path)
-        return SchemaResolver(schema_data)
+        json_path = self.path_maker.make_json_path(base_dir, path)
+        json_path = json_path.replace(self.bucket_name, '')
+        return self._get_json(json_path)
 
     def _get_json(self, object_name):
         """Get stored json object from the bucket.
@@ -209,3 +233,17 @@ class SchemaLoader(S3BaseLoader):
         minio_client = self.create_minio_client()
         data = minio_client.get_object(self.bucket_name, object_name)
         return json.load(io.BytesIO(data.data))
+
+
+class SchemaLoader(JsonLoader):
+    def __init__(self, client_args, bucket_name, dataset_group_name,
+                 dataset_name):
+        super().__init__(client_args, bucket_name, dataset_group_name,
+                         dataset_name)
+
+    def load(self, path='schema.json'):
+        schema_data = super().load(path)
+        return SchemaResolver(schema_data)
+
+
+

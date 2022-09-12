@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
-from .s3_loaders import S3Loader
+from ._s3_loaders import S3LoadersFactory
 from ..client_args import create_client_args
 
 
@@ -22,16 +22,20 @@ def make_dataframe_loader(name, dataset, user):
         'pandas': PandasLoader,
         'spark': SparkLoader
     }
-    return dataframe_loader[name](dataset, user)
+
+    client_args = create_client_args(user)
+    loaders_factory = S3LoadersFactory(client_args, **dataset)
+    return dataframe_loader[name](loaders_factory)
 
 
 class DataFrameLoader(metaclass=ABCMeta):
-    def __init__(self, dataset, user):
-        client_args = create_client_args(user)
-        self.s3_loader = S3Loader(client_args, **dataset)
+    def __init__(self, loaders_factory):
+        self.loaders_factory = loaders_factory
+        self.parquet_loader = loaders_factory.get_loader('parquet')
 
     def load_schema(self):
-        return self.s3_loader.schema.load()
+        schema_loader = self.loaders_factory.get_loader('schema')
+        return schema_loader.load()
 
     @abstractmethod
     def load(self, *args, **kwargs):
@@ -39,17 +43,17 @@ class DataFrameLoader(metaclass=ABCMeta):
 
 
 class PandasLoader(DataFrameLoader):
-    def __init__(self, dataset, user):
-        super().__init__(dataset, user)
+    def __init__(self, loaders_factory):
+        super().__init__(loaders_factory)
 
     def load(self, partition_filter=None, **kwargs):
-        return self.s3_loader.parquet.to_pandas(
+        return self.parquet_loader.to_pandas(
             partition_filter=partition_filter, **kwargs)
 
 
 class SparkLoader(DataFrameLoader):
-    def __init__(self, dataset, user):
-        super().__init__(dataset, user)
+    def __init__(self, loaders_factory):
+        super().__init__(loaders_factory)
 
     def load(self):
-        return self.s3_loader.parquet.to_spark()
+        return self.parquet_loader.to_spark()

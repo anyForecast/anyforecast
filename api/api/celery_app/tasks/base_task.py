@@ -24,13 +24,22 @@ class BaseTask(metaclass=ABCMeta):
 
     def load_pandas_and_schema(self, dataset, user, partition_filter=None,
                                enforce_schema_dtypes=True):
-        pandas_loader = self.get_dataframe_loader('pandas', dataset, user)
-        pandas = pandas_loader.load(partition_filter=partition_filter)
-        schema = pandas_loader.load_schema()
+        loader = self.get_dataframe_loader('pandas', dataset, user)
+        schema = loader.load_schema()
+        feature_names = schema.get_feature_names()
+        pandas = loader.load(
+            partition_filter=partition_filter,
+            columns=feature_names
+        )
 
         if enforce_schema_dtypes:
             dtypes = schema.get_dtypes_for('all', exclude='timestamp')
             pandas = pandas.astype(dtypes)
+
+        # Partition columns are still present in the data eventhough they
+        # are not part of the schema. The only solution until now is to drop
+        # them manually.
+        pandas = pandas[feature_names]
 
         return pandas, schema
 
