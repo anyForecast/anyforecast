@@ -5,74 +5,72 @@ from sklearn.pipeline import make_pipeline
 from skorch_forecasting.utils.datetime import set_date_on_freq
 
 from ._base_task import BaseTask
+from ._transformers import make_transformer_from_run
 from ..dataloaders import MlFlowLoader
-from ..ml.transformers import GroupWiseDatetimeLocator, GroupWiseWhatIf
 from ..serialize.pandas import PandasNativeSerializer
 
 
-class TransformersFactory:
+def _make_partition_filter(group_params):
+    """Private function for making a partition filter.
 
-    def __init__(self, run):
-        self.run = run
+    The returned function in given to the dataloader for loading only the
+    requested partitions.
 
-    def make_transformer(self, name, schema):
-        transformers = {
-            'datetime_locator': self._make_datetime_locator,
-            'what_if': self._make_what_if
-        }
-        return transformers[name](schema)
+    Returns
+    -------
+    filter_function : callable
+    """
+    # Collect group_ids from ``group_params``.
+    group_ids = []
+    for param in group_params:
+        group_id = param['group_id']
+        group_ids.append(group_id)
 
-    def _make_what_if(self, schema):
-        """Factory for :class:`GroupWiseWhatIf` instances.
+    if not group_ids:
+        return None
 
-        Returns
-        -------
-        what_if : GroupWiseWhatIf
-            Transformer GroupWiseWhatIf
-        """
-        what_if_data = self.run.get_what_if_data(schema)
-        group_ids = schema.group_ids.names
-        timestamp = schema.timestamp.names[0]
-        _, forecast_date_range = self.run.split_date_range()
-        return GroupWiseWhatIf(group_ids, forecast_date_range, timestamp,
-                               what_if_data)
+    def filter_function(partition):
+        return partition in group_ids
 
-    def _make_datetime_locator(self, schema):
-        encoder_date_range, forecast_date_range = self.run.split_date_range()
-        full_date_range = encoder_date_range.union(forecast_date_range)
-        group_ids = schema.group_ids.names
-        timestamp = schema.timestamp.names[0]
-        return GroupWiseDatetimeLocator(
-            group_ids=group_ids,
-            timestamp_col=timestamp,
-            date_range=full_date_range
-        )
+    return filter_function
 
 
 class PredictionRun:
 
-    def __init__(self, task, predictor, dataset, user, date_range,
+    def __init__(self, schema, predictor, dataset, user, date_range,
                  group_params):
-        self.task = task
+        self.schema = schema
         self.predictor = predictor
         self.dataset = dataset
         self.user = user
         self.date_range = date_range
-        self.group_params = group_params
+        self.group_params_resolver = GroupParamsResolver(group_params)
         self.mlflow_loader = MlFlowLoader()
-        self.model_params = self._get_model_params()
 
-    def make_pipeline(self, schema, transformers_names):
-        factory = TransformersFactory(self)
+    def get_names_for(self, keys):
+        """Obtains names from schema.
 
+        Returns
+        -------
+        names : list of str
+        """
+        return self.schema.get_names_for(keys)
+
+    def make_pipeline(self, transformers_names):
+        """Makes a sklearn :class:`Pipeline` using the given transformers.
+
+        Returns
+        -------
+        pipeline : sklearn Pipeline
+        """
         steps = []
         for name in transformers_names:
-            transformer = factory.make_transformer(name, schema)
+            transformer = make_transformer_from_run(name, self)
             steps.append(transformer)
 
         return make_pipeline(*steps)
 
-    def _get_model_params(self):
+    def get_model_params(self):
         """Retrieves model params from MlFlow.
 
         Returns
@@ -87,6 +85,12 @@ class PredictionRun:
         return model_params
 
     def load_predictor(self, stage='production'):
+        """Loads ready-to-predict model from MlFlow.
+
+        Returns
+        -------
+        model : MlFlow model
+        """
         model_name = self.predictor['model_name']
         return self.mlflow_loader.load_predictor(model_name, stage)
 
@@ -97,8 +101,9 @@ class PredictionRun:
         -------
         date_range : pd.DateTimeIndex
         """
-        encoder_length = int(self.model_params['max_encoder_length'])
-        freq = self.model_params['freq']
+        model_params = self.get_model_params()
+        encoder_length = int(model_params['max_encoder_length'])
+        freq = model_params['freq']
 
         # Set dates to given frequency
         start = set_date_on_freq(self.date_range['start'], freq)
@@ -116,24 +121,22 @@ class PredictionRun:
 
         return encoder_date_range, forecast_date_range
 
-    def load_pandas_and_schema(self):
-        filter_fn = self.make_partition_filter()
-        return self.task.load_pandas_and_schema(self.dataset, self.user,
-                                                filter_fn)
 
-    def get_what_if_data(self, schema):
+class GroupParamsResolver:
+    def __init__(self, group_params_data):
+        self.group_params_data = group_params_data
+
+    def get_what_if_data(self):
         """Obtains what_if data from ``prediction_params``.
 
         Returns
         -------
         what_if_data : dict, str -> dict
         """
-        group_ids = schema.group_ids.names
         what_if_data = {}
-        for group_data in self.group_params:
+        for group_data in self.group_params_data:
             # Obtain group id values.
-            group_id = group_data['group_id']
-            group_id = [group_id[g] for g in group_ids]
+            group_id = list(group_data['group_id'].values())
             group_id = group_id[0] if len(group_id) == 1 else tuple(group_id)
 
             if 'what_if' in group_data:
@@ -143,40 +146,22 @@ class PredictionRun:
 
         return what_if_data
 
-    def make_partition_filter(self):
-        """Makes a partition filter function.
-
-        This function in given to the dataloader for loading only the
-        requested partitions.
-
-        Returns
-        -------
-        filter_function : callable
-        """
-        # Collect group_ids from ``group_params``.
-        group_ids = []
-        for param in self.group_params:
-            group_id = param['group_id']
-            group_ids.append(group_id)
-
-        if not group_ids:
-            return None
-
-        def filter_function(partition):
-            return partition in group_ids
-
-        return filter_function
-
 
 class BasePredictionTask(BaseTask, metaclass=ABCMeta):
     def __init__(self, serializer=PandasNativeSerializer(), task_name=None,
                  bind=False):
         super().__init__(serializer, task_name, bind)
 
-    def make_run_object(self, predictor, dataset, user, date_range,
+    def make_run_object(self, schema, predictor, dataset, user, date_range,
                         group_params):
-        return PredictionRun(self, predictor, dataset, user, date_range,
-                              group_params)
+        return PredictionRun(schema, predictor, dataset, user, date_range,
+                             group_params)
+
+    def load_pandas_and_schema_for_prediction(
+            self, dataset, user, group_params
+    ):
+        filter_fn = _make_partition_filter(group_params)
+        return self.load_pandas_and_schema(dataset, user, filter_fn)
 
 
 class GroupPrediction(BasePredictionTask):
@@ -189,12 +174,12 @@ class GroupPrediction(BasePredictionTask):
 
     def run(self, predictor, dataset, user, date_range, group_params,
             return_truth):
-        run = self.make_run_object(predictor, dataset, user, date_range,
-                                   group_params)
-
-        X, schema = run.load_pandas_and_schema()
+        X, schema = self.load_pandas_and_schema_for_prediction(
+            dataset, user, group_params)
+        run = self.make_run_object(
+            schema, predictor, dataset, user, date_range, group_params)
         predictor = run.load_predictor()
-        pipeline = run.make_pipeline(schema, self.transformers)
+        pipeline = run.make_pipeline(self.transformers)
         X = pipeline.fit_transform(X)
         output = predictor.predict(X)
         return self.serialize_result(output)
