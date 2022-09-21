@@ -1,11 +1,11 @@
 from .login import LoginService
-from .prediction import PredictionService
-from .trainer import TrainerService
-from .writer.service import WriterService
+from .predict import PredictService
+from .train import TrainService
+from .write import WriterService
 
 __all__ = [
-    'TrainerService',
+    'TrainService',
     'WriterService',
     'LoginService',
-    'PredictionService'
+    'PredictService'
 ]

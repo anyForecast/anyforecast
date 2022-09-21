@@ -8,7 +8,7 @@
     "partitionName" : "AWS Standard",
     "protocols" : ["http"],
     "services" : {
-      "trainer": {
+      "train": {
         "defaults": {
           "hostname": "api:{port}/{service}/{endpoint}{dnsSuffix}"
         },
@@ -22,7 +22,7 @@
         "port": "9000",
         "endpoints": {}
       },
-      "prediction": {
+      "predict": {
         "defaults" : {
           "hostname" : "api:{port}/{service}/{endpoint}{dnsSuffix}"
         },

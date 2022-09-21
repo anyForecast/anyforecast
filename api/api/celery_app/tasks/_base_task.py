@@ -1,6 +1,7 @@
 from abc import ABCMeta
 
 from ..dataloaders import make_dataframe_loader
+from ..dataloaders import SchemaResolver
 
 
 class BaseTask(metaclass=ABCMeta):
@@ -14,8 +15,8 @@ class BaseTask(metaclass=ABCMeta):
     def get_dataframe_loader(self, format, dataset, user):
         return make_dataframe_loader(format, dataset, user)
 
-    def serialize_result(self, result):
-        return self.serializer.serialize(**result)
+    def serialize_result(self, result, *args, **kwargs):
+        return self.serializer.serialize(result, *args, **kwargs)
 
     def make_celery_task(self, app):
         task_maker = CeleryTasksMaker(
@@ -25,7 +26,13 @@ class BaseTask(metaclass=ABCMeta):
     def load_pandas_and_schema(self, dataset, user, partition_filter=None,
                                enforce_schema_dtypes=True):
         loader = self.get_dataframe_loader('pandas', dataset, user)
+
+        # Load schema data and convert it to an
+        # :class:´SchemaResolver´ instance.
         schema = loader.load_schema()
+        schema = SchemaResolver(schema)
+
+        # Load only features inside schema.
         feature_names = schema.get_feature_names()
         pandas = loader.load(
             partition_filter=partition_filter,

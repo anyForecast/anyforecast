@@ -1,6 +1,6 @@
 from .exceptions import InvalidFeatureType
 from .features import FeatureLocator
-from .services.writer.writers import JsonWriter
+from .services.write import JsonWriter
 
 
 class SchemaCreator:
