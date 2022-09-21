@@ -3,8 +3,6 @@ from sklearn.base import BaseEstimator, TransformerMixin
 class DatetimeLocator(BaseEstimator, TransformerMixin):
     """Extends DataFrame rows until the given date range is achieved.
 
-    The values of the new rows are set to NaN.
-
     If the passed ``date_range`` is already contained X,
     the rows inside it are returned. That is, in this case,
     this transformation is equivalent to a simple datetime filter.
@@ -33,15 +31,12 @@ class DatetimeLocator(BaseEstimator, TransformerMixin):
 
 class GroupWiseDatetimeLocator(BaseEstimator, TransformerMixin):
     def __init__(
-            self, group_ids, timestamp_col, date_range, value=None,
-            method='ffill', reset_index=True
+            self, group_ids, timestamp_col, date_range, reset_index=True
     ):
         self.group_ids = group_ids
         self.timestamp_col = timestamp_col
         self.date_range = date_range
         self.reset_index = reset_index
-        self.value = value
-        self.method = method
 
     def fit(self, X):
         return self

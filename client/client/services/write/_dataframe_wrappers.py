@@ -72,4 +72,4 @@ class SparkWrapper(DataFrameWrapper):
 
     @property
     def write(self):
-        return SparkWriter(self.data)
+        return SparkWriter()

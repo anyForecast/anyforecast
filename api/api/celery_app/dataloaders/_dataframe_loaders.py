@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
 from ._s3_loaders import S3LoadersFactory
-from ..client_args import create_client_args
 
 
 def make_dataframe_loader(name, dataset, user):
@@ -22,9 +21,7 @@ def make_dataframe_loader(name, dataset, user):
         'pandas': PandasLoader,
         'spark': SparkLoader
     }
-
-    client_args = create_client_args(user)
-    loaders_factory = S3LoadersFactory(client_args, **dataset)
+    loaders_factory = S3LoadersFactory(user, dataset)
     return dataframe_loader[name](loaders_factory)
 
 
@@ -34,8 +31,8 @@ class DataFrameLoader(metaclass=ABCMeta):
         self.parquet_loader = loaders_factory.get_loader('parquet')
 
     def load_schema(self):
-        schema_loader = self.loaders_factory.get_loader('schema')
-        return schema_loader.load()
+        json_loader = self.loaders_factory.get_loader('json')
+        return json_loader.load('schema')
 
     @abstractmethod
     def load(self, *args, **kwargs):

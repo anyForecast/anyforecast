@@ -7,7 +7,7 @@ import s3fs
 from minio import Minio
 
 from ._parquet_loaders import make_parquet_loader
-from ._schema_resolver import SchemaResolver
+from ..client_args import create_client_args
 
 
 def _make_path(*args, trailing_slash=False):
@@ -39,13 +39,16 @@ class S3PathMaker:
     def __init__(self):
         pass
 
-    def make_path(self, base_dir, path):
-        return _make_path(base_dir, path)
+    def join_base_dir(self, base_dir, path, trailing_slash=False):
+        return self.make_path(base_dir, path, trailing_slash=trailing_slash)
+
+    def make_path(self, *args, trailing_slash=False):
+        return _make_path(*args, trailing_slash=trailing_slash)
 
     def make_json_path(self, base_dir, path):
         if not path.endswith('.json'):
             path += '.json'
-        return self.make_path(base_dir, path)
+        return self.join_base_dir(base_dir, path)
 
     def make_parquet_path(self, base_dir, s3_filesystem, partitions=None):
         if partitions:
@@ -81,43 +84,33 @@ class S3LoadersFactory:
 
     Parameters
     ----------
-    client_args : ClientArgs
-        Instance of :class:`ClientArgs` object.
+    user : User
 
-    bucket_name : str
-        Name of bucket
-
-    dataset_group_name : str
-        Dataset group name
-
-    dataset_name : str
-        Dataset name
+    dataset : Dataset
     """
 
-    def __init__(self, client_args, bucket_name, dataset_group_name,
-                 dataset_name):
-
-        self.client_args = client_args
-        self.bucket_name = bucket_name
-        self.dataset_group_name = dataset_group_name
-        self.dataset_name = dataset_name
-
+    def __init__(self, user, dataset):
+        self.user = user
+        self.dataset = dataset
 
     def get_loader(self, name):
-        s3_loaders = {
+        return self.loaders[name](**self._make_kwargs())
+
+    def _make_kwargs(self):
+        return {
+            'client_args': create_client_args(self.user),
+            'bucket_name': self.dataset['bucket_name'],
+            'dataset_group_name': self.dataset['dataset_group_name'],
+            'dataset_name': self.dataset['dataset_name']
+        }
+
+    @property
+    def loaders(self):
+        return {
             'parquet': ParquetLoader,
             'json': JsonLoader,
-            'schema': SchemaLoader
+            'objects': ObjectsLoader
         }
-        kwargs = {
-            'client_args': self.client_args,
-            'bucket_name': self.bucket_name,
-            'dataset_group_name': self.dataset_group_name,
-            'dataset_name': self.dataset_name
-        }
-
-        return s3_loaders[name](**kwargs)
-
 
 
 class S3BaseLoader(metaclass=ABCMeta):
@@ -151,14 +144,16 @@ class S3BaseLoader(metaclass=ABCMeta):
         minio_client_args = self.client_args.for_minio()
         return Minio(**minio_client_args)
 
-    def get_base_dir(self, *args, s3_prefix=False):
+    def get_base_dir(self, bucket_name=True, s3_prefix=False):
         path_args = [
-            self.bucket_name,
             self.dataset_group_name,
             self.dataset_name
         ]
-        path_args += list(args)
-        path = _make_path(*path_args)
+
+        if bucket_name:
+            path_args.insert(0, self.bucket_name)
+
+        path = self.path_maker.make_path(*path_args, trailing_slash=True)
         if s3_prefix:
             path = 's3://' + path
         return path
@@ -190,16 +185,15 @@ class ParquetLoader(S3BaseLoader):
         super().__init__(client_args, bucket_name, dataset_group_name,
                          dataset_name)
 
-        self._kwargs = {
-            'base_dir': self.get_base_dir('parquet', s3_prefix=True),
-            's3_filesystem': self.make_s3_filesystem()
-        }
-
-
     def _make_parquet_loader(self, name):
+        base_dir = self.get_base_dir(s3_prefix=True)
+        base_dir = self.path_maker.join_base_dir(base_dir, 'parquet',
+                                                 trailing_slash=True)
+        fs = self.make_s3_filesystem()
+
         kwargs = {
-            'base_dir': self.get_base_dir('parquet', s3_prefix=True),
-            's3_filesystem': self.make_s3_filesystem()
+            'base_dir': base_dir,
+            's3_filesystem': fs
         }
         return make_parquet_loader(name, **kwargs)
 
@@ -212,9 +206,6 @@ class ParquetLoader(S3BaseLoader):
         return self._make_parquet_loader('spark')
 
 
-
-
-
 class JsonLoader(S3BaseLoader):
     def __init__(self, client_args, bucket_name, dataset_group_name,
                  dataset_name):
@@ -222,28 +213,30 @@ class JsonLoader(S3BaseLoader):
                          dataset_name)
 
     def load(self, path):
-        base_dir = self.get_base_dir()
+        base_dir = self.get_base_dir(bucket_name=False)
         json_path = self.path_maker.make_json_path(base_dir, path)
-        json_path = json_path.replace(self.bucket_name, '')
         return self._get_json(json_path)
 
     def _get_json(self, object_name):
         """Get stored json object from the bucket.
         """
         minio_client = self.create_minio_client()
-        data = minio_client.get_object(self.bucket_name, object_name)
-        return json.load(io.BytesIO(data.data))
+        json_object = minio_client.get_object(self.bucket_name, object_name)
+        return json.load(io.BytesIO(json_object.data))
 
 
-class SchemaLoader(JsonLoader):
+class ObjectsLoader(S3BaseLoader):
     def __init__(self, client_args, bucket_name, dataset_group_name,
                  dataset_name):
         super().__init__(client_args, bucket_name, dataset_group_name,
                          dataset_name)
 
-    def load(self, path='schema.json'):
-        schema_data = super().load(path)
-        return SchemaResolver(schema_data)
+    def load(self, extra_prefix=None):
+        prefix = self.get_base_dir(bucket_name=False)
 
+        if extra_prefix is not None:
+            prefix = self.path_maker.make_path(prefix, extra_prefix,
+                                               trailing_slash=True)
 
-
+        minio_client = self.create_minio_client()
+        return minio_client.list_objects(self.bucket_name, prefix=prefix)

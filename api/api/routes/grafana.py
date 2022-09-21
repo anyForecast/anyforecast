@@ -2,27 +2,54 @@ from typing import List
 
 from fastapi import Depends, APIRouter
 
-from ..auth import TokenProvider
-from ..celery_app.tasks import prediction_from_dataset_task
-from ..models import User, Predictor, Dataset, Pivot, GroupIdPrediction, \
-    DateRange
+from ..auth import CredentialsProvider, TokenProvider
+from ..celery_app.tasks import (
+    predict_task,
+    show_partitions_task
+)
+from ..models.ml import (
+    GroupParams,
+    PredictionDateRange,
+    Predictor,
+    Pivot,
+    ReturnTruth,
+    Dataset
+)
+from ..models.users import User
 
 router = APIRouter()
 
 
-@router.post("/prediction/")
+@router.post("/predict/")
 async def predict(
-        date_range: DateRange,
+        date_range: PredictionDateRange,
         predictor: Predictor,
         dataset: Dataset,
-        prediction_params: List[GroupIdPrediction],
+        group_params: List[GroupParams],
         pivot: Pivot,
-        current_user: User = Depends(TokenProvider().load_user)
+        return_truth: ReturnTruth,
+        current_user: User = Depends(CredentialsProvider().load_user)
 ):
     """Creates forecaster.
 
     By "forecaster" it is meant any time series estimator.
     """
-    to_dict = predictor, dataset, current_user, date_range
-    to_dict = map(dict, to_dict)
-    return prediction_from_dataset_task.run(to_dict)
+    return predict_task.run(
+        predictor=predictor.dict(),
+        dataset=dataset.dict(),
+        user=current_user.dict(),
+        date_range=date_range.dict(),
+        group_params=[param.dict() for param in group_params],
+        pivot=pivot.bool,
+        return_truth=return_truth.bool
+    )
+
+
+@router.post("/show_parquet_partitions/")
+async def show_parquet_partitions(
+        dataset: Dataset,
+        current_user: User = Depends(CredentialsProvider().load_user)
+):
+    """Shows parquet partitions for a single dataset.
+    """
+    return show_partitions_task.run(current_user, dataset)

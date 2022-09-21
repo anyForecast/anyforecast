@@ -8,8 +8,10 @@ from ..auth import (
 from ..auth import (
     TokenProvider
 )
-from ..celery_app.tasks import training_task
-from ..models import *
+from ..celery_app.tasks import train_task
+from ..models.auth import Token
+from ..models.ml import Trainer, Dataset
+from ..models.users import User
 
 router = APIRouter()
 
@@ -21,7 +23,7 @@ async def read_users_me(
     return current_user
 
 
-@router.post("/trainer/")
+@router.post("/train/")
 async def train(
         trainer: Trainer,
         dataset: Dataset,
@@ -31,7 +33,7 @@ async def train(
 
     By "forecaster" it is meant any time series estimator.
     """
-    task_id = training_task.delay(
+    task_id = train_task.delay(
         *map(dict, (trainer, dataset, current_user))
     )
     return {'task_id': str(task_id), 'status': 'Processing'}

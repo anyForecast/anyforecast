@@ -18,4 +18,3 @@ high level design decisions:
   particular HTTP library.  See the ``serialize_to_request`` docstring
   for more details.
 """
-from ._pandas import PandasSerializer

@@ -1,16 +1,14 @@
 import mlflow
+from sklearn.preprocessing import MinMaxScaler
 from skorch_forecasting.model_wrappers import PreprocessorEstimatorWrapper
 from skorch_forecasting.preprocessing import (
     PreprocessorCreator,
     ColumnDuplicator,
     CyclicalDatesEncoder
 )
-from sklearn.preprocessing import MinMaxScaler
 
-from ._features_segmenter import FeaturesSegmenter
-from .base_task import BaseTask
-from ..ml.estimator import EstimatorCreator
-from ..ml.mlflow_log import MlFlowLogger
+from ._base_task import BaseTask
+from ..ml import EstimatorCreator, MlFlowLogger, FeaturesSegmenter
 
 
 class TrainingTask(BaseTask):
