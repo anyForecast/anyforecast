@@ -10,17 +10,17 @@ from ..ml.transformers import GroupWiseDatetimeLocator, GroupWiseWhatIf
 from ..serialize.pandas import PandasNativeSerializer
 
 
-class _TransformersFactory:
+class TransformersFactory:
 
     def __init__(self, run):
         self.run = run
 
     def make_transformer(self, name, schema):
-        trans = {
+        transformers = {
             'datetime_locator': self._make_datetime_locator,
             'what_if': self._make_what_if
         }
-        return trans[name](schema)
+        return transformers[name](schema)
 
     def _make_what_if(self, schema):
         """Factory for :class:`GroupWiseWhatIf` instances.
@@ -49,7 +49,7 @@ class _TransformersFactory:
         )
 
 
-class _PredictionRun:
+class PredictionRun:
 
     def __init__(self, task, predictor, dataset, user, date_range,
                  group_params):
@@ -63,7 +63,7 @@ class _PredictionRun:
         self.model_params = self._get_model_params()
 
     def make_pipeline(self, schema, transformers_names):
-        factory = _TransformersFactory(self)
+        factory = TransformersFactory(self)
 
         steps = []
         for name in transformers_names:
@@ -89,15 +89,6 @@ class _PredictionRun:
     def load_predictor(self, stage='production'):
         model_name = self.predictor['model_name']
         return self.mlflow_loader.load_predictor(model_name, stage)
-
-    def make_datetime_locator(self, schema, date_range):
-        """Factory for :class:`GroupWiseDatetimeLocator` instances.
-
-        Returns
-        -------
-        datetime_locator : GroupWiseDatetimeLocator
-            Transformer GroupWiseDatetimeLocator
-        """
 
     def split_date_range(self):
         """Splits date range.
@@ -184,7 +175,7 @@ class BasePredictionTask(BaseTask, metaclass=ABCMeta):
 
     def make_run_object(self, predictor, dataset, user, date_range,
                         group_params):
-        return _PredictionRun(self, predictor, dataset, user, date_range,
+        return PredictionRun(self, predictor, dataset, user, date_range,
                               group_params)
 
 
