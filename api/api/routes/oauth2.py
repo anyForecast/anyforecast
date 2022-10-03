@@ -1,3 +1,4 @@
+from celery import chain
 from fastapi import Depends, HTTPException, APIRouter, status
 from fastapi.security import OAuth2PasswordRequestForm
 
@@ -8,7 +9,7 @@ from ..auth import (
 from ..auth import (
     TokenProvider
 )
-from ..celery_app.tasks import train_task
+from ..celery_app.tasks import train_task, load_dataset_task
 from ..models.auth import Token
 from ..models.ml import Trainer, Dataset
 from ..models.users import User
@@ -33,10 +34,19 @@ async def train(
 
     By "forecaster" it is meant any time series estimator.
     """
-    task_id = train_task.delay(
-        *map(dict, (trainer, dataset, current_user))
-    )
-    return {'task_id': str(task_id), 'status': 'Processing'}
+    load_dataset_kwargs = {
+        'dataset': dataset.dict(),
+        'user': current_user.dict(),
+        'format': 'pandas',
+        'return_schema': True,
+        'enforce_schema_dtypes': True
+    }
+    task_id = chain(
+        load_dataset_task.s(**load_dataset_kwargs),
+        train_task.s(trainer=trainer)
+    )()
+
+    return {'task_id': task_id}
 
 
 @router.post("/login", response_model=Token)

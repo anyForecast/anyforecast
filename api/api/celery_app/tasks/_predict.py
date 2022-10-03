@@ -5,46 +5,18 @@ from sklearn.pipeline import make_pipeline
 from skorch_forecasting.utils.datetime import set_date_on_freq
 
 from ._base_task import BaseTask
-from ._transformers import make_transformer_from_run
+from ._transformers import GroupWiseDatetimeLocator, GroupWiseWhatIf
 from ..dataloaders import MlFlowLoader
 from ..serialize.pandas import PandasNativeSerializer
 
 
-def _make_partition_filter(group_params):
-    """Private function for making a partition filter.
-
-    The returned function in given to the dataloader for loading only the
-    requested partitions.
-
-    Returns
-    -------
-    filter_function : callable
-    """
-    # Collect group_ids from ``group_params``.
-    group_ids = []
-    for param in group_params:
-        group_id = param['group_id']
-        group_ids.append(group_id)
-
-    if not group_ids:
-        return None
-
-    def filter_function(partition):
-        return partition in group_ids
-
-    return filter_function
-
-
 class PredictionRun:
 
-    def __init__(self, schema, predictor, dataset, user, date_range,
-                 group_params):
+    def __init__(self, schema, predictor, date_range, what_ifs=None):
         self.schema = schema
         self.predictor = predictor
-        self.dataset = dataset
-        self.user = user
         self.date_range = date_range
-        self.group_params_resolver = GroupParamsResolver(group_params)
+        self.what_ifs = what_ifs
         self.mlflow_loader = MlFlowLoader()
 
     def get_names_for(self, keys):
@@ -56,7 +28,7 @@ class PredictionRun:
         """
         return self.schema.get_names_for(keys)
 
-    def make_pipeline(self, transformers_names):
+    def make_pipeline(self, transformers):
         """Makes a sklearn :class:`Pipeline` using the given transformers.
 
         Returns
@@ -64,8 +36,8 @@ class PredictionRun:
         pipeline : sklearn Pipeline
         """
         steps = []
-        for name in transformers_names:
-            transformer = make_transformer_from_run(name, self)
+        for trans in transformers:
+            transformer = trans.from_run(self)
             steps.append(transformer)
 
         return make_pipeline(*steps)
@@ -122,64 +94,36 @@ class PredictionRun:
         return encoder_date_range, forecast_date_range
 
 
-class GroupParamsResolver:
-    def __init__(self, group_params_data):
-        self.group_params_data = group_params_data
-
-    def get_what_if_data(self):
-        """Obtains what_if data from ``prediction_params``.
-
-        Returns
-        -------
-        what_if_data : dict, str -> dict
-        """
-        what_if_data = {}
-        for group_data in self.group_params_data:
-            # Obtain group id values.
-            group_id = list(group_data['group_id'].values())
-            group_id = group_id[0] if len(group_id) == 1 else tuple(group_id)
-
-            if 'what_if' in group_data:
-                what_if_value = group_data['what_if']
-                if what_if_value is not None:
-                    what_if_data[group_id] = what_if_value
-
-        return what_if_data
-
-
 class BasePredictionTask(BaseTask, metaclass=ABCMeta):
-    def __init__(self, serializer=PandasNativeSerializer(), task_name=None,
-                 bind=False):
-        super().__init__(serializer, task_name, bind)
-
-    def make_run_object(self, schema, predictor, dataset, user, date_range,
-                        group_params):
-        return PredictionRun(schema, predictor, dataset, user, date_range,
-                             group_params)
-
-    def load_pandas_and_schema_for_prediction(
-            self, dataset, user, group_params
+    def __init__(
+            self, serializer=None, task_name=None, bind=False,
+            transformers=None
     ):
-        filter_fn = _make_partition_filter(group_params)
-        return self.load_pandas_and_schema(dataset, user, filter_fn)
+        super().__init__(serializer, task_name, bind)
+        self.transformers = transformers
+
+    def make_run_object(self, schema, predictor, date_range, what_ifs):
+        return PredictionRun(schema, predictor, date_range, what_ifs)
 
 
-class GroupPrediction(BasePredictionTask):
+class GroupPredictionTask(BasePredictionTask):
     def __init__(self):
-        super().__init__(
-            serializer=PandasNativeSerializer(orient='records'),
-            task_name='GroupPrediction'
-        )
-        self.transformers = ['datetime_locator', 'what_if']
+        super().__init__(serializer=PandasNativeSerializer(orient='records'))
 
-    def run(self, predictor, dataset, user, date_range, group_params,
-            return_truth):
-        X, schema = self.load_pandas_and_schema_for_prediction(
-            dataset, user, group_params)
-        run = self.make_run_object(
-            schema, predictor, dataset, user, date_range, group_params)
+    def run(self, data, predictor, date_range, what_ifs=None):
+        # Load data and predictor.
+        X, schema = data['dataframe'], data['schema']
+        run = self.make_run_object(schema, predictor, date_range, what_ifs)
         predictor = run.load_predictor()
-        pipeline = run.make_pipeline(self.transformers)
+
+        # Pipeline for preparing input data.
+        transformers = [GroupWiseDatetimeLocator]
+        if what_ifs is not None:
+            transformers.append(GroupWiseWhatIf)
+        pipeline = run.make_pipeline(transformers)
+
+        # Predict.
         X = pipeline.fit_transform(X)
         output = predictor.predict(X)
+
         return self.serialize_result(output)

@@ -39,25 +39,11 @@ class WhatIf(BaseModel):
     value : int or float
         Value to insert
     """
+    group_id: dict
     column: str
     value: Optional[Union[int, float]] = None
     method: Optional[str] = None
     percentage: Optional[Union[int, float]] = None
-
-
-class GroupParams(BaseModel):
-    """Defines how a prediction for a single group_id is computed.
-
-    Parameters
-    ----------
-    group_id : dict, str -> str
-
-    what_if : None or WhatIf, default=None
-        Include this parameter to perform a "what if" scenario on the given
-        group_id.
-    """
-    group_id: dict
-    what_if: Optional[WhatIf] = None
 
 
 class Dataset(BaseModel):
