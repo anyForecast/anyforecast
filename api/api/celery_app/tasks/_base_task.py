@@ -1,8 +1,5 @@
 from abc import ABCMeta
 
-from ..dataloaders import make_dataframe_loader
-from ..dataloaders import SchemaResolver
-
 
 class BaseTask(metaclass=ABCMeta):
     def __init__(self, serializer, task_name=None, bind=False):
@@ -12,9 +9,6 @@ class BaseTask(metaclass=ABCMeta):
         self.task_name = task_name
         self.bind = bind
 
-    def get_dataframe_loader(self, format, dataset, user):
-        return make_dataframe_loader(format, dataset, user)
-
     def serialize_result(self, result, *args, **kwargs):
         return self.serializer.serialize(result, *args, **kwargs)
 
@@ -22,33 +16,6 @@ class BaseTask(metaclass=ABCMeta):
         task_maker = CeleryTasksMaker(
             self.task_name, self.bind, self.serializer)
         return task_maker.make_task(app, self)
-
-    def load_pandas_and_schema(self, dataset, user, partition_filter=None,
-                               enforce_schema_dtypes=True):
-        loader = self.get_dataframe_loader('pandas', dataset, user)
-
-        # Load schema data and convert it to an
-        # :class:´SchemaResolver´ instance.
-        schema = loader.load_schema()
-        schema = SchemaResolver(schema)
-
-        # Load only features inside schema.
-        feature_names = schema.get_feature_names()
-        pandas = loader.load(
-            partition_filter=partition_filter,
-            columns=feature_names
-        )
-
-        if enforce_schema_dtypes:
-            dtypes = schema.get_dtypes_for('all', exclude='timestamp')
-            pandas = pandas.astype(dtypes)
-
-        # Partition columns are still present in the data eventhough they
-        # are not part of the schema. The only solution until now is to drop
-        # them manually.
-        pandas = pandas[feature_names]
-
-        return pandas, schema
 
     def get_task_id(self, task_obj):
         return task_obj.request.id.__str__()

@@ -4,8 +4,8 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 def make_transformer_from_run(name, run):
     transformers = {
-        'datetime_locator': DatetimeLocator,
-        'what_if': WhatIf
+        'datetime_locator': GroupWiseDatetimeLocator,
+        'what_if': GroupWiseWhatIf
     }
     return transformers[name].from_run(run)
 
@@ -121,27 +121,29 @@ class GroupWiseWhatIf(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         groupby = X.groupby(self.group_ids, sort=False)
-        groups_yielder = self._groups_yielder(groupby.groups)
-        return groupby.apply(self._transform, groups_yielder=groups_yielder)
+        apply_fn = self._make_apply_fn()
+        return groupby.apply(
+            apply_fn,
+            group_ids_generator=(group_id for group_id in groupby.groups)
+        )
 
-    def _groups_yielder(self, groups):
-        for g in groups:
-            yield g
+    def _make_apply_fn(self):
+        def apply_fn(X, group_ids_generator):
+            group_id = next(iter(group_ids_generator))
 
-    def _transform(self, X, groups_yielder):
-        group_id = next(iter(groups_yielder))
+            try:
+                data = self.what_if_data[group_id]
+            except KeyError:
+                return X
 
-        try:
-            data = self.what_if_data[group_id]
-        except KeyError:
-            return X
+            what_if = WhatIf(self.date_range, self.timestamp_col, **data)
+            return what_if.fit_transform(X)
 
-        what_if = WhatIf(self.date_range, self.timestamp_col, **data)
-        return what_if.fit_transform(X)
+        return apply_fn
 
     @classmethod
     def from_run(cls, run):
-        what_if_data = run.group_params_resolver.get_what_if_data()
+        what_if_data = run.what_ifs
         group_ids = run.get_names_for('group_ids')
         timestamp = run.get_names_for('timestamp')[0]
         _, forecast_date_range = run.split_date_range()

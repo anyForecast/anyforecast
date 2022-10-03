@@ -41,6 +41,9 @@ class SchemaResolver:
         if keys == 'all':
             keys = self._get_all_keys()
 
+        if not isinstance(keys, (list, tuple)):
+            keys = [keys]
+
         if exclude is not None:
             self._exclude(keys, exclude)
 
@@ -48,6 +51,9 @@ class SchemaResolver:
         for k in keys:
             feature_data_obj = getattr(self, k)
             names[k] = feature_data_obj.names
+
+        if len(keys) == 1:
+            return names[keys[0]]
         return names
 
     def get_dtypes_for(self, keys, exclude=None):

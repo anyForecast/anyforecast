@@ -136,6 +136,5 @@ class EstimatorArgsCreator:
             'max_epochs': 250,
             'hidden_size': 64,
             'batch_size': 64,
-            'tf_ratio': 0.2,
             **kwargs
         }

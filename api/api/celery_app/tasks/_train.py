@@ -11,17 +11,17 @@ from ._base_task import BaseTask
 from ..ml import EstimatorCreator, MlFlowLogger, FeaturesSegmenter
 
 
-class TrainingTask(BaseTask):
+class TrainTask(BaseTask):
     """Loads, preprocess and fits timeseries data.
     """
 
-    def __init__(self, serializer=None, task_name='TrainingTask', bind=True):
+    def __init__(self, serializer=None, task_name=None, bind=False):
         super().__init__(serializer, task_name, bind)
 
-    def run(self, task_obj, trainer, dataset, user):
-        task_id = self.get_task_id(task_obj)
-        with mlflow.start_run(run_name=task_id):
-            X, schema = self.load_pandas_and_schema(dataset, user)
+    def run(self, data, trainer):
+        X, schema = data['dataframe'], data['schema']
+
+        with mlflow.start_run(run_name='A'):
             preprocessor = self.create_preprocessor(trainer, schema)
 
             # Segment features.
