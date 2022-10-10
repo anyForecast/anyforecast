@@ -29,7 +29,7 @@ class LoadDatasetTask(BaseTask):
 
 class LoadFormatTask(metaclass=ABCMeta):
 
-    def __init__(self, dataset, user, partitions):
+    def __init__(self, dataset, user, partitions=None):
         self.dataset = dataset
         self.user = user
         self.partitions = partitions
@@ -39,6 +39,9 @@ class LoadFormatTask(metaclass=ABCMeta):
         pass
 
     def _make_partition_filter(self):
+        if self.partitions is None:
+            return None
+
         def filter_function(partition):
             return partition in self.partitions
 
@@ -83,7 +86,7 @@ class LoadPandasTask(LoadFormatTask):
         # them manually.
         pandas = pandas[feature_names]
 
-        result = {'dataframe': pandas}
+        result = {'X': pandas}
         if return_schema:
             result['schema'] = schema
         return result

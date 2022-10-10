@@ -53,7 +53,7 @@ async def predict(
     return chain(
         load_dataset_task.s(**load_dataset_kwargs),
         predict_task.s(**predict_kwargs)
-    ).apply().result
+    ).apply().get()
 
 
 @router.post("/show_parquet_partitions/")
