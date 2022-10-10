@@ -1,16 +1,23 @@
+from abc import abstractmethod
+
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
 
-def make_transformer_from_run(name, run):
-    transformers = {
-        'datetime_locator': GroupWiseDatetimeLocator,
-        'what_if': GroupWiseWhatIf
-    }
-    return transformers[name].from_run(run)
+class PredictionTransformer(BaseEstimator, TransformerMixin):
+
+    def __init__(self, timestamp_col, date_range, group_ids=None):
+        self.timestamp_col = timestamp_col
+        self.date_range = date_range
+        self.group_ids = group_ids
+
+    @classmethod
+    @abstractmethod
+    def from_session(cls, session, group_wise=False):
+        pass
 
 
-class DatetimeLocator(BaseEstimator, TransformerMixin):
+class DatetimeLocator(PredictionTransformer):
     """Extends DataFrame rows until the given date range is achieved.
 
     If the passed ``date_range`` is already contained X,
@@ -28,8 +35,7 @@ class DatetimeLocator(BaseEstimator, TransformerMixin):
     """
 
     def __init__(self, timestamp_col, date_range):
-        self.timestamp_col = timestamp_col
-        self.date_range = date_range
+        super().__init__(timestamp_col, date_range)
 
     def fit(self, X):
         return self
@@ -38,14 +44,19 @@ class DatetimeLocator(BaseEstimator, TransformerMixin):
         Xt = X.set_index(self.timestamp_col).reindex(self.date_range)
         return Xt.fillna(method='ffill').fillna(method='bfill')
 
+    @classmethod
+    def from_session(cls, session, group_wise=False):
+        if group_wise:
+            return _GroupWiseDatetimeLocator.from_session(session)
 
-class GroupWiseDatetimeLocator(BaseEstimator, TransformerMixin):
-    def __init__(
-            self, group_ids, timestamp_col, date_range, reset_index=True
-    ):
-        self.group_ids = group_ids
-        self.timestamp_col = timestamp_col
-        self.date_range = date_range
+        timestamp_col = session.schema.get_names_for('timestamp')[0]
+        date_range = session.make_date_range()
+        return cls(timestamp_col, date_range)
+
+
+class _GroupWiseDatetimeLocator(PredictionTransformer):
+    def __init__(self, group_ids, timestamp_col, date_range, reset_index=True):
+        super().__init__(timestamp_col, date_range, group_ids)
         self.reset_index = reset_index
 
     def fit(self, X):
@@ -64,21 +75,23 @@ class GroupWiseDatetimeLocator(BaseEstimator, TransformerMixin):
         return X
 
     @classmethod
-    def from_run(cls, run):
-        encoder_date_range, forecast_date_range = run.split_date_range()
-        full_date_range = encoder_date_range.union(forecast_date_range)
-        group_ids = run.get_names_for('group_ids')
-        timestamp = run.get_names_for('timestamp')[0]
-        return GroupWiseDatetimeLocator(group_ids, timestamp, full_date_range)
+    def from_session(cls, session, group_wise=False):
+        date_range = session.make_date_range()
+        group_ids = session.schema.get_names_for('group_ids')
+        timestamp = session.schema.get_names_for('timestamp')[0]
+        return cls(group_ids, timestamp, date_range)
 
 
-class WhatIf(BaseEstimator, TransformerMixin):
+class WhatIf(PredictionTransformer):
 
-    def __init__(self, date_range, timestamp_col, column, value=None,
-                 method=None, percentage=None):
+    def __init__(
+            self, date_range, timestamp_col, input_cols, value=None,
+            method=None, percentage=None
+    ):
+        super().__init__(timestamp_col, date_range)
         self.date_range = date_range
         self.timestamp_col = timestamp_col
-        self.column = column
+        self.input_cols = input_cols
         self.value = value
         self.method = method
         self.percentage = percentage
@@ -99,21 +112,25 @@ class WhatIf(BaseEstimator, TransformerMixin):
         return X[self.timestamp_col].isin(self.date_range)
 
     def _place_nans(self, X, mask):
-        X.loc[mask, self.column] = np.nan
+        X.loc[mask, self.input_cols] = np.nan
         return X
 
     def _percentage_change(self, X, mask):
         factor = 1 + (self.percentage / 100)
 
-        X.loc[mask, self.column] *= factor
+        X.loc[mask, self.input_cols] *= factor
         return X
 
+    @classmethod
+    def from_session(cls, session, group_wise=False):
+        if group_wise:
+            return _GroupWiseWhatIf.from_session(session)
+        raise NotImplementedError()
 
-class GroupWiseWhatIf(BaseEstimator, TransformerMixin):
+
+class _GroupWiseWhatIf(PredictionTransformer):
     def __init__(self, group_ids, date_range, timestamp_col, what_if_data):
-        self.group_ids = group_ids
-        self.date_range = date_range
-        self.timestamp_col = timestamp_col
+        super().__init__(timestamp_col, date_range, group_ids)
         self.what_if_data = what_if_data
 
     def fit(self, X):
@@ -132,19 +149,21 @@ class GroupWiseWhatIf(BaseEstimator, TransformerMixin):
             group_id = next(iter(group_ids_generator))
 
             try:
+                # TODO: change groupwise what if application.
                 data = self.what_if_data[group_id]
             except KeyError:
                 return X
 
             what_if = WhatIf(self.date_range, self.timestamp_col, **data)
+
             return what_if.fit_transform(X)
 
         return apply_fn
 
     @classmethod
-    def from_run(cls, run):
-        what_if_data = run.what_ifs
-        group_ids = run.get_names_for('group_ids')
-        timestamp = run.get_names_for('timestamp')[0]
-        _, forecast_date_range = run.split_date_range()
+    def from_session(cls, session, group_wise=False):
+        what_if_data = session.what_ifs
+        group_ids = session.schema.get_names_for('group_ids')
+        timestamp = session.schema.get_names_for('timestamp')[0]
+        _, forecast_date_range = session.make_date_range(split=True)
         return cls(group_ids, forecast_date_range, timestamp, what_if_data)

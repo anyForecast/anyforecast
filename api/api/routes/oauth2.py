@@ -1,3 +1,5 @@
+from typing import List, Dict, Optional
+
 from celery import chain
 from fastapi import Depends, HTTPException, APIRouter, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -28,6 +30,7 @@ async def read_users_me(
 async def train(
         trainer: Trainer,
         dataset: Dataset,
+        partitions: Optional[List[Dict]] = None,
         current_user: User = Depends(TokenProvider().load_user)
 ):
     """Creates forecaster.
@@ -37,16 +40,17 @@ async def train(
     load_dataset_kwargs = {
         'dataset': dataset.dict(),
         'user': current_user.dict(),
+        'partitions': partitions,
         'format': 'pandas',
         'return_schema': True,
         'enforce_schema_dtypes': True
     }
-    task_id = chain(
+    async_task = chain(
         load_dataset_task.s(**load_dataset_kwargs),
-        train_task.s(trainer=trainer)
+        train_task.s(trainer=trainer.dict())
     )()
 
-    return {'task_id': task_id}
+    return {'async_task_id': async_task.id}
 
 
 @router.post("/login", response_model=Token)

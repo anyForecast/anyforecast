@@ -133,8 +133,8 @@ class EstimatorArgsCreator:
             'max_encoder_length': 26,
             'callbacks': callbacks,
             'cv_split': None,
-            'max_epochs': 250,
-            'hidden_size': 64,
+            'max_epochs': 100,
+            'hidden_size': 32,
             'batch_size': 64,
             **kwargs
         }
