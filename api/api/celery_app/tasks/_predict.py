@@ -65,6 +65,7 @@ class PredictionSession:
         freq = model_params['freq']
 
         # Set dates to given frequency
+        print(self.date_range)
         start = set_date_on_freq(self.date_range['start'], freq)
         end = set_date_on_freq(self.date_range['end'], freq)
 
@@ -96,7 +97,8 @@ class SessionPredictor:
         ]
 
         pipeline = make_pipeline(*steps)
-        return pipeline.fit_transform(X)
+        out = pipeline.fit_transform(X)
+        return out
 
     def predict(self, X):
         predictor = self.session.load_predictor()
@@ -123,64 +125,86 @@ class BasePredictionTask(BaseTask, metaclass=ABCMeta):
 
 
 class GroupPredictionTask(BasePredictionTask):
-    def __init__(self):
-        super().__init__(serializer=PandasNativeSerializer(orient='records'))
+    def __init__(
+            self,
+            serializer=PandasNativeSerializer(orient='records'),
+            task_name=None,
+            bind=None
+    ):
+        super().__init__(serializer, task_name, bind)
 
-    def run(self, data, predictor, date_range, what_ifs=None):
+    def run(
+            self, data, predictor, date_range, what_ifs=None,
+            merge_truth=None, **merge_kwargs
+    ):
         X, schema = data['X'], data['schema']
         session = self.make_session(predictor, date_range, what_ifs)
         session.set_schema(schema)
         predictor = session.make_predictor()
         output = predictor.transform_predict(X)
 
+        # Merge with true values.
+        timestamp = schema.get_names_for('timestamp')
+        if merge_truth:
+            group_ids = schema.get_names_for('group_ids')
+            target = schema.get_names_for('target')
+            on = group_ids + timestamp
+            output = pd.merge(
+                left=X[on + target], right=output, on=on, **merge_kwargs)
 
-        output = pd.pivot(output, index='timestamp', columns='PRODUCT_ID', values='target').reset_index()
-        print(output)
+        # Converts to unix Ms
+        output[timestamp] = output[timestamp].astype(int) / 10**6
 
         return self.serialize_result(output)
 
 
 class ResponseFunctionEstimationTask(BasePredictionTask):
     DEFAULT_ESTIMATION_POINTS = 15
+    DEFAULT_PREDICTION_POINTS = 30
 
-    def __init__(self, serializer=None, task_name=None, bind=False):
+    def __init__(
+            self,
+            serializer=PandasNativeSerializer(orient='records'),
+            task_name=None,
+            bind=None
+    ):
         super().__init__(serializer, task_name, bind)
 
     def run(self, data, predictor, date_range, input_col):
         X, schema = data['X'], data['schema']
         session = self.make_session(predictor, date_range)
         session.set_schema(schema)
-
         predictor = session.make_predictor()
         partial_predictor = predictor.to_partial(X, [input_col])
-        X = self._create_partial_inputs(X, input_col)
 
+        # Actual estimation of response function.
         target = schema.get_names_for('target')[0]
-        estimator = self._fit_response_function_estimator(
-            X, partial_predictor, target)
+        X, y = self._gen_X_y(X, input_col, partial_predictor, target)
+        estimator = ResponseFunctionEstimator('logit')
+        estimator.fit(X, y)
 
+        # Generate new X, y for response.
+        X = np.linspace(X.min(), X.max(), num=self.DEFAULT_PREDICTION_POINTS)
         y = estimator.predict(X)
-        return {'X': X, 'y': y}
+        output_pd = pd.DataFrame.from_dict({'output': y, input_col: X})
+
+        return self.serialize_result(output_pd)
 
     def _create_partial_inputs(self, X, input_col, n=None):
         if n is None:
             n = self.DEFAULT_ESTIMATION_POINTS
 
-        start = X[input_col].min()
-        stop = X[input_col].max()
+        half_mean = X[input_col].mean() / 2
+        start = X[input_col].min() - half_mean
+        stop = X[input_col].max() + half_mean
         return np.linspace(start, stop, n)
 
-    def _fit_response_function_estimator(
-            self, X, partial_predictor, target
-    ):
+    def _gen_X_y(self, X, input_col, partial_predictor, target):
+        X = self._create_partial_inputs(X, input_col)
+
         # Predict for each input.
         # Notice ``y`` contains the aggregated output for each element in
         # ``X``.
-        y = [partial_predictor.predict(x)[target].sum() for x in X]
+        y = np.array([partial_predictor.predict(x)[target].sum() for x in X])
+        return X, y
 
-        # Actual estimation of response function.
-        estimator = ResponseFunctionEstimator('linear')
-        X = X.reshape(-1, 1)
-        estimator.fit(X, y)
-
-        return estimator

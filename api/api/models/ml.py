@@ -2,9 +2,17 @@
 This module contains Pydantic models used during the machine learning cycle.
 """
 
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 from pydantic import BaseModel
+
+
+class MergeTruth(BaseModel):
+    bool: bool
+
+
+class InputCol(BaseModel):
+    string: str
 
 
 class ReturnTruth(BaseModel):
@@ -40,7 +48,7 @@ class WhatIf(BaseModel):
         Value to insert
     """
     group_id: dict
-    column: str
+    input_cols: List[str]
     value: Optional[Union[int, float]] = None
     method: Optional[str] = None
     percentage: Optional[Union[int, float]] = None

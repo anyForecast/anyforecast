@@ -137,28 +137,25 @@ class _GroupWiseWhatIf(PredictionTransformer):
         return self
 
     def transform(self, X):
-        groupby = X.groupby(self.group_ids, sort=False)
-        apply_fn = self._make_apply_fn()
-        return groupby.apply(
-            apply_fn,
-            group_ids_generator=(group_id for group_id in groupby.groups)
-        )
+        groupby = X.groupby(self.group_ids)
+        X = X.copy()
 
-    def _make_apply_fn(self):
-        def apply_fn(X, group_ids_generator):
-            group_id = next(iter(group_ids_generator))
+        for what_if in self.what_if_data:
+            # Loc group.
+            group_id = what_if.pop('group_id')
+            group_id = [group_id[g] for g in self.group_ids]
+            group_id = group_id[0] if len(group_id) == 1 else tuple(group_id)
+            group = groupby.get_group(group_id)
 
-            try:
-                # TODO: change groupwise what if application.
-                data = self.what_if_data[group_id]
-            except KeyError:
-                return X
+            # Transform X.
+            what_if_transformer = WhatIf(
+                self.date_range, self.timestamp_col, **what_if)
+            transformed_group = what_if_transformer.fit_transform(group)
 
-            what_if = WhatIf(self.date_range, self.timestamp_col, **data)
+            # Overwrite transformed values.
+            X.loc[group.index] = transformed_group.values
 
-            return what_if.fit_transform(X)
-
-        return apply_fn
+        return X
 
     @classmethod
     def from_session(cls, session, group_wise=False):
