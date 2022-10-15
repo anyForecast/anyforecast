@@ -1,5 +1,5 @@
 from ._dataloading import LoadDatasetTask
-from ._minio import ShowParquetPartitions
+from ._minio import GetParquetPartitions, GetLastKnownDate
 from ._predict import GroupPredictionTask, ResponseFunctionEstimationTask
 from ._train import TrainTask
 from ..celery import app
@@ -7,9 +7,10 @@ from ..celery import app
 load_dataset_task = LoadDatasetTask().make_celery_task(app)
 train_task = TrainTask(bind=True).make_celery_task(app)
 predict_task = GroupPredictionTask().make_celery_task(app)
-response_function_estimation_task = ResponseFunctionEstimationTask() \
+estimate_response_function_task = ResponseFunctionEstimationTask() \
     .make_celery_task(app)
-show_partitions_task = ShowParquetPartitions().make_celery_task(app)
+get_partitions_task = GetParquetPartitions().make_celery_task(app)
+get_last_known_date_task = GetLastKnownDate().make_celery_task(app)
 
 __all__ = [
     'LoadDatasetTask',
@@ -19,6 +20,7 @@ __all__ = [
     'load_dataset_task',
     'train_task',
     'predict_task',
-    'response_function_estimation_task',
-    'show_partitions_task',
+    'estimate_response_function_task',
+    'get_last_known_date_task',
+    'get_partitions_task',
 ]

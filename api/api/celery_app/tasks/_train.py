@@ -19,28 +19,20 @@ class TrainTask(BaseTask):
         super().__init__(serializer, task_name, bind)
 
     def run(self, bind, data, trainer):
-        X, schema = data['dataframe'], data['schema']
+        X, schema = data['X'], data['schema']
 
         with mlflow.start_run(run_name=self.get_task_id(bind)):
             preprocessor = self.create_preprocessor(trainer, schema)
 
             # Segment features.
             preprocessor.fit(X)
-            segmentation = FeaturesSegmenter(
-                preprocessor,
-                schema,
-                # TODO: In order to avoid this ugly looking param, make a Step
-                #  class with an attribute telling whether or not the step
-                #  should be ignored.
-                steps_to_ignore=['col_duplicator', 'time_index_encoder']
-            ).segment()
-
-            estimator = self.create_estimator(trainer, segmentation, schema)
+            segmentation = self._segment_features(preprocessor, schema)
 
             # Init model and fit.
             # The model wraps both ``preprocessor`` and ``estimator`` into a
             # single sklearn :class:`Pipeline`. Hence, the user can input
             # non transformed data and the model itself will take care of it.
+            estimator = self.create_estimator(trainer, segmentation, schema)
             model = PreprocessorEstimatorWrapper(
                 estimator=estimator,
                 preprocessor=preprocessor,
@@ -109,3 +101,13 @@ class TrainTask(BaseTask):
         ]
 
         return preprocessor_creator.create_preprocessor(steps)
+
+    def _segment_features(self, preprocessor, schema):
+        return FeaturesSegmenter(
+            preprocessor,
+            schema,
+            # TODO: In order to avoid this ugly looking param, make a Step
+            #  class with an attribute telling whether or not the step
+            #  should be ignored.
+            steps_to_ignore=['col_duplicator', 'time_index_encoder']
+        ).segment()

@@ -105,7 +105,7 @@ class EstimatorArgsCreator:
         lr_scheduler = {
             'policy': OneCycleLR,
             'step_every': 'batch',
-            'max_lr': 1e-3,
+            'max_lr': 1.5e-3,
             'steps_per_epoch': 'iterations',
             'epochs': 'max_epochs'
         }
@@ -133,8 +133,8 @@ class EstimatorArgsCreator:
             'max_encoder_length': 26,
             'callbacks': callbacks,
             'cv_split': None,
-            'max_epochs': 100,
-            'hidden_size': 32,
+            'max_epochs': 200,
+            'hidden_size': 64,
             'batch_size': 64,
             **kwargs
         }
