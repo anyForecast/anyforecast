@@ -65,7 +65,6 @@ class PredictionSession:
         freq = model_params['freq']
 
         # Set dates to given frequency
-        print(self.date_range)
         start = set_date_on_freq(self.date_range['start'], freq)
         end = set_date_on_freq(self.date_range['end'], freq)
 

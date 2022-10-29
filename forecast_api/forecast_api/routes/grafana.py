@@ -117,7 +117,6 @@ async def get_last_known_date(
         'return_schema': True,
         'enforce_schema_dtypes': True
     }
-    print(partitions)
     return chain(
         load_dataset_task.s(**load_dataset_kwargs),
         get_last_known_date_task.s()
