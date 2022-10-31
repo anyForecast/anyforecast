@@ -16,7 +16,7 @@ A docker-compose.yml file is provided for building all the required services, wh
     Used for objects storage.
 
 * postgres
-    By default, it is used for keeping mlflow results. However, the users can extend its purpose to their needs-
+    By default, it is used for keeping mlflow results. However, the users can extend its purpose to their needs.
 
 * rabbitmq
     Used as brocker and backend for Celery.
