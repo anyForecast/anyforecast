@@ -13,7 +13,7 @@ A docker-compose.yml file is provided for building all the required services, wh
     Used for code experimentation, developing, data analysis and whatever the user wants.  
 
 * minio
-    Used for objects storage.
+    Used for objects storage. By default, trained machine learning models are stored here inside a bucket named *pipelines*.
 
 * postgres
     By default, it is used for keeping mlflow results. However, the users can extend its purpose to their needs.
