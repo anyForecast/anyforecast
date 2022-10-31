@@ -1,0 +1,6 @@
+[submodule "forecast_api/repos/pyrm"]
+	path = forecast_api/repos/pyrm
+	url = https://github.com/ramonAV98/pyrm.git
+[submodule "forecast_api/repos/skorch_forecasting"]
+	path = forecast_api/repos/skorch_forecasting
+	url = https://github.com/ramonAV98/skorch_forecasting.git
