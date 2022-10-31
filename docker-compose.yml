@@ -13,43 +13,18 @@ services:
       - ${RABBITMQ_PORT}:${RABBITMQ_PORT}
     networks:
       - backend
-      - hadoop-spark-docker_hadoop_net
+      - forecast_api
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq/data
 
-  client:
-    # `client` container contains a 'client' directory which aims 
-    # to be an installable python library that will serve as a http 
-    # client for the `api` service.
-    restart: always
-    build: ./client
-    image: client
-    container_name: client
-    environment:
-      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
-      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
-      - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
-      - MLFLOW_TRACKING_URI=http://mlflow:${MLFLOW_PORT}
-    volumes:
-    - ./client:/home/worker/client
-    networks:
-      - frontend
-      - backend
-      - hadoop-spark-docker_hadoop_net
-    stdin_open: true # docker run -i
-    tty: true        # docker run -t
-    command:
-      # Keep a main bash session always active.
-      - bash
-
-  api:
-    # Container with the purpose of offering machine learning as a service.
-    # This `api` service uses FastAPI for handling http requests and 
+  forecast_api:
+    # Training and inference service of time series machine learning models.
+    # This API service uses FastAPI for handling http requests and 
     # Celery for task queues.
     restart: always
-    build: ./api
-    image: api
-    container_name: api
+    build: ./forecast_api
+    image: forecast_api
+    container_name: forecast_api
     environment:
       - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
@@ -60,13 +35,13 @@ services:
     ports:
       - ${API_PORT}:${API_PORT} 
     volumes:
-      - ./api:/home/worker/api
+      - ./forecast_api:/home/worker/forecast_api
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
     networks:
       - frontend
       - backend
-      - hadoop-spark-docker_hadoop_net
+      - forecast_api
     # Keep a main bash session always active.
     stdin_open: true # docker run -i
     tty: true        # docker run -t
@@ -88,7 +63,7 @@ services:
     networks:
       - frontend
       - backend
-      - hadoop-spark-docker_hadoop_net
+      - forecast_api
     ports:
       # It is sufficient to map port <JUPYTER_PORT> outside to 8888 inside the container.
       # Note: The displayed connection URL will be incorrect, you’ll need to replace 8888 with <JUPYTER_PORT>, 
@@ -112,7 +87,7 @@ services:
       - 6543:${POSTGRES_PORT}
     networks:
       - backend
-      - hadoop-spark-docker_hadoop_net
+      - forecast_api
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
@@ -131,7 +106,7 @@ services:
     networks:
       - frontend
       - backend
-      - hadoop-spark-docker_hadoop_net
+      - forecast_api
     environment:
       # Both keys are the same as aws keys (see mlflow environmet)
       - MINIO_ROOT_USER=$MINIO_ACCESS_KEY
@@ -151,7 +126,7 @@ services:
     networks:
       - frontend
       - backend
-      - hadoop-spark-docker_hadoop_net
+      - forecast_api
     environment:
       - BACKEND=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/mlflow
       # For artifact store in local: (note mlrun_data volume must also be uncommented)
@@ -179,8 +154,8 @@ networks:
     driver: bridge
   backend:
     driver: bridge
-  hadoop-spark-docker_hadoop_net:
-    external: true
+  forecast_api:
+    driver: bridge
 
 # When you use a named volume like "data:/container/path", you must declare it at the docker-compose file.
 # This is not necessary when volumes are host paths.
