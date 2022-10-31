@@ -5,8 +5,9 @@ Forecast API
 Microservice API for providing forecasting services.
 
 A docker-compose.yml file is provided for building all the required services, which include
+
     * mlflow
-        Used for tracking and serving machine learning models
+        Used for tracking and serving machine learning models.
     
     * jupyterlab
         Used for code experimentation, developing, data analysis and whatever the user wants.  
@@ -15,13 +16,13 @@ A docker-compose.yml file is provided for building all the required services, wh
         Used for objects storage.
 
     * postgres
-        By default, it is used for keeping mlflow results. However, the users can extend its purpose to their needs
+        By default, it is used for keeping mlflow results. However, the users can extend its purpose to their needs-
     
     * rabbitmq
         Used as brocker and backend for Celery.
 
     * forecast_api
-        This is a dedicated container to the actual API code. 
+        This is container hosts the actual API code, which is built using FastAPI and Celery as task queue manager. 
 
 
 
