@@ -21,15 +21,15 @@ Assuming that you have Docker installed on your machine,
     issue very well: https://stackoverflow.com/questions/3796927/how-do-i-git-clone-a-repo-including-its-submodules
 
 
-After Docker the building process is finished, start an interactive bash
-session using the ``forecast_api`` container,
+After the building process is finished, start an interactive bash
+session using the forecast_api container,
 
 .. code-block:: sh
 
     $ docker exec -it forecast_api bash
 
 
-Inside the containers interactive session, navigate to the ``forecast_api``
+Inside the containers interactive session, navigate to the `forecast_api`
 directory and start the FastAPI server. After the server is up, you can visit
 the API docs located at localhost:80/docs using any browser.
 
