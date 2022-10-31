@@ -54,6 +54,12 @@ session using the forecast_api container,
     $ docker exec -it forecast_api bash
 
 
+.. warning::
+    Currently, the bash session starts user as ``root`` which is discouraged and
+    must be avoided. This is a temporal behaviour needed by mlflow for building docker images
+    from inside the container. 
+
+
 Inside the containers interactive session, navigate to the `forecast_api`
 directory and start the FastAPI server. After the server is up, you can visit
 the API docs located at localhost:80/docs using any browser.
