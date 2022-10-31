@@ -19,7 +19,7 @@ A docker-compose.yml file is provided for building all the required services, wh
     By default, it is used for keeping mlflow results. However, the users can extend its purpose to their needs.
 
 * rabbitmq, default_port=5672
-    Used as brocker and backend for Celery.
+    Used as message broker and backend for Celery.
 
 * forecast_api, default_port=80
     This container hosts the actual API code, which is built using FastAPI and Celery as task queue manager. 
