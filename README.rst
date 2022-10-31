@@ -6,23 +6,27 @@ Microservice API for providing forecasting services.
 
 A docker-compose.yml file is provided for building all the required services, which include
 
-* mlflow
+* mlflow, default_port=5001
     Used for tracking and serving machine learning models.
 
-* jupyterlab
+* jupyterlab, default_port=7777
     Used for code experimentation, developing, data analysis and whatever the user wants.  
 
-* minio
+* minio, default_port=9000
     Used for objects storage. By default, trained machine learning models are stored here inside a bucket named *pipelines*.
 
-* postgres
+* postgres, default_port=5432
     By default, it is used for keeping mlflow results. However, the users can extend its purpose to their needs.
 
-* rabbitmq
+* rabbitmq, default_port=5672
     Used as brocker and backend for Celery.
 
-* forecast_api
+* forecast_api, default_port=80
     This container hosts the actual API code, which is built using FastAPI and Celery as task queue manager. 
+
+
+.. note::
+    The default ports can be changed through the .env file.
 
 
 
