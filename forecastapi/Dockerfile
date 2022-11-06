@@ -13,5 +13,5 @@ COPY . /home/worker/forecastapi
 RUN pip install -r /home/worker/forecastapi/requirements.txt
 
 # Install skorch_forecasting and pyrm.
-RUN pip install /home/worker/forecastapi/repos/skorch_forecasting/.
-RUN pip install /home/worker/forecastapi/repos/pyrm/.
+RUN pip install /home/worker/forecastapi/submodules/skorch_forecasting/.
+RUN pip install /home/worker/forecastapi/submodules/pyrm/.
