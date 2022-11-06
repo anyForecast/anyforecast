@@ -7,11 +7,11 @@ RUN pip install --upgrade pip
 
 
 # Copy `api` python library and its deps.
-COPY . /home/worker/forecast_api
+COPY . /home/worker/forecastapi
 
 # Install deps.
-RUN pip install -r /home/worker/forecast_api/requirements.txt
+RUN pip install -r /home/worker/forecastapi/requirements.txt
 
 # Install skorch_forecasting and pyrm.
-RUN pip install /home/worker/forecast_api/repos/skorch_forecasting/.
-RUN pip install /home/worker/forecast_api/repos/pyrm/.
+RUN pip install /home/worker/forecastapi/repos/skorch_forecasting/.
+RUN pip install /home/worker/forecastapi/repos/pyrm/.
