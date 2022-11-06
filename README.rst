@@ -36,8 +36,8 @@ Assuming that you have Docker installed on your machine,
 
 .. code-block:: sh
 
-    $ git clone --recurse-submodules https://github.com/ramonAV98/forecast_api.git
-    $ cd forecast_api
+    $ git clone --recurse-submodules https://github.com/ramonAV98/microservicesForecasting.git
+    $ cd microservicesForecasting
     $ docker-compose build
 
 .. note::
@@ -47,11 +47,11 @@ Assuming that you have Docker installed on your machine,
 
 
 After the building process is finished, start an interactive bash
-session using the forecast_api container,
+session using the forecastapi container,
 
 .. code-block:: sh
 
-    $ docker exec -it forecast_api bash
+    $ docker exec -it forecastapi bash
 
 
 .. warning::
@@ -60,38 +60,19 @@ session using the forecast_api container,
     from inside the container. 
 
 
-Inside the containers interactive session, navigate to the `forecast_api`
+Inside the containers interactive session, navigate to the `forecastapi`
 directory and start the FastAPI server. After the server is up, you can visit
 the API docs located at localhost:80/docs using any browser.
 
 .. code-block:: sh
 
-    $ cd home/worker/forecast_api
-    $ python -m uvicorn forecast_api.main:app --host=0.0.0.0 --port=80
+    $ cd home/worker/forecastapi
+    $ python -m uvicorn forecastapi.main:app --host=0.0.0.0 --port=80
 
 
 Next, for the Celery server, start a second interactive bash session and do
 
 .. code-block:: sh
 
-    $ cd home/worker/forecast_api
-    $ celery -A forecast_api.celery_app worker --loglevel=INFO
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    $ cd home/worker/forecastapi
+    $ celery -A forecastapi.celery_app worker --loglevel=INFO
