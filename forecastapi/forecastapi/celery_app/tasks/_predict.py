@@ -158,6 +158,7 @@ class GroupPredictionTask(BasePredictionTask):
 
 
 class ResponseFunctionEstimationTask(BasePredictionTask):
+
     DEFAULT_ESTIMATION_POINTS = 15
     DEFAULT_PREDICTION_POINTS = 30
 
@@ -176,18 +177,35 @@ class ResponseFunctionEstimationTask(BasePredictionTask):
         predictor = session.make_predictor()
         partial_predictor = predictor.to_partial(X, [input_col])
 
-        # Actual estimation of response function.
+        # Fit instance of :class:`ResponseFunctionEstimator`.
+        # Notice the ``y`` values used in :meth:`fit` are the actual timeseries
+        # estimator outputs.
         target = schema.get_names_for('target')[0]
         X, y = self._gen_X_y(X, input_col, partial_predictor, target)
-        estimator = ResponseFunctionEstimator('logit')
+        response_function_estimator = self._fit_response_function(X, y)
+
+        # Predict using the fitted estimator.
+        y = response_function_estimator.predict(X)
+
+        return self.serialize_result(X, y)
+
+    def _fit_response_function(self, X, y, func='logit'):
+        estimator = ResponseFunctionEstimator(func)
         estimator.fit(X, y)
+        return estimator
 
-        # Generate new X, y for response.
-        X = np.linspace(X.min(), X.max(), num=self.DEFAULT_PREDICTION_POINTS)
-        y = estimator.predict(X)
-        output_pd = pd.DataFrame.from_dict({'output': y, input_col: X})
+    def _gen_X_y(self, X, input_col, partial_predictor, target):
+        """Generates X, y values to fit the response function estimator.
 
-        return self.serialize_result(output_pd)
+        Notice y contains the aggregated output for each element in X.
+
+        Returns
+        -------
+        X, y : tuple of arrays
+        """
+        X = self._create_partial_inputs(X, input_col)
+        y = np.array([partial_predictor.predict(x)[target].sum() for x in X])
+        return X, y
 
     def _create_partial_inputs(self, X, input_col, n=None):
         if n is None:
@@ -198,12 +216,7 @@ class ResponseFunctionEstimationTask(BasePredictionTask):
         stop = X[input_col].max() + half_mean
         return np.linspace(start, stop, n)
 
-    def _gen_X_y(self, X, input_col, partial_predictor, target):
-        X = self._create_partial_inputs(X, input_col)
 
-        # Predict for each input.
-        # Notice ``y`` contains the aggregated output for each element in
-        # ``X``.
-        y = np.array([partial_predictor.predict(x)[target].sum() for x in X])
-        return X, y
+
+
 

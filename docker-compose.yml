@@ -13,18 +13,18 @@ services:
       - ${RABBITMQ_PORT}:${RABBITMQ_PORT}
     networks:
       - backend
-      - forecast_api
+      - forecastapi
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq/data
 
-  forecast_api:
+  forecastapi:
     # Training and inference service of time series machine learning models.
     # This API service uses FastAPI for handling http requests and 
     # Celery for task queues.
     restart: always
-    build: ./forecast_api
-    image: forecast_api
-    container_name: forecast_api
+    build: ./forecastapi
+    image: forecastapi
+    container_name: forecastapi
     environment:
       - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
@@ -35,13 +35,13 @@ services:
     ports:
       - ${API_PORT}:${API_PORT} 
     volumes:
-      - ./forecast_api:/home/worker/forecast_api
+      - ./forecastapi:/home/worker/forecastapi
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
     networks:
       - frontend
       - backend
-      - forecast_api
+      - forecastapi
     # Keep a main bash session always active.
     stdin_open: true # docker run -i
     tty: true        # docker run -t
@@ -63,16 +63,12 @@ services:
     networks:
       - frontend
       - backend
-      - forecast_api
+      - forecastapi
     ports:
       # It is sufficient to map port <JUPYTER_PORT> outside to 8888 inside the container.
       # Note: The displayed connection URL will be incorrect, you’ll need to replace 8888 with <JUPYTER_PORT>, 
       # that is, http://127.0.0.1:<JUPYTER_PORT>/?token=TOKEN should work.
       - ${JUPYTER_PORT}:8888
-    volumes:
-      - ./jupyter/work:/home/jovyan/work
-      - ./client:/home/jovyan/client
-      - ./api:/home/jovyan/api
     depends_on:
       - mlflow
       
@@ -87,7 +83,7 @@ services:
       - 6543:${POSTGRES_PORT}
     networks:
       - backend
-      - forecast_api
+      - forecastapi
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
@@ -106,7 +102,7 @@ services:
     networks:
       - frontend
       - backend
-      - forecast_api
+      - forecastapi
     environment:
       # Both keys are the same as aws keys (see mlflow environmet)
       - MINIO_ROOT_USER=$MINIO_ACCESS_KEY
@@ -126,7 +122,7 @@ services:
     networks:
       - frontend
       - backend
-      - forecast_api
+      - forecastapi
     environment:
       - BACKEND=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/mlflow
       # For artifact store in local: (note mlrun_data volume must also be uncommented)
@@ -154,7 +150,7 @@ networks:
     driver: bridge
   backend:
     driver: bridge
-  forecast_api:
+  forecastapi:
     driver: bridge
 
 # When you use a named volume like "data:/container/path", you must declare it at the docker-compose file.

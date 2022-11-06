@@ -19,12 +19,10 @@ from ..models.users import UserInDB, User
 
 fake_users_db = {
     "johndoe": {
-        "username": "johndoe",
+        "username": "user",
         "full_name": "John Doe",
         "email": "johndoe@example.com",
         "hashed_password": "$2b$12$RdpVTYRLlqBZWnSWBw3AXOKUyFsPZJfEiE8A9sSOOeQxSrMByY5Yq",
-        "access_key": "johndoe",
-        "secret_key": "password",
         "s3_endpoint": "minio:9000",
         "disabled": False,
     }
