@@ -18,12 +18,12 @@ from ..models.auth import TokenData
 from ..models.users import UserInDB, User
 
 fake_users_db = {
-    "johndoe": {
+    "user": {
         "username": "user",
         "full_name": "John Doe",
         "email": "johndoe@example.com",
         "hashed_password": "$2b$12$RdpVTYRLlqBZWnSWBw3AXOKUyFsPZJfEiE8A9sSOOeQxSrMByY5Yq",
-        "s3_endpoint": "minio:9000",
+        "minio_endpoint": "minio:9000",
         "disabled": False,
     }
 }

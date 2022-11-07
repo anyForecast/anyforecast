@@ -3,7 +3,7 @@ celery>=5.2
 boto3==1.24.59
 cloudpickle==2.1.0
 psycopg2
-mlflow==1.25.1
+mlflow==1.30.0
 minio>=7.1.5
 pyarrow>=7.0.0
 fastparquet>=0.8.0

@@ -10,7 +10,7 @@ class User(BaseModel):
     disabled: Optional[bool] = None
     access_key: Optional[str] = None
     secret_key: Optional[str] = None
-    s3_endpoint: Optional[str] = None
+    minio_endpoint: Optional[str] = None
 
 
 class UserInDB(User):

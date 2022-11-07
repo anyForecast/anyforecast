@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
-from ._s3_loaders import S3LoadersFactory
+from ._minio_dataloaders import MinioDataloadersFactory
 
 
 def make_dataframe_loader(name, dataset, user):
@@ -21,17 +21,19 @@ def make_dataframe_loader(name, dataset, user):
         'pandas': PandasLoader,
         'spark': SparkLoader
     }
-    loaders_factory = S3LoadersFactory(user, dataset)
-    return dataframe_loader[name](loaders_factory)
+    dataloaders_factory = MinioDataloadersFactory(user, dataset)
+    return dataframe_loader[name](dataloaders_factory)
 
 
 class DataFrameLoader(metaclass=ABCMeta):
-    def __init__(self, loaders_factory):
-        self.loaders_factory = loaders_factory
-        self.parquet_loader = loaders_factory.get_loader('parquet')
+    def __init__(self, dataloaders_factory):
+        self._dataloaders_factory = dataloaders_factory
+
+    def get_dataloader(self, data_format):
+        return self._dataloaders_factory.get_dataloader(data_format)
 
     def load_schema(self):
-        json_loader = self.loaders_factory.get_loader('json')
+        json_loader = self.get_dataloader('json')
         return json_loader.load('schema')
 
     @abstractmethod
@@ -40,17 +42,19 @@ class DataFrameLoader(metaclass=ABCMeta):
 
 
 class PandasLoader(DataFrameLoader):
-    def __init__(self, loaders_factory):
-        super().__init__(loaders_factory)
+    def __init__(self, dataloaders_factory):
+        super().__init__(dataloaders_factory)
 
     def load(self, partition_filter=None, **kwargs):
-        return self.parquet_loader.to_pandas(
+        parquet_loader = self.get_dataloader('parquet')
+        return parquet_loader.to_pandas(
             partition_filter=partition_filter, **kwargs)
 
 
 class SparkLoader(DataFrameLoader):
-    def __init__(self, loaders_factory):
-        super().__init__(loaders_factory)
+    def __init__(self, dataloaders_factory):
+        super().__init__(dataloaders_factory)
 
     def load(self):
-        return self.parquet_loader.to_spark()
+        parquet_loader = self.get_dataloader('parquet')
+        return parquet_loader.to_spark()

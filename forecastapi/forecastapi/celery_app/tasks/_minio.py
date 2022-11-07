@@ -1,7 +1,7 @@
 import pandas as pd
 
 from ._base_task import BaseTask
-from ..dataloaders import S3LoadersFactory
+from ..dataloaders import MinioDataloadersFactory
 
 
 class GetParquetPartitions(BaseTask):
@@ -10,9 +10,10 @@ class GetParquetPartitions(BaseTask):
         super().__init__(serializer)
 
     def run(self, user, dataset):
-        loader = S3LoadersFactory(user, dataset).get_loader('objects')
+        factory = MinioDataloadersFactory(user, dataset)
+        objects_loader = factory.get_dataloader('objects')
 
-        objects = loader.load('parquet')
+        objects = objects_loader.load('parquet')
         partition_names = []
         for obj in objects:
             obj_name = obj.object_name
