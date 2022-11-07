@@ -1,6 +1,6 @@
-============
-Forecast API
-============
+========================
+microservicesForecasting
+========================
 
 Microservice API for providing forecasting services.
 
