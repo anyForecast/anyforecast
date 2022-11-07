@@ -7,7 +7,7 @@ import s3fs
 from minio import Minio
 
 from ._parquet_loaders import make_parquet_loader
-from ..client_args import create_client_args
+from ..client_args import ClientArgsCreator
 
 
 def _make_path(*args, trailing_slash=False):
@@ -35,7 +35,7 @@ def _recursive_concat(path, trailing_slash=True, **kwargs):
     return path
 
 
-class S3PathMaker:
+class PathMaker:
     def __init__(self):
         pass
 
@@ -75,17 +75,16 @@ class S3PathMaker:
         return s3_filesystem.glob(partition_path)
 
 
-class S3LoadersFactory:
-    """Factory for S3 loaders.
+class MinioDataloadersFactory:
+    """Factory for Minio dataloaders.
 
-    The actual "loaders" are accessible through :meth:´get_loader´.
+    The actual "dataloaders" are accessible through :meth:´get_loader´.
     Additionally, each of this loaders inherits from the base abstract class
     :class:`S3BaseLoader`.
 
     Parameters
     ----------
     user : User
-
     dataset : Dataset
     """
 
@@ -93,19 +92,19 @@ class S3LoadersFactory:
         self.user = user
         self.dataset = dataset
 
-    def get_loader(self, name):
-        return self.loaders[name](**self._make_kwargs())
+    def get_dataloader(self, name):
+        return self.dataloaders[name](**self._make_kwargs())
 
     def _make_kwargs(self):
         return {
-            'client_args': create_client_args(self.user),
+            'client_args': ClientArgsCreator(self.user, secure=False),
             'bucket_name': self.dataset['bucket_name'],
             'dataset_group_name': self.dataset['dataset_group_name'],
             'dataset_name': self.dataset['dataset_name']
         }
 
     @property
-    def loaders(self):
+    def dataloaders(self):
         return {
             'parquet': ParquetLoader,
             'json': JsonLoader,
@@ -113,16 +112,14 @@ class S3LoadersFactory:
         }
 
 
-class S3BaseLoader(metaclass=ABCMeta):
-    """Base abstract class for S3Loaders.
+class MinioDataloader(metaclass=ABCMeta):
+    """Base abstract class for Minio dataloaders.
 
     Different file extensions (parquet, json, etc) have their own derived class
-    containing the logic to load them from S3.
+    containing the logic to load them from Minio.
 
     Parameters
     ----------
-    client_args : ClientArgs
-        Instance of :class:`ClientArgs` object.
     """
 
     def __init__(self, client_args, bucket_name, dataset_group_name,
@@ -131,7 +128,7 @@ class S3BaseLoader(metaclass=ABCMeta):
         self.bucket_name = bucket_name
         self.dataset_group_name = dataset_group_name
         self.dataset_name = dataset_name
-        self.path_maker = S3PathMaker()
+        self._path_maker = PathMaker()
 
     def create_minio_client(self):
         """Private function for creating a minio client.
@@ -153,7 +150,7 @@ class S3BaseLoader(metaclass=ABCMeta):
         if bucket_name:
             path_args.insert(0, self.bucket_name)
 
-        path = self.path_maker.make_path(*path_args, trailing_slash=True)
+        path = self._path_maker.make_path(*path_args, trailing_slash=True)
         if s3_prefix:
             path = 's3://' + path
         return path
@@ -165,7 +162,7 @@ class S3BaseLoader(metaclass=ABCMeta):
             **kwargs)
 
 
-class ParquetLoader(S3BaseLoader):
+class ParquetLoader(MinioDataloader):
     """Interface for parquet loaders.
 
     :class:`ParquetLoader` is only an interface layer for the various
@@ -187,8 +184,8 @@ class ParquetLoader(S3BaseLoader):
 
     def _make_parquet_loader(self, name):
         base_dir = self.get_base_dir(s3_prefix=True)
-        base_dir = self.path_maker.join_base_dir(base_dir, 'parquet',
-                                                 trailing_slash=True)
+        base_dir = self._path_maker.join_base_dir(
+            base_dir, 'parquet', trailing_slash=True)
         fs = self.make_s3_filesystem()
 
         kwargs = {
@@ -206,7 +203,7 @@ class ParquetLoader(S3BaseLoader):
         return self._make_parquet_loader('spark')
 
 
-class JsonLoader(S3BaseLoader):
+class JsonLoader(MinioDataloader):
     def __init__(self, client_args, bucket_name, dataset_group_name,
                  dataset_name):
         super().__init__(client_args, bucket_name, dataset_group_name,
@@ -214,7 +211,7 @@ class JsonLoader(S3BaseLoader):
 
     def load(self, path):
         base_dir = self.get_base_dir(bucket_name=False)
-        json_path = self.path_maker.make_json_path(base_dir, path)
+        json_path = self._path_maker.make_json_path(base_dir, path)
         return self._get_json(json_path)
 
     def _get_json(self, object_name):
@@ -225,7 +222,7 @@ class JsonLoader(S3BaseLoader):
         return json.load(io.BytesIO(json_object.data))
 
 
-class ObjectsLoader(S3BaseLoader):
+class ObjectsLoader(MinioDataloader):
     def __init__(self, client_args, bucket_name, dataset_group_name,
                  dataset_name):
         super().__init__(client_args, bucket_name, dataset_group_name,
@@ -235,8 +232,8 @@ class ObjectsLoader(S3BaseLoader):
         prefix = self.get_base_dir(bucket_name=False)
 
         if extra_prefix is not None:
-            prefix = self.path_maker.make_path(prefix, extra_prefix,
-                                               trailing_slash=True)
+            prefix = self._path_maker.make_path(
+                prefix, extra_prefix, trailing_slash=True)
 
         minio_client = self.create_minio_client()
         return minio_client.list_objects(self.bucket_name, prefix=prefix)
