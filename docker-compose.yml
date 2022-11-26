@@ -64,6 +64,8 @@ services:
       - frontend
       - backend
       - forecastapi
+    volumes:
+      - ./jupyter/work:/home/jovyan/work
     ports:
       # It is sufficient to map port <JUPYTER_PORT> outside to 8888 inside the container.
       # Note: The displayed connection URL will be incorrect, you’ll need to replace 8888 with <JUPYTER_PORT>, 

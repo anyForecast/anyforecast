@@ -1,4 +1,3 @@
-skorch_forecasting/
 celery>=5.2
 boto3==1.24.59
 cloudpickle==2.1.0
@@ -11,3 +10,4 @@ s3fs>=2022.2.0
 fastapi>=0.68.0
 uvicorn[standard]
 awswrangler>=2.16.1
+skorch_forecasting
