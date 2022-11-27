@@ -1,16 +1,9 @@
 from typing import List, Dict, Optional
 
-from celery import chain
 from fastapi import Depends, APIRouter
 
 from ..auth import CredentialsProvider
-from ..celery_app.tasks import (
-    load_dataset_task,
-    predict_task,
-    get_partitions_task,
-    get_last_known_date_task,
-    estimate_response_function_task
-)
+from ..celery_app.tasks import task_registry, TaskChainer
 from ..models.ml import (
     WhatIf,
     PredictionDateRange,
@@ -63,10 +56,19 @@ async def predict(
         'merge_truth': merge_truth,
         **merge_kwargs
     }
-    return chain(
-        load_dataset_task.s(**load_dataset_kwargs),
-        predict_task.s(**predict_kwargs)
-    ).apply().get()
+
+    # Get tasks.
+    load_dataset_task = task_registry.get_task('LoadDatasetTask')
+    group_prediction_task = task_registry.get_task('GroupPredictionTask')
+
+    # Make chain.
+    chainer = TaskChainer()
+    chainer.add_task(load_dataset_task, **load_dataset_kwargs)
+    chainer.add_task(group_prediction_task, **predict_kwargs)
+    chain = chainer.make_chain()
+
+    task_result = chain.apply()
+    return task_result.get()
 
 
 @router.post("/estimate_response_function/")
@@ -89,15 +91,28 @@ async def estimate_response_function(
         'enforce_schema_dtypes': True
     }
 
-    estimate_response_function_kwargs = {
+    response_function_estimation_kwargs = {
         'predictor': predictor.dict(),
         'date_range': date_range.dict(),
         'input_col': input_col.dict()['string']
     }
-    return chain(
-        load_dataset_task.s(**load_dataset_kwargs),
-        estimate_response_function_task.s(**estimate_response_function_kwargs)
-    ).apply().get()
+
+    # Get tasks.
+    load_dataset_task = task_registry.get_task('LoadDatasetTask')
+    response_function_estimation_task = task_registry.get_task(
+        'ResponseFunctionEstimationTask')
+
+    # Make chain.
+    chainer = TaskChainer()
+    chainer.add_task(load_dataset_task, **load_dataset_kwargs)
+    chainer.add_task(
+        response_function_estimation_task,
+        **response_function_estimation_kwargs
+    )
+    chain = chainer.make_chain()
+
+    task_result = chain.apply()
+    return task_result.get()
 
 
 @router.post("/get_last_known_date/")
@@ -117,10 +132,19 @@ async def get_last_known_date(
         'return_schema': True,
         'enforce_schema_dtypes': True
     }
-    return chain(
-        load_dataset_task.s(**load_dataset_kwargs),
-        get_last_known_date_task.s()
-    ).apply().get()
+
+    # Get tasks.
+    load_dataset_task = task_registry.get_task('LoadDatasetTask')
+    get_last_known_date_task = task_registry.get_task('GetLastKnownDate')
+
+    # Make chain.
+    chainer = TaskChainer()
+    chainer.add_task(load_dataset_task, **load_dataset_kwargs)
+    chainer.add_task(get_last_known_date_task)
+    chain = chainer.make_chain()
+
+    task_result = chain.apply()
+    return task_result.get()
 
 
 @router.post("/get_parquet_partitions/")
@@ -131,4 +155,5 @@ async def get_parquet_partitions(
     """
     TODO: This should be an Athena query instead and NOT an api task.
     """
+    get_partitions_task = task_registry.get_task('GetParquetPartitions')
     return get_partitions_task.run(current_user.dict(), dataset.dict())

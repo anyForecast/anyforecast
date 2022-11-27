@@ -1,6 +1,5 @@
 from typing import List, Dict, Optional
 
-from celery import chain
 from fastapi import Depends, HTTPException, APIRouter, status
 from fastapi.security import OAuth2PasswordRequestForm
 
@@ -11,7 +10,7 @@ from ..auth import (
 from ..auth import (
     TokenProvider
 )
-from ..celery_app.tasks import train_task, load_dataset_task
+from ..celery_app.tasks import task_registry, TaskChainer
 from ..models.auth import Token
 from ..models.ml import Trainer, Dataset
 from ..models.users import User
@@ -45,11 +44,18 @@ async def train(
         'return_schema': True,
         'enforce_schema_dtypes': True
     }
-    async_task = chain(
-        load_dataset_task.s(**load_dataset_kwargs),
-        train_task.s(trainer=trainer.dict())
-    )()
 
+    # Get tasks.
+    load_dataset_task = task_registry.get_task('LoadDatasetTask')
+    train_task = task_registry.get_task('TrainTask')
+
+    # Make chain.
+    chainer = TaskChainer()
+    chainer.add_task(load_dataset_task, **load_dataset_kwargs)
+    chainer.add_task(train_task, trainer=trainer.dict())
+    chain = chainer.make_chain()
+
+    async_task = chain()
     return {'async_task_id': async_task.id}
 
 

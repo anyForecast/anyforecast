@@ -6,8 +6,8 @@ from ..dataloaders import MinioDataloadersFactory
 
 class GetParquetPartitions(BaseTask):
 
-    def __init__(self, serializer=None):
-        super().__init__(serializer)
+    def __init__(self):
+        super().__init__()
 
     def run(self, user, dataset):
         factory = MinioDataloadersFactory(user, dataset)
@@ -30,8 +30,8 @@ class GetParquetPartitions(BaseTask):
 class GetLastKnownDate(BaseTask):
     FORMAT = '%Y-%m-%d'
 
-    def __init__(self, serializer=None, task_name=None, bind=False):
-        super().__init__(serializer, task_name, bind)
+    def __init__(self):
+        super().__init__()
 
     def run(self, data):
         X, schema = data['X'], data['schema']

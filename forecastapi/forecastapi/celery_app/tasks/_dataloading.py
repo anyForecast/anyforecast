@@ -7,8 +7,8 @@ from ..exceptions import UnknownDataLoadingFormat
 
 
 class LoadDatasetTask(BaseTask):
-    def __init__(self, serializer=None, task_name=None, bind=False):
-        super().__init__(serializer, task_name, bind)
+    def __init__(self):
+        super().__init__()
 
     def run(
             self, dataset, user, partitions, format, return_schema,
