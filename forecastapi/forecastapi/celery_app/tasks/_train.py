@@ -15,8 +15,8 @@ class TrainTask(BaseTask):
     """Loads, preprocess and fits timeseries data.
     """
 
-    def __init__(self, serializer=None, task_name=None, bind=False):
-        super().__init__(serializer, task_name, bind)
+    def __init__(self):
+        super().__init__(bind=True)
 
     def run(self, bind, data, trainer):
         X, schema = data['X'], data['schema']

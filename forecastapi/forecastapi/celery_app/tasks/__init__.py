@@ -3,24 +3,49 @@ from ._minio import GetParquetPartitions, GetLastKnownDate
 from ._predict import GroupPredictionTask, ResponseFunctionEstimationTask
 from ._train import TrainTask
 from ..celery import app
+from ._chainer import TaskChainer
 
-load_dataset_task = LoadDatasetTask().make_celery_task(app)
-train_task = TrainTask(bind=True).make_celery_task(app)
-predict_task = GroupPredictionTask().make_celery_task(app)
-estimate_response_function_task = ResponseFunctionEstimationTask() \
-    .make_celery_task(app)
-get_partitions_task = GetParquetPartitions().make_celery_task(app)
-get_last_known_date_task = GetLastKnownDate().make_celery_task(app)
+
+class TaskRegistry:
+
+    def __init__(self):
+        self._registry = {}
+
+    def register(self, task, name):
+        obj = task().make_celery_task(app)
+        self._registry[name] = obj
+
+    def get_task(self, name):
+        try:
+            return self._registry[name]
+        except KeyError:
+            raise
+
+    def get_registry(self):
+        return self._registry
+
+
+TASKS = [
+    LoadDatasetTask,
+    TrainTask,
+    GroupPredictionTask,
+    ResponseFunctionEstimationTask,
+    GetParquetPartitions,
+    GetLastKnownDate
+]
+
+
+def register_tasks():
+    registry = TaskRegistry()
+    for task in TASKS:
+        registry.register(task, task.__name__)
+
+    return registry
+
+
+task_registry = register_tasks()
 
 __all__ = [
-    'LoadDatasetTask',
-    'TrainTask',
-    'GroupPredictionTask',
-    'ResponseFunctionEstimationTask',
-    'load_dataset_task',
-    'train_task',
-    'predict_task',
-    'estimate_response_function_task',
-    'get_last_known_date_task',
-    'get_partitions_task',
+    'task_registry',
+    'TaskChainer'
 ]

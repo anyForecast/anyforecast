@@ -116,21 +116,16 @@ class SessionPredictor:
 
 
 class BasePredictionTask(BaseTask, metaclass=ABCMeta):
-    def __init__(self, serializer=None, task_name=None, bind=False):
-        super().__init__(serializer, task_name, bind)
+    def __init__(self, serializer=PandasNativeSerializer(), bind=False):
+        super().__init__(serializer, bind)
 
     def make_session(self, predictor, date_range, what_ifs=None):
         return PredictionSession(predictor, date_range, what_ifs)
 
 
 class GroupPredictionTask(BasePredictionTask):
-    def __init__(
-            self,
-            serializer=PandasNativeSerializer(orient='records'),
-            task_name=None,
-            bind=None
-    ):
-        super().__init__(serializer, task_name, bind)
+    def __init__(self):
+        super().__init__(serializer=PandasNativeSerializer(orient='records'))
 
     def run(
             self, data, predictor, date_range, what_ifs=None,
@@ -152,23 +147,17 @@ class GroupPredictionTask(BasePredictionTask):
                 left=X[on + target], right=output, on=on, **merge_kwargs)
 
         # Converts to unix Ms
-        output[timestamp] = output[timestamp].astype(int) / 10**6
+        output[timestamp] = output[timestamp].astype(int) / 10 ** 6
 
         return self.serialize_result(output)
 
 
 class ResponseFunctionEstimationTask(BasePredictionTask):
-
     DEFAULT_ESTIMATION_POINTS = 15
     DEFAULT_PREDICTION_POINTS = 30
 
-    def __init__(
-            self,
-            serializer=PandasNativeSerializer(orient='records'),
-            task_name=None,
-            bind=None
-    ):
-        super().__init__(serializer, task_name, bind)
+    def __init__(self):
+        super().__init__(serializer=PandasNativeSerializer(orient='records'))
 
     def run(self, data, predictor, date_range, input_col):
         X, schema = data['X'], data['schema']
@@ -215,8 +204,3 @@ class ResponseFunctionEstimationTask(BasePredictionTask):
         start = X[input_col].min() - half_mean
         stop = X[input_col].max() + half_mean
         return np.linspace(start, stop, n)
-
-
-
-
-
