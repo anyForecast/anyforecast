@@ -4,6 +4,7 @@ from ._predict import GroupPredictionTask, ResponseFunctionEstimationTask
 from ._train import TrainTask
 from ..celery import app
 from ._chainer import TaskChainer
+from ..exceptions import UnknownTaskError
 
 
 class TaskRegistry:
@@ -19,7 +20,7 @@ class TaskRegistry:
         try:
             return self._registry[name]
         except KeyError:
-            raise
+            raise UnknownTaskError(name=name)
 
     def get_registry(self):
         return self._registry

@@ -37,7 +37,11 @@ class UnknownSchemaKeyError(BaseError):
 class UnknownPandasSerializer(BaseError):
     fmt = 'Pandas serializer "{name}" does not exist.'
 
+
 class UnknownDataLoadingFormat(BaseError):
     fmt = 'Format "{format}" does not exist. ' \
           'Available formats: {available_formats}'
 
+
+class UnknownTaskError(BaseError):
+    fmt = 'Task with name "{name}" does not exist in the registry.'
