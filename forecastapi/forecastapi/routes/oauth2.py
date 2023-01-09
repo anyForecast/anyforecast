@@ -41,13 +41,12 @@ async def train(
         'user': current_user.dict(),
         'partitions': partitions,
         'format': 'pandas',
-        'return_schema': True,
-        'enforce_schema_dtypes': True
+        'return_schema': True
     }
 
     # Get tasks.
     load_dataset_task = task_registry.get_task('LoadDatasetTask')
-    train_task = task_registry.get_task('TrainTask')
+    train_task = task_registry.get_task('TrainSkorchForecasting')
 
     # Make chain.
     chainer = TaskChainer()

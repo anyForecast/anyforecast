@@ -26,14 +26,21 @@ def make_dataframe_loader(name, dataset, user):
 
 
 class DataFrameLoader(metaclass=ABCMeta):
+    """Derived classes from :class:`DataFrameLoader` provide an interface for
+    loading data from minio to a specific DataFrame type (eg. pandas or spark).
+
+    In other words, they act as a bridge between minio and DataFrame data
+    structures.
+    """
+
     def __init__(self, dataloaders_factory):
         self._dataloaders_factory = dataloaders_factory
 
-    def get_dataloader(self, data_format):
+    def _get_dataloader(self, data_format):
         return self._dataloaders_factory.get_dataloader(data_format)
 
     def load_schema(self):
-        json_loader = self.get_dataloader('json')
+        json_loader = self._get_dataloader('json')
         return json_loader.load('schema')
 
     @abstractmethod
@@ -46,7 +53,7 @@ class PandasLoader(DataFrameLoader):
         super().__init__(dataloaders_factory)
 
     def load(self, partition_filter=None, **kwargs):
-        parquet_loader = self.get_dataloader('parquet')
+        parquet_loader = self._get_dataloader('parquet')
         return parquet_loader.to_pandas(
             partition_filter=partition_filter, **kwargs)
 
@@ -56,5 +63,5 @@ class SparkLoader(DataFrameLoader):
         super().__init__(dataloaders_factory)
 
     def load(self):
-        parquet_loader = self.get_dataloader('parquet')
+        parquet_loader = self._get_dataloader('parquet')
         return parquet_loader.to_spark()

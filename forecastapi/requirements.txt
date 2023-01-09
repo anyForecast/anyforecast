@@ -25,3 +25,5 @@ awswrangler==2.16.1
 python-multipart==0.0.5
 orjson==3.8.1
 skorch_forecasting
+click==8.1.3
+

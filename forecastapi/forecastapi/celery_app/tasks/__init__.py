@@ -1,9 +1,7 @@
+from ._chainer import TaskChainer
 from ._dataloading import LoadDatasetTask
 from ._minio import GetParquetPartitions, GetLastKnownDate
-from ._predict import GroupPredictionTask, ResponseFunctionEstimationTask
-from ._train import TrainTask
 from ..celery import app
-from ._chainer import TaskChainer
 from ..exceptions import UnknownTaskError
 
 
@@ -28,15 +26,12 @@ class TaskRegistry:
 
 TASKS = [
     LoadDatasetTask,
-    TrainTask,
-    GroupPredictionTask,
-    ResponseFunctionEstimationTask,
     GetParquetPartitions,
     GetLastKnownDate
 ]
 
 
-def register_tasks():
+def make_task_registry():
     registry = TaskRegistry()
     for task in TASKS:
         registry.register(task, task.__name__)
@@ -44,7 +39,7 @@ def register_tasks():
     return registry
 
 
-task_registry = register_tasks()
+task_registry = make_task_registry()
 
 __all__ = [
     'task_registry',

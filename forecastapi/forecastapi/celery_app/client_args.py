@@ -11,7 +11,7 @@ class ClientArgsCreator:
         self.secure = secure
 
     def get_minio_endpoint(self, add_scheme=True):
-        minio_endpoint = self.user['minio_endpoint']
+        minio_endpoint = self.user.get('minio_endpoint')
         if minio_endpoint is None:
             minio_endpoint = self.DEFAULT_MINIO_ENDPOINT
 
