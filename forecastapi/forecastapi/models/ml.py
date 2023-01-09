@@ -38,14 +38,6 @@ class PredictionDateRange(BaseModel):
 
 class WhatIf(BaseModel):
     """Defines a "what if" scenario.
-
-    Parameters
-    ----------
-    feature : str
-        Feature to modify.
-
-    value : int or float
-        Value to insert
     """
     group_id: dict
     input_cols: List[str]
@@ -61,9 +53,7 @@ class Dataset(BaseModel):
 
 
 class Trainer(BaseModel):
-    task_name: str
     algorithm: str
-    forecast_horizon: int
+    max_prediction_length: int
     freq: str
-    perform_hpo: Optional[bool] = False
     kwargs: Optional[dict] = None

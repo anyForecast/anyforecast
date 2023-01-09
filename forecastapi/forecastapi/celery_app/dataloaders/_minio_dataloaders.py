@@ -79,8 +79,8 @@ class MinioDataloadersFactory:
     """Factory for Minio dataloaders.
 
     The actual "dataloaders" are accessible through :meth:´get_loader´.
-    Additionally, each of this loaders inherits from the base abstract class
-    :class:`S3BaseLoader`.
+    Additionally, each of these loaders inherits from the base abstract class
+    :class:`MinioDataloader`.
 
     Parameters
     ----------
