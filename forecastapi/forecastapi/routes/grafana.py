@@ -3,7 +3,6 @@ from typing import List, Dict, Optional
 from fastapi import Depends, APIRouter
 
 from ..auth import CredentialsProvider
-from ..celery_app.tasks import task_registry, TaskChainer
 from ..models.ml import (
     WhatIf,
     PredictionDateRange,

@@ -99,3 +99,23 @@ class MlFlowLogger:
             else:
                 params[k] = v.__name__
         return params
+
+
+def log_to_mlflow(model, signature, metrics, parameters):
+    """Logs to current MlFlow run.
+
+    Parameters
+    ----------
+    model
+    signature
+    metrics
+    parameters
+
+    Returns
+    -------
+
+    """
+    logger = MlFlowLogger()
+    logger.log_model(model, signature)
+    logger.log_metrics(metrics)
+    logger.log_params(**parameters)

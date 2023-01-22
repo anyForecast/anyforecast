@@ -1,9 +1,9 @@
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from skorch_forecasting.preprocessing import ColumnSelector
 from skorch_forecasting.preprocessing import TimeIndexEncoder
-from skorch_forecasting.preprocessing._column_selector import ColumnSelector
 
-from ._steps_creator import PreprocessingStep, GroupWiseStep
+from celery_app.tasks.preprocessing._steps_creator import PreprocessingStep, GroupWiseStep
 
 
 class TimeseriesPreprocessorCreator:

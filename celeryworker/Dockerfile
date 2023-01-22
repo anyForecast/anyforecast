@@ -14,10 +14,8 @@ WORKDIR /home/worker
 
 
 # Copy `forecastapi` python library and its deps.
-COPY --chown=worker:worker . forecastapi/
+COPY --chown=worker:worker . celeryworker/
 
 # Install deps.
-RUN pip install --user -r forecastapi/requirements.txt
+RUN pip install --user -r celeryworker/requirements.txt
 ENV PATH="/home/worker/.local/bin:${PATH}"
-
-
