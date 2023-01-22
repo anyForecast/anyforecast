@@ -6,7 +6,7 @@ def upper_to_lower(string):
     return re.sub('(?<!^)(?=[A-Z])', '_', string).lower()
 
 
-class SchemaResolver:
+class FeaturesSchema:
 
     def __init__(self, schema_data):
         self._schema_data = schema_data

@@ -2,7 +2,7 @@ version: "3.3"
 services:
   
   rabbitmq:
-    # Message broker for Celery.
+    # Celery message broker.
     restart: always
     build: ./rabbitmq
     image: rabbitmq
@@ -17,8 +17,39 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq/data
 
+  redis:
+    # Celery backend.
+    image: library/redis
+    command: redis-server /usr/local/etc/redis/redis.conf
+    expose:
+      - ${REDIS_PORT}
+    ports:
+      - ${REDIS_PORT}:${REDIS_PORT}
+    networks:
+      - backend
+      - forecastapi
+    volumes:
+      - redis_data:/var/lib/redis/data
+
+  celeryworker:
+    build: ./celeryworker
+    image: celeryworker
+    container_name: celeryworker
+    environment:
+      - WR_S3_ENDPOINT_URL=${MINIO_URL}
+    volumes:
+      - ./celeryworker:/home/worker/celeryworker
+    networks:
+      - backend
+      - forecastapi
+    # Keep a main bash session always active.
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    command:
+      - bash
+
   forecastapi:
-    # Training and inference service of time series machine learning models.
+    # Training and inference service for time series machine learning models.
     # This API service uses FastAPI for handling http requests and 
     # Celery for task queues.
     restart: always
@@ -26,8 +57,6 @@ services:
     image: forecastapi
     container_name: forecastapi
     environment:
-      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
-      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
       - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
       - MLFLOW_TRACKING_URI=http://mlflow:${MLFLOW_PORT}
     expose:
@@ -161,4 +190,5 @@ volumes:
   pg_data:
   minio_data:
   rabbitmq_data:
+  redis_data:
 

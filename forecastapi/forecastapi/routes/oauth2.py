@@ -10,7 +10,6 @@ from ..auth import (
 from ..auth import (
     TokenProvider
 )
-from ..celery_app.tasks import task_registry, TaskChainer
 from ..models.auth import Token
 from ..models.ml import Trainer, Dataset
 from ..models.users import User
