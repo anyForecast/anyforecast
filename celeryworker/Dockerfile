@@ -12,8 +12,7 @@ RUN adduser --disabled-login worker
 USER worker
 WORKDIR /home/worker
 
-
-# Copy `forecastapi` python library and its deps.
+# Copy all content from the current directory.
 COPY --chown=worker:worker . celeryworker/
 
 # Install deps.
