@@ -209,6 +209,7 @@ class TrainSkorchForecasting(BaseTrainer):
 
     def __init__(self):
         super().__init__()
+        self._estimator_creator = SkorchForecastingEstimatorCreator
 
     def run(self, bind, data, trainer):
         X = data['DataFrame']
@@ -223,13 +224,15 @@ class TrainSkorchForecasting(BaseTrainer):
         preprocessor = self.create_preprocessor(
             group_ids=feature_names['group_ids'],
             timestamp=feature_names['timestamp'],
-            target=feature_names['target'], freq=trainer['freq'],
-            preprocessing_data=trainer['preprocessing'])
+            target=feature_names['target'], freq=trainer.pop('freq'),
+            preprocessing_data=trainer.pop('preprocessing', None)
+        )
 
         # Create estimator
         preprocessor.fit(X)
-        estimator = SkorchForecastingEstimatorCreator.from_feature_names(
-            feature_names, preprocessor=preprocessor)
+        estimator_creator = self._estimator_creator.from_feature_names(
+            feature_names, preprocessor=preprocessor, **trainer)
+        estimator = estimator_creator.create_estimator()
 
         self.fit(X, preprocessor, estimator)
 

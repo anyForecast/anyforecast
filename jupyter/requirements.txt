@@ -11,3 +11,4 @@ fastapi>=0.68.0
 uvicorn[standard]
 awswrangler>=2.16.1
 skorch_forecasting
+"celery[redis]"
