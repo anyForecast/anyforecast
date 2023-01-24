@@ -19,8 +19,8 @@ services:
 
   redis:
     # Celery backend.
-    image: library/redis
-    command: redis-server /usr/local/etc/redis/redis.conf
+    image: redis:latest
+    container_name: redis
     expose:
       - ${REDIS_PORT}
     ports:
@@ -28,25 +28,66 @@ services:
     networks:
       - backend
       - forecastapi
-    volumes:
-      - redis_data:/var/lib/redis/data
 
-  celeryworker:
+  flower:
+    # Celery monitoring.
     build: ./celeryworker
     image: celeryworker
-    container_name: celeryworker
-    environment:
+    container_name: flower
+    environment: 
+      - FLOWER_PORT=${FLOWER_PORT}
+    expose:
+      - ${FLOWER_PORT}
+    ports:
+      - ${FLOWER_PORT}:${FLOWER_PORT} 
+    networks:
+      - backend
+      - forecastapi
+    command: >
+      bash -c "cd celeryworker &&
+               python3 -m celery -A celery_app flower"
+
+  dataloader:
+    # Celery worker subscribed to dataloading queue.
+    build: ./celeryworker
+    image: celeryworker
+    environment:	
+      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
       - WR_S3_ENDPOINT_URL=${MINIO_URL}
+      - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
+      - MLFLOW_TRACKING_URI=http://mlflow:${MLFLOW_PORT}
+      - BROKER_URL=amqp://rabbitmq:${RABBITMQ_PORT}
+      - CELERY_RESULT_BACKEND=redis://redis:${REDIS_PORT}/0
     volumes:
       - ./celeryworker:/home/worker/celeryworker
     networks:
       - backend
       - forecastapi
-    # Keep a main bash session always active.
-    stdin_open: true # docker run -i
-    tty: true        # docker run -t
-    command:
-      - bash
+    command: >
+      bash -c "cd celeryworker &&
+               python3 -m celery -A celery_app worker --loglevel=INFO -Q dataloading"
+
+  trainer:
+    # Celery worker subscribed to training queue.
+    build: ./celeryworker
+    image: celeryworker
+    environment:  
+      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
+      - WR_S3_ENDPOINT_URL=${MINIO_URL}
+      - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
+      - MLFLOW_TRACKING_URI=http://mlflow:${MLFLOW_PORT}
+      - BROKER_URL=amqp://rabbitmq:${RABBITMQ_PORT}
+      - CELERY_RESULT_BACKEND=redis://redis:${REDIS_PORT}/0
+    volumes:
+      - ./celeryworker:/home/worker/celeryworker
+    networks:
+      - backend
+      - forecastapi
+    command: >
+      bash -c "cd celeryworker &&
+               python3 -m celery -A celery_app worker --loglevel=INFO -Q training"
 
   forecastapi:
     # Training and inference service for time series machine learning models.
@@ -55,10 +96,7 @@ services:
     restart: always
     build: ./forecastapi
     image: forecastapi
-    container_name: forecastapi
-    environment:
-      - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
-      - MLFLOW_TRACKING_URI=http://mlflow:${MLFLOW_PORT}
+    container_name: forecastapi      
     expose:
       - ${API_PORT}
     ports:
@@ -89,6 +127,8 @@ services:
       - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
       - MLFLOW_TRACKING_URI=http://mlflow:${MLFLOW_PORT}
       - JUPYTER_ENABLE_LAB=yes  # Enable jupyter lab.
+      - BROKER_URL=amqp://rabbitmq:${RABBITMQ_PORT}
+      - CELERY_RESULT_BACKEND=redis://redis:${REDIS_PORT}/0
     networks:
       - frontend
       - backend
