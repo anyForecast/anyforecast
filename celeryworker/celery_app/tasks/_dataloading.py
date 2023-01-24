@@ -4,6 +4,13 @@ from ..dataloaders import create_dataloader
 
 
 class LoadPandas(BaseTask):
+    """
+
+    Notes
+    -----
+    Since ´ignore_result=True´, even though the task is completed by the worker,
+    the state of the task will be always PENDING.
+    """
     def __init__(self):
         super().__init__(ignore_result=True)
 
