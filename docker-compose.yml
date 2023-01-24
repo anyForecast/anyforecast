@@ -36,6 +36,8 @@ services:
     container_name: flower
     environment: 
       - FLOWER_PORT=${FLOWER_PORT}
+      - BROKER_URL=amqp://rabbitmq:${RABBITMQ_PORT}
+      - CELERY_RESULT_BACKEND=redis://redis:${REDIS_PORT}/0
     expose:
       - ${FLOWER_PORT}
     ports:
@@ -46,6 +48,10 @@ services:
     command: >
       bash -c "cd celeryworker &&
                python3 -m celery -A celery_app flower"
+
+    depends_on:
+      - rabbitmq
+      - redis
 
   dataloader:
     # Celery worker subscribed to dataloading queue.
