@@ -5,7 +5,7 @@ from ..dataloaders import create_dataloader
 
 class LoadPandas(BaseTask):
     def __init__(self):
-        super().__init__()
+        super().__init__(ignore_result=True)
 
     def _make_partition_filter(self, partitions):
         if partitions is None:
