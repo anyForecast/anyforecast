@@ -2,6 +2,7 @@ from abc import abstractmethod, ABCMeta
 
 import mlflow
 import sklearn
+import skorch_forecasting
 from skorch_forecasting.model_wrappers import PreprocessorEstimatorWrapper
 
 from .._base_task import BaseTask
@@ -42,13 +43,19 @@ class TransformersFactory:
 
 class BaseTrainer(BaseTask):
     """Base class for all Celery training tasks.
+
+    Notes
+    -----
+    Since ´ignore_result=True´, even though the task is completed by the worker,
+    the state of the task will be always PENDING.
     """
 
     def __init__(self):
-        super().__init__(bind=True)
+        super().__init__(bind=True, ignore_result=True)
         self._transformers_factory = TransformersFactory()
 
     def fit(self, X, preprocessor, estimator):
+        print(f'skorch-forecasting version: {skorch_forecasting.__version__}')
         with mlflow.start_run():
             signature = self.infer_mlflow_signature(X)
             wrapper = self.make_wrapper(preprocessor, estimator)

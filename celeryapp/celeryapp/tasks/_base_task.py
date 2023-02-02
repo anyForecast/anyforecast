@@ -1,6 +1,6 @@
 from abc import ABCMeta
 
-from ..serialize.pandas import PandasNativeSerializer
+from .serializers import PandasSerializer
 
 
 class BaseTask(metaclass=ABCMeta):
@@ -8,7 +8,7 @@ class BaseTask(metaclass=ABCMeta):
     def __init__(
             self,
             # TODO: Create a DefaultSerializer
-            serializer=PandasNativeSerializer(),
+            serializer=PandasSerializer(),
             name=None,
             bind=False,
             **kwargs
@@ -18,8 +18,8 @@ class BaseTask(metaclass=ABCMeta):
         self.bind = bind
         self.kwargs = kwargs
 
-    def serialize_result(self, result, *args, **kwargs):
-        return self.serializer.serialize(result, *args, **kwargs)
+    def serialize_result(self, result):
+        return self.serializer.serialize(result)
 
     def make_celery_task(self, celery_app):
         return CeleryTaskMaker().make_celery_task(
@@ -35,23 +35,14 @@ class CeleryTaskMaker:
     def make_celery_task(
             self, celery_app, task, name=None, bind=False, **kwargs
     ):
-        if not isinstance(task, BaseTask):
-            raise ValueError("`task` is not an instance "
-                             "from :class:`BaseTask`.")
-
         if name is None:
             name = task.__class__.__name__
+
         decorator = self._make_decorator(celery_app, name, bind, **kwargs)
 
-        if bind:
-            @decorator
-            def celery_task(self_task, *args, **kwargs):
-                return task.run(self_task, *args, **kwargs)
-
-        else:
-            @decorator
-            def celery_task(*args, **kwargs):
-                return task.run(*args, **kwargs)
+        @decorator
+        def celery_task(self_task, *args, **kwargs):
+            return task.run(self_task, *args, **kwargs)
 
         return celery_task
 
