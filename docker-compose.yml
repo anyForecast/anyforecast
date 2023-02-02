@@ -31,8 +31,8 @@ services:
 
   flower:
     # Celery monitoring.
-    build: ./celeryworker
-    image: celeryworker
+    build: ./celeryapp
+    image: celeryapp
     container_name: flower
     environment: 
       - FLOWER_PORT=${FLOWER_PORT}
@@ -45,18 +45,20 @@ services:
     networks:
       - backend
       - forecastapi
-    command: >
-      bash -c "cd celeryworker &&
-               python3 -m celery -A celery_app flower"
-
     depends_on:
       - rabbitmq
       - redis
+    # Keep a main bash session always active.
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    command:
+      - bash
 
   dataloader:
     # Celery worker subscribed to dataloading queue.
-    build: ./celeryworker
-    image: celeryworker
+    build: ./celeryapp
+    image: celeryapp
+    container_name: dataloader
     environment:	
       - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
@@ -66,18 +68,21 @@ services:
       - BROKER_URL=amqp://rabbitmq:${RABBITMQ_PORT}
       - CELERY_RESULT_BACKEND=redis://redis:${REDIS_PORT}/0
     volumes:
-      - ./celeryworker:/home/worker/celeryworker
+      - ./celeryapp:/home/worker/celeryapp
     networks:
       - backend
       - forecastapi
-    command: >
-      bash -c "cd celeryworker &&
-               python3 -m celery -A celery_app worker --loglevel=INFO -Q dataloading"
+    # Keep a main bash session always active.
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    command:
+      - bash
 
   trainer:
     # Celery worker subscribed to training queue.
-    build: ./celeryworker
-    image: celeryworker
+    build: ./celeryapp
+    image: celeryapp
+    container_name: trainer
     environment:  
       - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
@@ -87,13 +92,17 @@ services:
       - BROKER_URL=amqp://rabbitmq:${RABBITMQ_PORT}
       - CELERY_RESULT_BACKEND=redis://redis:${REDIS_PORT}/0
     volumes:
-      - ./celeryworker:/home/worker/celeryworker
+      - ./celeryapp:/home/worker/celeryapp
     networks:
       - backend
       - forecastapi
-    command: >
-      bash -c "cd celeryworker &&
-               python3 -m celery -A celery_app worker --loglevel=INFO -Q training"
+    # Keep a main bash session always active.
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    command:
+      - bash
+
+
 
   forecastapi:
     # Training and inference service for time series machine learning models.
@@ -167,7 +176,6 @@ services:
       - pg_data:/var/lib/postgresql/data
 
   minio:
-    restart: always
     image: minio/minio
     container_name: minio
     working_dir: /minio/storage
@@ -184,8 +192,6 @@ services:
       # Both keys are the same as aws keys (see mlflow environmet)
       - MINIO_ROOT_USER=$MINIO_ACCESS_KEY
       - MINIO_ROOT_PASSWORD=$MINIO_SECRET_KEY
-    volumes:
-      - minio_data:/data
     command: server /minio/storage --console-address :${MINIO_CONSOLE_PORT}
 
   mlflow:
@@ -206,8 +212,12 @@ services:
       # - ARTIFACTS=/mlruns
       # Otherwise, for artifact store in AWS S3: (note boto was installed in container)
       - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
+      - MLFLOW_TRACKING_URI=http://mlflow:${MLFLOW_PORT}
       - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
-      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}      
+      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}   
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker   
     command:
       - sh  # (sh allows for var substitution of BACKEND and ARTIFACTS)
       - -c
@@ -234,7 +244,6 @@ networks:
 # This is not necessary when volumes are host paths.
 volumes:
   pg_data:
-  minio_data:
   rabbitmq_data:
   redis_data:
 
