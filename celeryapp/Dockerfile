@@ -13,8 +13,8 @@ USER worker
 WORKDIR /home/worker
 
 # Copy all content from the current directory.
-COPY --chown=worker:worker . celeryworker/
+COPY --chown=worker:worker . celeryapp/
 
 # Install deps.
-RUN pip install --user -r celeryworker/requirements.txt
+RUN pip install --user -r celeryapp/requirements.txt
 ENV PATH="/home/worker/.local/bin:${PATH}"

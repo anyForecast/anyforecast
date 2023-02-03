@@ -7,29 +7,13 @@ from typing import Optional, Union, List
 from pydantic import BaseModel
 
 
-class MergeTruth(BaseModel):
-    bool: bool
-
-
-class InputCol(BaseModel):
-    string: str
-
-
-class ReturnTruth(BaseModel):
-    bool: bool
-
-
-class Pivot(BaseModel):
-    bool: bool
-
-
 class Predictor(BaseModel):
     """Defines the predictor to be loaded from MlFlow to perform predictions.
     """
     model_name: str
 
 
-class PredictionDateRange(BaseModel):
+class DateRange(BaseModel):
     """Defines prediction date range.
     """
     start: str
@@ -56,4 +40,4 @@ class Trainer(BaseModel):
     algorithm: str
     max_prediction_length: int
     freq: str
-    kwargs: Optional[dict] = None
+    hparams: Optional[dict] = None
