@@ -25,7 +25,7 @@ class FeaturesSchema:
 
         return names_map
 
-    def get_names_for(self, labels):
+    def get_names(self, labels):
         if labels == 'all':
             return copy.deepcopy(self._names_map)
 

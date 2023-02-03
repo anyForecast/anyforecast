@@ -6,4 +6,4 @@ task_track_started = True
 task_serializer = 'pickle'
 result_serializer = 'pickle'
 accept_content = ['pickle', 'json', 'msgpack', 'yaml']
-include = ["celery_app.tasks"]
+include = ["celeryapp.tasks"]
