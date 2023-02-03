@@ -1,15 +1,11 @@
 from typing import List, Dict, Optional
 
+from celery import signature
+from ..celery import app
 from fastapi import Depends, HTTPException, APIRouter, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from ..auth import (
-    CredentialsProvider,
-    TokenGen
-)
-from ..auth import (
-    TokenProvider
-)
+from ..auth import CredentialsProvider, TokenGen, TokenProvider
 from ..models.auth import Token
 from ..models.ml import Trainer, Dataset
 from ..models.users import User
@@ -35,25 +31,24 @@ async def train(
 
     By "forecaster" it is meant any time series estimator.
     """
-    load_dataset_kwargs = {
-        'dataset': dataset.dict(),
-        'user': current_user.dict(),
-        'partitions': partitions,
-        'format': 'pandas',
-        'return_schema': True
-    }
+    chain = signature(
+        'LoadPandas',
+        kwargs={
+            'dataset': dataset.dict(),
+            'user': current_user.dict(),
+            'partitions': partitions,
+            'return_schema': True
+        },
+        app=app
+    )
+    chain |= signature(
+        'TrainSkorchForecasting',
+        kwargs={'trainer': trainer},
+        queue='training',
+        app=app
+    )
 
-    # Get tasks.
-    load_dataset_task = task_registry.get_task('LoadDatasetTask')
-    train_task = task_registry.get_task('TrainSkorchForecasting')
-
-    # Make chain.
-    chainer = TaskChainer()
-    chainer.add_task(load_dataset_task, **load_dataset_kwargs)
-    chainer.add_task(train_task, trainer=trainer.dict())
-    chain = chainer.make_chain()
-
-    async_task = chain()
+    async_task = chain.apply_async()
     return {'async_task_id': async_task.id}
 
 

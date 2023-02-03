@@ -3,6 +3,7 @@ import copy
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.exceptions import NotFittedError
+from sklearn.pipeline import make_pipeline
 from sklearn.utils.validation import check_is_fitted
 
 
@@ -14,7 +15,7 @@ def _is_fitted(estimator):
     return True
 
 
-class FeatureNamesTransformer:
+class FeatureNamesTransformer(BaseEstimator, TransformerMixin):
     """
 
     Parameters
@@ -32,6 +33,9 @@ class FeatureNamesTransformer:
         self.preprocessor = preprocessor
         self.steps_to_ignore = steps_to_ignore
         self.ignore_remainder = ignore_remainder
+
+    def fit(self, X, y=None):
+        return self
 
     def transform(self, X):
         # Do not alter original dict.
@@ -120,24 +124,37 @@ class DatetimeLocator(BaseEstimator, TransformerMixin):
         :meth:`pd.date_range()`.
     """
 
-    def __init__(self, timestamp_col, date_range, group_wise=False,
-                 group_ids=None):
+    def __init__(self, timestamp_col, date_range):
         self.timestamp_col = timestamp_col
         self.date_range = date_range
-        self.group_wise = group_wise
-        self.group_ids = group_ids
 
-    def fit(self, X):
+    def fit(self, X, y=None):
         return self
 
     def transform(self, X):
-        if self.group_wise:
-            return self._groupwise_transform(X)
         return self._transform(X)
 
-    def _groupwise_transform(self, X):
+    def _transform(self, X):
+        Xt = X.set_index(self.timestamp_col).reindex(self.date_range)
+        return Xt.fillna(method='ffill').fillna(method='bfill')
+
+
+class GroupWiseDatetimeLocator(BaseEstimator, TransformerMixin):
+    def __init__(self, timestamp_col, date_range, group_ids=None,
+                 reset_index=True):
+        self.timestamp_col = timestamp_col
+        self.date_range = date_range
+        self.group_ids = group_ids
+        self.reset_index = reset_index
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        dt_locator = DatetimeLocator(self.timestamp_col, self.date_range)
+
         X = X.groupby(self.group_ids, sort=False) \
-            .apply(self._transform) \
+            .apply(dt_locator.transform) \
             .drop(self.group_ids, axis='columns')
 
         if self.reset_index:
@@ -145,22 +162,11 @@ class DatetimeLocator(BaseEstimator, TransformerMixin):
                 columns={'level_1': self.timestamp_col})
         return X
 
-    def _transform(self, X):
-        Xt = X.set_index(self.timestamp_col).reindex(self.date_range)
-        return Xt.fillna(method='ffill').fillna(method='bfill')
-
 
 class WhatIfTransformer(BaseEstimator, TransformerMixin):
 
-    def __init__(
-            self,
-            timestamp_col,
-            date_range,
-            input_cols,
-            value=None,
-            method=None,
-            percentage=None
-    ):
+    def __init__(self, timestamp_col, date_range, input_cols, value=None,
+                 method=None, percentage=None):
         self.timestamp_col = timestamp_col
         self.date_range = date_range
         self.input_cols = input_cols
@@ -168,7 +174,7 @@ class WhatIfTransformer(BaseEstimator, TransformerMixin):
         self.method = method
         self.percentage = percentage
 
-    def fit(self, X):
+    def fit(self, X, y=None):
         return self
 
     def transform(self, X):
@@ -194,8 +200,7 @@ class WhatIfTransformer(BaseEstimator, TransformerMixin):
         return X
 
 
-class InferenceTransformer:
-
+class BulkWhatIfTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, group_ids, timestamp_col, date_range, what_if_data):
         self.group_ids = group_ids
         self.timestamp_col = timestamp_col
@@ -206,31 +211,55 @@ class InferenceTransformer:
         return self
 
     def transform(self, X):
-        dt_locator = DatetimeLocator(
-            self.timestamp_col,
-            self.date_range,
-            group_wise=True,
-            group_ids=self.group_ids
-        )
-
-        X = dt_locator.fit_transform(X)
         groupby = X.groupby(self.group_ids)
         for what_if in self.what_if_data:
-            # Loc group.
-            group_id = what_if.pop('group_id')
-            group_id = [group_id[g] for g in self.group_ids]
-            group_id = group_id[0] if len(group_id) == 1 else tuple(group_id)
-            group = groupby.get_group(group_id)
-
-            # Transform X.
-            what_if_transformer = WhatIfTransformer(
-                self.date_range,
-                self.timestamp_col,
-                **what_if
-            )
+            group = self._loc_group(groupby, what_if)
+            what_if_transformer = self._make_what_if_transformer(what_if)
             transformed_group = what_if_transformer.fit_transform(group)
 
             # Overwrite transformed values.
             X.loc[group.index] = transformed_group.values
 
         return X
+
+    def _loc_group(self, groupby, what_if):
+        group_id = what_if.pop('group_id')
+        group_id = [group_id[g] for g in self.group_ids]
+        group_id = group_id[0] if len(group_id) == 1 else tuple(group_id)
+        return groupby.get_group(group_id)
+
+    def _make_what_if_transformer(self, what_if):
+        return WhatIfTransformer(self.date_range, self.timestamp_col, **what_if)
+
+
+class InferenceTransformer(BaseEstimator, TransformerMixin):
+
+    def __init__(self, group_ids, timestamp_col, date_range, what_if_data=None):
+        self.group_ids = group_ids
+        self.timestamp_col = timestamp_col
+        self.date_range = date_range
+        self.what_if_data = what_if_data
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        pipeline = self._make_pipeline()
+        return pipeline.fit_transform(X)
+
+    def _make_pipeline(self):
+        steps = [self._make_datetime_locator()]
+
+        if self.what_if_data is not None:
+            steps.append(self._make_what_if_transformer())
+
+        return make_pipeline(*steps)
+
+    def _make_what_if_transformer(self):
+        return BulkWhatIfTransformer(
+            self.group_ids, self.timestamp_col, self.date_range,
+            self.what_if_data)
+
+    def _make_datetime_locator(self):
+        return GroupWiseDatetimeLocator(
+            self.timestamp_col, self.date_range, group_ids=self.group_ids)
