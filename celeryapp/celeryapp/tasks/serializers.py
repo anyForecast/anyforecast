@@ -31,13 +31,16 @@ class PandasSerializer(DataFrameSerializer):
             self,
             orient: Literal[
                 "dict", "list", "series", "split", "tight", "records", "index"
-            ] = "dict"
+            ] = "dict",
+            outer_key: str = None
     ):
         self.orient = orient
+        self.outer_key = outer_key
 
     def serialize(self, data: pd.DataFrame) -> Dict:
-        if not isinstance(data, (pd.DataFrame, pd.Series)):
-            raise ValueError(
-                "Received object is not a pandas DataFrame or Series."
-            )
-        return data.to_dict(orient=self.orient)
+        data = data.to_dict(orient=self.orient)
+
+        if self.outer_key is not None:
+            return {self.outer_key: data}
+        return data
+

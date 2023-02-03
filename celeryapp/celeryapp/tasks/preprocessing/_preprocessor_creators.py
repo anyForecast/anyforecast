@@ -3,7 +3,7 @@ from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from skorch_forecasting.preprocessing import ColumnSelector
 from skorch_forecasting.preprocessing import TimeIndexEncoder
 
-from celery_app.tasks.preprocessing._steps_creator import PreprocessingStep, GroupWiseStep
+from ._steps_creator import PreprocessingStep, GroupWiseStep
 
 
 class TimeseriesPreprocessorCreator:

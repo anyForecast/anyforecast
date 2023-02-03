@@ -1,9 +1,10 @@
+import re
 from typing import Dict, OrderedDict, Union
 from urllib.parse import urlsplit
 
 from requests import Session as HttpSession
+
 from ...exceptions import UnknownServiceError
-import re
 
 DEFAULT_TIMEOUT = 60
 MAX_POOL_CONNECTIONS = 10

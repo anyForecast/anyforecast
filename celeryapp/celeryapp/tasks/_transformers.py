@@ -234,7 +234,7 @@ class BulkWhatIfTransformer(BaseEstimator, TransformerMixin):
 
 class InferenceTransformer(BaseEstimator, TransformerMixin):
 
-    def __init__(self, group_ids, timestamp_col, date_range, what_if_data):
+    def __init__(self, group_ids, timestamp_col, date_range, what_if_data=None):
         self.group_ids = group_ids
         self.timestamp_col = timestamp_col
         self.date_range = date_range
@@ -248,10 +248,11 @@ class InferenceTransformer(BaseEstimator, TransformerMixin):
         return pipeline.fit_transform(X)
 
     def _make_pipeline(self):
-        steps = [
-            self._make_datetime_locator(),
-            self._make_what_if_transformer()
-        ]
+        steps = [self._make_datetime_locator()]
+
+        if self.what_if_data is not None:
+            steps.append(self._make_what_if_transformer())
+
         return make_pipeline(*steps)
 
     def _make_what_if_transformer(self):

@@ -3,7 +3,7 @@ import http
 import pandas as pd
 
 from ._endpoint import Endpoint, EndpointCreator, EndpointResolver
-from ...serializers import PandasSerializer, DataFrameSerializer
+from ...serializers import DataFrameSerializer
 
 
 class HTTPException(Exception):
@@ -31,7 +31,7 @@ class InferenceClientCreator:
 
     def create_client(
             self, service_name: str, model_name: str, is_secure: bool = True,
-            serializer: DataFrameSerializer = PandasSerializer()
+            serializer: DataFrameSerializer = None
     ):
         endpoint = self._create_endpoint(service_name, model_name, is_secure)
         return InferenceClient(endpoint, serializer)
@@ -56,10 +56,9 @@ class InferenceClient:
         self._serializer = serializer
 
     def make_inference(self, X: pd.DataFrame):
-        self._make_api_call(X)
+        return self._make_api_call(X)
 
     def _make_api_call(self, X):
-
         X = self._serialize(X)
         headers = self._create_headers()
         http_response = self._make_request(X, None, headers)

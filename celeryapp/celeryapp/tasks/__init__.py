@@ -1,7 +1,7 @@
-from ._dataloading import LoadPandas
-from .trainers import TrainSkorchForecasting
+from .dataloading import LoadPandas
+from .train import TrainSkorchForecasting
 from ..celery import app
-from celery_app.tasks.exceptions import UnknownTaskError
+from .exceptions import UnknownTaskError
 
 TASKS = [
     LoadPandas,
