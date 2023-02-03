@@ -214,7 +214,7 @@ class TrainSkorchForecasting(BaseTrainer):
     def run(self, bind, data, trainer):
         X = data['DataFrame']
         features_schema = data.get('FeaturesSchema')
-        feature_names = features_schema.get_names_for('all')
+        feature_names = features_schema.get_names('all')
 
         # Currently, MLFlow does not support category data type when inferring
         # the signature (https://github.com/mlflow/mlflow/issues/3849).
