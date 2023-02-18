@@ -1,3 +1,4 @@
+import copy
 import re
 from typing import Dict, OrderedDict, Union
 from urllib.parse import urlsplit
@@ -115,7 +116,6 @@ class EndpointResolver:
         -------
         resolution : OrderedDict
         """
-
         service_data = self._get_service_data(service_name)
         endpoint_name = service_data.get('endpoint', '')
         port = service_data.get('port', '')
@@ -124,12 +124,11 @@ class EndpointResolver:
         result['model_name'] = model_name
         result['hostname'] = self._expand_template(
             hostname, service_name, model_name, endpoint_name, port)
-
         return result
 
     def _get_service_data(self, service_name):
         try:
-            return self.endpoint_data['services'][service_name]
+            return copy.deepcopy(self.endpoint_data['services'][service_name])
         except KeyError:
             raise UnknownServiceError(name=service_name)
 

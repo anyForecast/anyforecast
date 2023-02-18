@@ -102,7 +102,26 @@ services:
     command:
       - bash
 
-
+  modelserving:
+    build: ./modelserving
+    image: modelserving
+    container_name: modelserving
+    environment:  
+      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
+      - WR_S3_ENDPOINT_URL=${MINIO_URL}
+      - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
+      - MLFLOW_TRACKING_URI=http://mlflow:${MLFLOW_PORT}
+    volumes:
+      - ./modelserver:/home/worker/modelserving
+    networks:
+      - backend
+      - forecastapi
+    # Keep a main bash session always active.
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    command:
+      - bash
 
   forecastapi:
     # Training and inference service for time series machine learning models.

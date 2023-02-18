@@ -2,8 +2,8 @@ import http
 
 import pandas as pd
 
-from ._endpoint import Endpoint, EndpointCreator, EndpointResolver
-from ...serializers import DataFrameSerializer
+from . import endpoint, models
+from ... import serializers
 
 
 class HTTPException(Exception):
@@ -26,20 +26,25 @@ class InferenceClientCreator:
     endpoint_resolver : EndpointResolver
     """
 
-    def __init__(self, endpoint_resolver: EndpointResolver):
+    def __init__(self, endpoint_resolver: endpoint.EndpointResolver):
         self.endpoint_resolver = endpoint_resolver
 
     def create_client(
             self, service_name: str, model_name: str, is_secure: bool = True,
-            serializer: DataFrameSerializer = None
+            serializer: serializers.DataFrameSerializer = None
     ):
         endpoint = self._create_endpoint(service_name, model_name, is_secure)
-        return InferenceClient(endpoint, serializer)
+        model = self._create_model(service_name, model_name)
+        return InferenceClient(model, endpoint, serializer)
 
     def _create_endpoint(self, service_name, model_name, is_secure):
         resolved = self.endpoint_resolver.resolve(service_name, model_name)
         endpoint_url = self._make_url(resolved['hostname'], is_secure)
-        return EndpointCreator().create_endpoint(service_name, endpoint_url)
+        return endpoint.EndpointCreator().create_endpoint(
+            service_name, endpoint_url)
+
+    def _create_model(self, service_name, model_name):
+        return models.ModelCreator(service_name).create_model(model_name)
 
     def _make_url(self, hostname, is_secure):
         if is_secure:
@@ -51,9 +56,18 @@ class InferenceClientCreator:
 
 class InferenceClient:
 
-    def __init__(self, endpoint: Endpoint, serializer: DataFrameSerializer):
+    def __init__(
+            self,
+            model: models.Model,
+            endpoint: endpoint.Endpoint,
+            serializer: serializers.DataFrameSerializer
+    ):
+        self.model = model
         self._endpoint = endpoint
         self._serializer = serializer
+
+    def get_endpoint(self):
+        return self._endpoint
 
     def make_inference(self, X: pd.DataFrame):
         return self._make_api_call(X)
