@@ -1,11 +1,12 @@
-from .dataloading import LoadPandas
-from .train import TrainSkorchForecasting
-from ..celery import app
+from . import dataloading
+from . import inference
+from . import train
 from .exceptions import UnknownTaskError
 
 TASKS = [
-    LoadPandas,
-    TrainSkorchForecasting
+    dataloading.LoadPandas,
+    train.SkorchForecastingTrainer,
+    inference.BaseInference
 ]
 
 
@@ -14,9 +15,10 @@ class TaskRegistry:
     def __init__(self):
         self._registry = {}
 
-    def register(self, task, name):
-        obj = task().make_celery_task(app)
-        self._registry[name] = obj
+    def register(self, task):
+        task = task()
+        celery_task = task.create_celery_task()
+        self._registry[celery_task.name] = celery_task
 
     def get_task(self, name):
         try:
@@ -28,15 +30,15 @@ class TaskRegistry:
         return self._registry
 
 
-def make_task_registry():
+def create_task_registry():
     registry = TaskRegistry()
     for task in TASKS:
-        registry.register(task, task.__name__)
+        registry.register(task)
 
     return registry
 
 
-task_registry = make_task_registry()
+task_registry = create_task_registry()
 
 __all__ = [
     'task_registry'

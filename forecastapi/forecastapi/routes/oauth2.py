@@ -1,65 +1,59 @@
 from typing import List, Dict, Optional
 
-from celery import signature
-from ..celery import app
-from fastapi import Depends, HTTPException, APIRouter, status
-from fastapi.security import OAuth2PasswordRequestForm
+import celery
+import fastapi
 
-from ..auth import CredentialsProvider, TokenGen, TokenProvider
-from ..models.auth import Token
-from ..models.ml import Trainer, Dataset
-from ..models.users import User
+from .. import security
+from ..celery import app as celery_app
+from ..models import ml, auth, users
 
-router = APIRouter()
+router = fastapi.APIRouter()
 
 
-@router.post("/users/me/", response_model=User)
+@router.post("/users/me/", response_model=users.User)
 async def read_users_me(
-        current_user: User = Depends(TokenProvider().load_user)
+        current_user: users.User =
+        fastapi.Depends(security.TokenProvider().load_user)
 ):
     return current_user
 
 
 @router.post("/train/")
 async def train(
-        trainer: Trainer,
-        dataset: Dataset,
+        trainer: ml.Trainer,
+        dataset: ml.Dataset,
         partitions: Optional[List[Dict]] = None,
-        current_user: User = Depends(TokenProvider().load_user)
+        current_user: users.User =
+        fastapi.Depends(security.TokenProvider().load_user)
 ):
     """Creates forecaster.
 
     By "forecaster" it is meant any time series estimator.
     """
-    chain = signature(
-        'LoadPandas',
-        kwargs={
-            'dataset': dataset.dict(),
-            'user': current_user.dict(),
-            'partitions': partitions,
-            'return_schema': True
-        },
-        app=app
-    )
-    chain |= signature(
-        'TrainSkorchForecasting',
-        kwargs={'trainer': trainer},
-        queue='training',
-        app=app
-    )
+    chain = celery.signature(
+        'loadPandas', kwargs={
+            'dataset': dataset.dict(), 'user': current_user.dict(),
+            'partitions': partitions, 'return_schema': True}, app=celery_app)
+    chain |= celery.signature(
+        'trainSkorchForecasting', kwargs={'trainer': trainer}, app=celery_app,
+        queue='training')
 
     async_task = chain.apply_async()
     return {'async_task_id': async_task.id}
 
 
-@router.post("/login", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = CredentialsProvider().authenticate(form_data)
+@router.post("/login", response_model=auth.Token)
+async def login(
+        form_data: fastapi.securityOAuth2PasswordRequestForm
+        = fastapi.Depends()
+):
+    user = security.CredentialsProvider().authenticate(form_data)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+        raise fastapi.HTTPException(
+            status_code=fastapi.status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token = TokenGen().generate_token(data={"sub": user.username})
+    access_token = security.TokenGen().generate_token(
+        data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
