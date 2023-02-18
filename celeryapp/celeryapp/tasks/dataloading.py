@@ -1,5 +1,5 @@
-from ._base_task import BaseTask
-from ..dataloaders import FeaturesSchema
+from .base import BaseTask
+from ..dataloaders import FeaturesSchemaCreator
 from ..dataloaders import create_dataloader
 
 
@@ -25,13 +25,12 @@ class LoadPandas(BaseTask):
 
     def run(self, dataset, user, partitions=None, return_schema=True):
         pandas = self._load_pandas(dataset, user, partitions)
-        result = {'DataFrame': pandas}
 
         if return_schema:
-            features_schema = self._load_schema(dataset, user)
-            result['FeaturesSchema'] = FeaturesSchema(features_schema)
-
-        return result
+            schema = self._load_schema(dataset, user)
+            schema = FeaturesSchemaCreator(schema).create_schema()
+            return pandas, schema
+        return pandas
 
     def _load_pandas(self, dataset, user, partitions):
         parquet_loader = create_dataloader(user, dataloader_name='parquet')

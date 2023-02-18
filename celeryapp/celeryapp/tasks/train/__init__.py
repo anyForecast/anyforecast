@@ -1,5 +1,5 @@
-from ._skorchforecasting import TrainSkorchForecasting
+from .skorchforecasting import SkorchForecastingTrainer
 
 __all__ = [
-    'TrainSkorchForecasting'
+    'SkorchForecastingTrainer'
 ]
