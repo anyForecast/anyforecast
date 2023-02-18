@@ -4,7 +4,7 @@ from typing import Union, List, Optional, Callable, Dict
 
 import awswrangler as wr
 
-from ._user_session import UserSession
+from .user_session import UserSession
 
 
 def create_dataloader(user, dataloader_name):
@@ -19,10 +19,10 @@ class DataLoader:
     def __init__(self, user_session: UserSession):
         self.user_session = user_session
 
-    def _create_boto3_session(self):
+    def create_boto3_session(self):
         return self.user_session.create_boto3_session()
 
-    def _create_minio_client(self):
+    def create_minio_client(self):
         return self.user_session.create_minio_client()
 
 
@@ -46,7 +46,7 @@ class ParquetLoader(DataLoader):
         return wr.s3.read_parquet(
             path=path, dataset=dataset, partition_filter=partition_filter,
             use_threads=use_threads, map_types=map_types,
-            boto3_session=self._create_boto3_session(), **kwargs)
+            boto3_session=self.create_boto3_session(), **kwargs)
 
     def load_spark(self):
         pass
@@ -66,6 +66,6 @@ class JsonLoader(DataLoader):
     ):
         """Loads stored json object from the bucket.
         """
-        minio_client = self._create_minio_client()
+        minio_client = self.create_minio_client()
         json_object = minio_client.get_object(bucket_name, object_name)
         return json.load(io.BytesIO(json_object.data))

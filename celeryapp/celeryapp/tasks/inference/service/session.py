@@ -1,4 +1,4 @@
-from ._endpoint import EndpointResolver
+from .endpoint import EndpointResolver
 from ._loaders import JSONFileLoader
 from .client import InferenceClientCreator
 from ...serializers import DataFrameSerializer
