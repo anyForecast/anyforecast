@@ -4,15 +4,19 @@ from typing import Union, List, Optional, Callable, Dict
 
 import awswrangler as wr
 
-from .user_session import UserSession
+from ._user_session import UserSession
 
 
-def create_dataloader(user, dataloader_name):
-    dataloaders = {
-        'parquet': ParquetLoader,
-        'json': JsonLoader
-    }
-    return dataloaders[dataloader_name](UserSession(**user))
+class DataloaderCreator:
+    def __init__(self, user):
+        self._user_session = UserSession(**user)
+
+    def create_dataloader(self, name):
+        dataloaders = {
+            'parquet': ParquetLoader,
+            'json': JsonLoader
+        }
+        return dataloaders[name](self._user_session)
 
 
 class DataLoader:
