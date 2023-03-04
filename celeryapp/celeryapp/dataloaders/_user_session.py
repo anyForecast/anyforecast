@@ -18,7 +18,7 @@ class UserSession:
     """
 
     def __init__(
-            self, username, email=None, full_name=None, access_key=None,
+            self, username=None, email=None, full_name=None, access_key=None,
             secret_key=None, minio_endpoint=None, secure=False
     ):
         self.username = username
@@ -66,11 +66,9 @@ class UserSession:
         return ChainedProvider(providers)
 
     def create_minio_client(self, **kwargs):
-        return Minio(
-            credentials=self._make_credentials_provider(),
-            endpoint=self.get_minio_endpoint(add_scheme=False),
-            secure=self.secure, **kwargs
-        )
+        return Minio(credentials=self._make_credentials_provider(),
+                     endpoint=self.get_minio_endpoint(add_scheme=False),
+                     secure=self.secure, **kwargs)
 
     def create_s3fs(self, **kwargs):
         credentials = self.get_credentials()
@@ -86,5 +84,4 @@ class UserSession:
         credentials = self.get_credentials()
         return Session(
             aws_access_key_id=credentials.access_key,
-            aws_secret_access_key=credentials.secret_key
-        )
+            aws_secret_access_key=credentials.secret_key)

@@ -4,8 +4,8 @@ import pandas as pd
 from skorch_forecasting.utils import datetime
 
 from .service.session import InferenceSession
-from .. import base, preprocessing, serializers
-from ... import dataloaders
+from .. import base, preprocessing, serializers, schemas
+
 
 
 class BaseInference(base.BaseTask):
@@ -35,7 +35,7 @@ class BaseInference(base.BaseTask):
 
     def run(
             self,
-            data_and_schema: Tuple[pd.DataFrame, dataloaders.FeaturesSchema],
+            data_and_schema: Tuple[pd.DataFrame, schemas.FeaturesSchema],
             model: Dict,
             date_range: Dict,
             what_ifs: List[Dict]
