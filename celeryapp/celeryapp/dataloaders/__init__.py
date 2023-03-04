@@ -1,10 +1,7 @@
-from ._dataloaders import create_dataloader
-from .features_schema import FeaturesSchema, FeaturesSchemaCreator
-from .mlflow_loader import MlFlowLoader
+from ._dataloaders import DataloaderCreator
+from ._mlflow_loader import MlFlowLoader
 
 __all__ = [
     'MlFlowLoader',
-    'FeaturesSchemaCreator',
-    'FeaturesSchema',
-    'create_dataloader'
+    'DataloaderCreator'
 ]

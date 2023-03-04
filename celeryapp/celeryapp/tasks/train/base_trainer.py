@@ -1,20 +1,32 @@
-from typing import Tuple, Dict, Union
+from typing import Tuple, Dict
 
 import mlflow
 import pandas as pd
 import sklearn
-#from skorch_forecasting import pipelines
+import skorch_forecasting
+from skorch_forecasting import pipelines
 
-from ..base import BaseTask
-from ..preprocessing.creators import TimeseriesPreprocessorCreator
-from ..preprocessing.transformers import FeatureNamesTransformer
-from ...dataloaders import FeaturesSchema
-
-Estimator = sklearn.base.BaseEstimator
-Transformer = Union[sklearn.base.BaseEstimator, sklearn.base.TransformerMixin]
+from .. import base, preprocessing, schemas
 
 
-class BaseTrainer(BaseTask):
+def make_transformer_creator(name):
+    packages = {
+        'sklearn': sklearn.preprocessing,
+        'skorch_forecasting': skorch_forecasting.preprocessing
+    }
+
+    return TransformerCreator(packages[name])
+
+
+class TransformerCreator:
+    def __init__(self, package):
+        self.package = package
+
+    def create_transformer(self, name, *args, **kwargs):
+        return getattr(self.package, name)(*args, **kwargs)
+
+
+class BaseTrainer(base.BaseTask):
     """Base class for all Celery training tasks.
 
     Training tasks preprocess and fit time series data.
@@ -25,20 +37,18 @@ class BaseTrainer(BaseTask):
     the state of the task will be always PENDING.
     """
 
-    def __init__(self, estimator_creator):
+    def __init__(self):
         super().__init__(ignore_result=True)
-        self.estimator_creator = estimator_creator
-        self._transformers_factory = TransformersFactory()
 
-    def get_metrics(self, estimator) -> Dict:
-        pass
+    def get_metrics(self, estimator):
+        return {}
 
-    def get_params(self, estimator) -> Dict:
+    def get_params(self):
         pass
 
     def run(
             self,
-            data_and_schema: Tuple[pd.DataFrame, FeaturesSchema],
+            data_and_schema: Tuple[pd.DataFrame, schemas.FeaturesSchema],
             trainer: Dict
     ) -> None:
         """Runs training task.
@@ -53,9 +63,10 @@ class BaseTrainer(BaseTask):
         """
         raise NotImplementedError()
 
-    def fit(self, X, preprocessor: Transformer,
-            estimator: Estimator): #-> pipelines.PreprocessorEstimatorPipeline:
-        """Preprocess and fits X.
+    def fit_transform(
+            self, X, preprocessor, estimator
+    ) -> pipelines.PreprocessorEstimatorPipeline:
+        """Transforms and fits X.
 
         Parameters
         ----------
@@ -70,18 +81,44 @@ class BaseTrainer(BaseTask):
 
         Returns
         -------
-        Model : PreprocessorEstimatorPipeline
+        pipeline : PreprocessorEstimatorPipeline
         """
         with mlflow.start_run():
             pipeline = self.make_pipeline(preprocessor, estimator)
             pipeline.fit(X)
             return pipeline
 
+    def fit(
+            self, X, preprocessor, estimator
+    ) -> pipelines.PreprocessorEstimatorPipeline:
+        """Fits X.
+
+        Assumes ``X`` has been already transformed and ``preprocessor``
+        is fitted.
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Training data.
+
+        preprocessor : Transformer
+            Fitted transformer (implementing `fit`/`transform`).
+
+        estimator : Estimator
+            Fitted estimator (implementing `fit`/`predict`).
+
+        Returns
+        -------
+        pipeline : PreprocessorEstimatorPipeline
+        """
+        with mlflow.start_run():
+            sklearn.utils.validation.check_is_fitted(preprocessor)
+            estimator.fit(X)
+            return self.make_pipeline(preprocessor, estimator)
+
     def make_pipeline(
-            self,
-            preprocessor: Transformer,
-            estimator: Estimator
-    ): # -> pipelines.PreprocessorEstimatorPipeline:
+            self, preprocessor, estimator
+    ) -> pipelines.PreprocessorEstimatorPipeline:
         """Creates pipeline.
 
         Parameters
@@ -97,40 +134,19 @@ class BaseTrainer(BaseTask):
         pipeline : PreprocessorEstimatorPipeline
 
         """
-        return #pipelines.PreprocessorEstimatorPipeline(preprocessor, estimator)
-
-    def create_estimator_from_schema(self, schema: FeaturesSchema, *args,
-                                     **kwargs) -> Estimator:
-
-        """Creates Estimator from features schema.
-
-        Parameters
-        ----------
-        schema : FeaturesSchema
-
-        args : Positional args
-             Estimator creator positional args.
-
-        kwargs : Key word args
-            Estimator creator key word args.
-
-        Returns
-        -------
-        estimator : Estimator
-        """
-        estimator_creator = self.estimator_creator.from_schema(schema)
-        return estimator_creator.create_estimator(*args, **kwargs)
+        return pipelines.PreprocessorEstimatorPipeline(preprocessor, estimator)
 
     def update_schema(self, schema, preprocessor):
         names = vars(schema)
-        feature_names_transformer = FeatureNamesTransformer(preprocessor)
+        feature_names_transformer = preprocessing.FeatureNamesTransformer(
+            preprocessor)
         transformed_names = feature_names_transformer.transform(names)
         schema.update_schema(transformed_names)
         return schema
 
-    def get_transformer(self, package, name, **kwargs):
-        return self._transformers_factory.get_transformer(
-            package, name, **kwargs)
+    def get_transformer(self, package, name, *args, **kwargs):
+        transformer_creator = make_transformer_creator(package)
+        return transformer_creator.create_transformer(name, *args, **kwargs)
 
     def create_timeseries_preprocessor(
             self, group_ids, timestamp, target, freq, preprocessing_data=None
@@ -139,7 +155,7 @@ class BaseTrainer(BaseTask):
         if preprocessing_data is None:
             preprocessing_data = {}
 
-        preprocessor_creator = TimeseriesPreprocessorCreator(
+        preprocessor_creator = preprocessing.TimeseriesPreprocessorCreator(
             group_ids, timestamp, target)
         transformers = self._make_transformers(preprocessing_data)
         return preprocessor_creator.create_preprocessor(
@@ -151,39 +167,7 @@ class BaseTrainer(BaseTask):
             package = data.get('package', 'sklearn')
             transformer = data['transformer']
             kwargs = data.get('kwargs', {})
-            transformer = self._transformers_factory.get_transformer(
-                package, transformer, **kwargs)
+            transformer = self.get_transformer(package, transformer, **kwargs)
             transformers[name] = transformer
 
         return transformers
-
-
-class TransformersFactory:
-
-    def __init__(self):
-        self._factories = {}
-        self._register_factories()
-
-    def get_transformer(self, package, name, **kwargs):
-        return self._factories[package](name)(**kwargs)
-
-    def _register_factories(self):
-        preprocessing_packages = {
-            'sklearn': sklearn.preprocessing
-        }
-
-        for name, package in preprocessing_packages.items():
-            self._factories[name] = self._make_factory(package)
-
-    def _make_factory(self, package):
-        """Factory for steps makers.
-
-        Parameters
-        ----------
-        package : module
-        """
-
-        def factory(cls):
-            return getattr(package, cls)
-
-        return factory

@@ -1,11 +1,6 @@
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
-from skorch_forecasting.preprocessing import ColumnSelector
-from skorch_forecasting.preprocessing import (
-    PandasColumnTransformer,
-    GroupWiseColumnTransformer
-)
-from skorch_forecasting.preprocessing import TimeIndexEncoder
+from skorch_forecasting import preprocessing
 
 
 class StepsCreator:
@@ -13,11 +8,12 @@ class StepsCreator:
     """
 
     def make_step(self, step_name, transformers):
-        transformer = PandasColumnTransformer(transformers)
+        transformer = preprocessing.PandasColumnTransformer(transformers)
         return self._make_step(step_name, transformer)
 
     def make_groupwise_step(self, step_name, transformers, group_ids):
-        transformer = GroupWiseColumnTransformer(transformers, group_ids)
+        transformer = preprocessing.GroupWiseColumnTransformer(
+            transformers, group_ids)
         return self._make_step(step_name, transformer)
 
     def _make_step(self, step_name, transformer):
@@ -103,24 +99,24 @@ class TimeseriesPreprocessorCreator:
     def _make_numerical_step(
             self, transformer, step_name='NumericalTransformer'
     ):
-        features = ColumnSelector(
+        num_column_selector = preprocessing.make_column_selector(
             dtype_include=['int', 'float'],
             pattern_exclude=self.target)
 
         return self._make_groupwise_step(
-            step_name, self.group_ids, features, transformer)
+            step_name, self.group_ids, num_column_selector, transformer)
 
     def _make_categorical_step(
             self, transformer, step_name='CategoricalEncoder'
     ):
-        features = ColumnSelector(
+        cat_column_selector = preprocessing.make_column_selector(
             dtype_include=['object'],
             pattern_exclude=self.group_ids)
 
-        return self._make_step(step_name, features, transformer)
+        return self._make_step(step_name, cat_column_selector, transformer)
 
     def _make_time_index_step(self, freq, step_name='TimeIndexEncoder'):
-        encoder = TimeIndexEncoder(freq=freq)
+        encoder = preprocessing.TimeIndexEncoder(freq=freq)
         return self._make_step(step_name, self.timestamp, encoder)
 
     def _make_target_step(self, transformer, step_name='TargetTransformer'):
