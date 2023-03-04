@@ -44,7 +44,7 @@ async def train(
 
 @router.post("/login", response_model=auth.Token)
 async def login(
-        form_data: fastapi.securityOAuth2PasswordRequestForm
+        form_data: fastapi.security.OAuth2PasswordRequestForm
         = fastapi.Depends()
 ):
     user = security.CredentialsProvider().authenticate(form_data)

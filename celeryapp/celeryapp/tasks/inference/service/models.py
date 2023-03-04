@@ -1,4 +1,4 @@
-from abc import abstractmethod, ABCMeta
+from abc import ABCMeta
 
 from .... import dataloaders
 
@@ -17,10 +17,9 @@ class ModelCreator:
 
 class Model(metaclass=ABCMeta):
 
-    def load_model(self):
+    def load(self):
         pass
 
-    @abstractmethod
     def get_params(self):
         pass
 
@@ -33,7 +32,7 @@ class MLFlowModel:
         self.model_name = model_name
         self._loader = dataloaders.MlFlowLoader()
 
-    def load_model(self, stage='production'):
+    def load(self, stage='production'):
         return self._loader.load_predictor(self.model_name, stage)
 
     def get_params(self):
