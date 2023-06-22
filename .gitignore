@@ -1,6 +1,7 @@
 # MacOS
 .DS_Store
 */.idea/*
+.idea/
 
 
 # Byte-compiled / optimized / DLL files
@@ -64,4 +65,7 @@ jupyter/work/
 
 # Python venv
 venv/
+
+# Dotenvs
+api/api/envs/
 
