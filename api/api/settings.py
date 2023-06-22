@@ -4,7 +4,7 @@ from typing import Literal
 import dotenv
 from pydantic import BaseSettings
 
-ENVS_DIR = "api/envs/"
+ENVS_DIR = "api/dotenv/"
 
 
 def find_dotenv(name) -> str:
@@ -91,9 +91,6 @@ class APISettings(BaseSettings):
 
 class EnvSettings(BaseSettings):
     env: Literal["local", "staging", "production"] = "local"
-
-    class Config:
-        env_file = find_dotenv(".env")
 
 
 def get_api_settings() -> APISettings:
