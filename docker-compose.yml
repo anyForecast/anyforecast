@@ -10,10 +10,18 @@ services:
     container_name: api
     env_file:
       - ./postgres/.env
+      - ./api/.env
     expose:
       - 80
     ports:
       - ${API_PORT}:80
+    
+    # Keep a main bash session always active (Temporary).
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    command:
+      - bash
+
 
   rabbitmq:
     # Celery message broker.
