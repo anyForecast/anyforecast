@@ -33,24 +33,6 @@ services:
     expose:
       - 6379
 
-  #  worker:
-  #    build: ./worker
-  #    image: worker
-  #    container_name: worker
-
-  #jupyter:
-  #  # `jupyter` container serves jupyterlab services for experimental purposes.
-  #  restart: always
-  #  build: ./jupyter
-  #  image: jupyter
-  #  container_name: jupyter
-  #  volumes:
-  #    - ./jupyter/work:/home/tasks/work
-  #  ports:
-  #    - ${JUPYTER_PORT}:8888
-  #  depends_on:
-  #    - mlflow
-
   postgres:
     restart: always
     build: ./postgres
@@ -97,5 +79,3 @@ services:
 volumes:
   pg_data:
   rabbitmq_data:
-  redis_data:
-

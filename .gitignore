@@ -67,5 +67,5 @@ jupyter/work/
 venv/
 
 # Dotenvs
-#api/api/envs/
+api/.env
 

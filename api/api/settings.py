@@ -1,10 +1,7 @@
-import os
 from typing import Literal
 
 import dotenv
 from pydantic import BaseSettings
-
-ENVS_DIR = "api/dotenv/"
 
 
 def find_dotenv(name) -> str:
@@ -15,8 +12,7 @@ def find_dotenv(name) -> str:
     dotenv : str
         Absolute dotenv path.
     """
-    filename = os.path.join(ENVS_DIR, name)
-    return dotenv.find_dotenv(filename)
+    return dotenv.find_dotenv(name)
 
 
 class TokenSettings(BaseSettings):
@@ -38,7 +34,6 @@ class TokenSettings(BaseSettings):
     expires: int = 30
 
     class Config:
-        env_file = find_dotenv(".env.token")
         env_prefix = "TOKEN_"
 
 
@@ -90,7 +85,14 @@ class APISettings(BaseSettings):
 
 
 class EnvSettings(BaseSettings):
-    env: Literal["local", "staging", "production"] = "local"
+    """Specifies the environment file to use.
+
+    Parameters
+    ----------
+    env_file : str
+        Environment file used to set all environment variables.
+    """
+    env_file: str = ".env"
 
 
 def get_api_settings() -> APISettings:
@@ -113,20 +115,25 @@ def get_db_settings() -> DBSettings:
     return get_settings("db")
 
 
+def get_env_file(settings=EnvSettings()) -> str:
+    """Returns configured env file.
+    """
+    return find_dotenv(settings.env_file)
+
+
 def get_settings(name: Literal["db", "token"]):
     """Returns settings object.
 
-    Environment file is set dynamically depending on the "env" environment
+    Environment file is set dynamically depending on the "env_file" environment
     variable.
 
     Parameters
     ----------
-    name : str, {"api", "db", "token"}
-
+    name : str, {"db", "token"}
     """
     settings = {
-        'db': DBSettings
+        "db": DBSettings,
+        "token": TokenSettings
     }
 
-    env_settings = EnvSettings()
-    return settings[name](_env_file=find_dotenv(env_settings.env))
+    return settings[name](_env_file=get_env_file())
