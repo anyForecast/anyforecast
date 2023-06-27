@@ -1,0 +1,14 @@
+fastapi
+python-jose
+uvicorn
+celery
+orjson
+kombu
+passlib
+pydantic
+python-dotenv
+httpx
+python-multipart
+bcrypt
+asyncpg
+fastapi-users[sqlalchemy]

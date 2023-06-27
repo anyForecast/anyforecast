@@ -1,6 +1,28 @@
 version: "3.3"
 services:
-  
+
+  api:
+    # Training and inference service for time series models.
+    # This API service uses FastAPI for handling http requests and
+    # Celery for task queues.
+    build: ./api
+    image: api
+    container_name: api
+    env_file:
+      - ./postgres/.env
+      - ./api/.env
+    expose:
+      - 80
+    ports:
+      - ${API_PORT}:80
+    
+    # Keep a main bash session always active (Temporary).
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    command:
+      - bash
+
+
   rabbitmq:
     # Celery message broker.
     restart: always
@@ -8,12 +30,7 @@ services:
     image: rabbitmq
     container_name: rabbitmq
     expose:
-      - ${RABBITMQ_PORT}
-    ports:
-      - ${RABBITMQ_PORT}:${RABBITMQ_PORT}
-    networks:
-      - backend
-      - forecastapi
+      - 5672
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq/data
 
@@ -22,247 +39,51 @@ services:
     image: redis:latest
     container_name: redis
     expose:
-      - ${REDIS_PORT}
-    ports:
-      - ${REDIS_PORT}:${REDIS_PORT}
-    networks:
-      - backend
-      - forecastapi
+      - 6379
 
-  flower:
-    # Celery monitoring.
-    build: ./celeryapp
-    image: celeryapp
-    container_name: flower
-    environment: 
-      - FLOWER_PORT=${FLOWER_PORT}
-      - BROKER_URL=amqp://rabbitmq:${RABBITMQ_PORT}
-      - CELERY_RESULT_BACKEND=redis://redis:${REDIS_PORT}/0
-    expose:
-      - ${FLOWER_PORT}
-    ports:
-      - ${FLOWER_PORT}:${FLOWER_PORT} 
-    networks:
-      - backend
-      - forecastapi
-    depends_on:
-      - rabbitmq
-      - redis
-    # Keep a main bash session always active.
-    stdin_open: true # docker run -i
-    tty: true        # docker run -t
-    command:
-      - bash
-
-  dataloader:
-    # Celery worker subscribed to dataloading queue.
-    build: ./celeryapp
-    image: celeryapp
-    container_name: dataloader
-    environment:	
-      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
-      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
-      - WR_S3_ENDPOINT_URL=${MINIO_URL}
-      - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
-      - MLFLOW_TRACKING_URI=http://mlflow:${MLFLOW_PORT}
-      - BROKER_URL=amqp://rabbitmq:${RABBITMQ_PORT}
-      - CELERY_RESULT_BACKEND=redis://redis:${REDIS_PORT}/0
-    volumes:
-      - ./celeryapp:/home/worker/celeryapp
-    networks:
-      - backend
-      - forecastapi
-    # Keep a main bash session always active.
-    stdin_open: true # docker run -i
-    tty: true        # docker run -t
-    command:
-      - bash
-
-  trainer:
-    # Celery worker subscribed to training queue.
-    build: ./celeryapp
-    image: celeryapp
-    container_name: trainer
-    environment:  
-      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
-      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
-      - WR_S3_ENDPOINT_URL=${MINIO_URL}
-      - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
-      - MLFLOW_TRACKING_URI=http://mlflow:${MLFLOW_PORT}
-      - BROKER_URL=amqp://rabbitmq:${RABBITMQ_PORT}
-      - CELERY_RESULT_BACKEND=redis://redis:${REDIS_PORT}/0
-    volumes:
-      - ./celeryapp:/home/worker/celeryapp
-    networks:
-      - backend
-      - forecastapi
-    # Keep a main bash session always active.
-    stdin_open: true # docker run -i
-    tty: true        # docker run -t
-    command:
-      - bash
-
-  modelserving:
-    build: ./modelserving
-    image: modelserving
-    container_name: modelserving
-    environment:  
-      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
-      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
-      - WR_S3_ENDPOINT_URL=${MINIO_URL}
-      - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
-      - MLFLOW_TRACKING_URI=http://mlflow:${MLFLOW_PORT}
-    volumes:
-      - ./modelserver:/home/worker/modelserving
-    networks:
-      - backend
-      - forecastapi
-    # Keep a main bash session always active.
-    stdin_open: true # docker run -i
-    tty: true        # docker run -t
-    command:
-      - bash
-
-  forecastapi:
-    # Training and inference service for time series machine learning models.
-    # This API service uses FastAPI for handling http requests and 
-    # Celery for task queues.
-    restart: always
-    build: ./forecastapi
-    image: forecastapi
-    container_name: forecastapi      
-    expose:
-      - ${API_PORT}
-    ports:
-      - ${API_PORT}:${API_PORT} 
-    volumes:
-      - ./forecastapi:/home/worker/forecastapi
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /usr/bin/docker:/usr/bin/docker
-    networks:
-      - frontend
-      - backend
-      - forecastapi
-    # Keep a main bash session always active.
-    stdin_open: true # docker run -i
-    tty: true        # docker run -t
-    command:
-      - bash
-  
-  jupyter:
-    # `jupyter` container serves jupyterlab services for experimental purposes.
-    restart: always
-    build: ./jupyter
-    image: jupyter
-    container_name: jupyter
-    environment:
-      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
-      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
-      - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
-      - MLFLOW_TRACKING_URI=http://mlflow:${MLFLOW_PORT}
-      - JUPYTER_ENABLE_LAB=yes  # Enable jupyter lab.
-      - BROKER_URL=amqp://rabbitmq:${RABBITMQ_PORT}
-      - CELERY_RESULT_BACKEND=redis://redis:${REDIS_PORT}/0
-    networks:
-      - frontend
-      - backend
-      - forecastapi
-    volumes:
-      - ./jupyter/work:/home/jovyan/work
-    ports:
-      # It is sufficient to map port <JUPYTER_PORT> outside to 8888 inside the container.
-      # Note: The displayed connection URL will be incorrect, you’ll need to replace 8888 with <JUPYTER_PORT>, 
-      # that is, http://127.0.0.1:<JUPYTER_PORT>/?token=TOKEN should work.
-      - ${JUPYTER_PORT}:8888
-    depends_on:
-      - mlflow
-      
   postgres:
     restart: always
     build: ./postgres
     image: postgres
     container_name: postgres
+    env_file:
+      - ./postgres/.env
     expose:
-      - ${POSTGRES_PORT}
+      - 5432
     ports:
-      - 6543:${POSTGRES_PORT}
-    networks:
-      - backend
-      - forecastapi
-    environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - ${POSTGRES_PORT}:5432
     volumes:
       - pg_data:/var/lib/postgresql/data
 
   minio:
-    image: minio/minio
+    build: ./minio
+    image: minio
     container_name: minio
-    working_dir: /minio/storage
+    env_file:
+      - ./minio/.env
     expose:
-      - ${MINIO_API_PORT}
+      - 9000
+      - 9001
     ports:
-      - ${MINIO_API_PORT}:${MINIO_API_PORT}
-      - ${MINIO_CONSOLE_PORT}:${MINIO_CONSOLE_PORT}
-    networks:
-      - frontend
-      - backend
-      - forecastapi
-    environment:
-      # Both keys are the same as aws keys (see mlflow environmet)
-      - MINIO_ROOT_USER=$MINIO_ACCESS_KEY
-      - MINIO_ROOT_PASSWORD=$MINIO_SECRET_KEY
-    command: server /minio/storage --console-address :${MINIO_CONSOLE_PORT}
+      - ${MINIO_PORT}:9001
 
   mlflow:
     build: ./mlflow
     image: mlflow
     container_name: mlflow
+    env_file:
+      - ./postgres/.env
+      - ./mlflow/.env
     expose:
-      - ${MLFLOW_PORT}
+      - 5000
     ports:
-      - ${MLFLOW_PORT}:${MLFLOW_PORT}
-    networks:
-      - frontend
-      - backend
-      - forecastapi
-    environment:
-      - BACKEND=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/mlflow
-      # For artifact store in local: (note mlrun_data volume must also be uncommented)
-      # - ARTIFACTS=/mlruns
-      # Otherwise, for artifact store in AWS S3: (note boto was installed in container)
-      - MLFLOW_S3_ENDPOINT_URL=${MINIO_URL}
-      - MLFLOW_TRACKING_URI=http://mlflow:${MLFLOW_PORT}
-      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
-      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}   
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /usr/bin/docker:/usr/bin/docker   
-    command:
-      - sh  # (sh allows for var substitution of BACKEND and ARTIFACTS)
-      - -c
-      - mlflow server 
-          --host 0.0.0.0
-          --port ${MLFLOW_PORT}
-          --backend-store-uri $${BACKEND} 
-          --default-artifact-root ${ARTIFACT_PATH}
+      - ${MLFLOW_PORT}:5000
     depends_on:
       - postgres
       - minio
-    # volumes:
-    #   - mlrun_data:/mlruns
 
-networks:
-  frontend:
-    driver: bridge
-  backend:
-    driver: bridge
-  forecastapi:
-    driver: bridge
-
-# When you use a named volume like "data:/container/path", you must declare it at the docker-compose file.
-# This is not necessary when volumes are host paths.
+# When you use a named volume like "data:/container/path", you must declare it
+# at the docker-compose file. This is not necessary when volumes are host paths.
 volumes:
   pg_data:
   rabbitmq_data:
-  redis_data:
-
