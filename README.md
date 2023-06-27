@@ -5,29 +5,34 @@ the required services.
 Services
 --------
 
-| Name          | Description                             | UI                      |
-|---------------|-----------------------------------------|-------------------------|
-| `mlflow`      | Experiment tracking and model registry. | http://localhost:5000   |
-| `jupyter lab` | Data analysis / experimentation.        | http://localhost:8888   |                  |
-| `minio`       | Objects storage.                        | http://localhost:9000   |
-| `api`         | Hosts the actual API code.              | http://localhost:80/docs |
-| `worker`      | Tasks executor.                         | NA                      |
-| `postgres`    | Backend mlflow storage.                 | NA                      |
+| Name       | Description                             | GUI | Default Port |
+|------------|-----------------------------------------|-----|--------------|
+| `mlflow`   | Experiment tracking and model registry. | ✅   | 5000         |
+| `minio`    | S3 compatible object store.             | ✅   | 9000         |
+| `api`      | Web app for handling tasks requests.    | ✅   | 80           |
+| `rabbitmq` | Celery message broker.                  | ❌   | 5672         |
+| `redis`    | Celery backend.                         | ❌   | 6379         |
+| `flower`   | Monitors Celery jobs and workers.       | ✅   | 5672         |
+| `postgres` | Backend storage.                        | ❌   | 6543         |
 
 > **Note**
-> The default ports can be changed through the .env file.
+> Default Port values correspond to the ones published to the host and can be customized through the .env file.
+
+Workflow
+--------
+(Workflow diagram in progress)
 
 
 
 Run on Amazon ECS
 -----------------
+(Instructions in progress)
 
 
 
 Run locally
 -------------------
-1. Build the services with `docker-compose build`.
-2. Run the services with `docker-compose up`.
-
-    
-
+```
+docker-compose up -d --build
+```
+Open your browser to http://localhost:`<port>` to view any of the available UI's.

@@ -12,7 +12,5 @@ COPY --chown=worker:worker . .
 RUN pip install --user -r requirements.txt
 ENV PATH="/home/worker/.local/bin:${PATH}"
 
-
-
-#CMD python -m uvicorn api.main:app --host 0.0.0.0 --port 80 --reload
+#CMD uvicorn api.main:app --host 0.0.0.0 --port 80
 
