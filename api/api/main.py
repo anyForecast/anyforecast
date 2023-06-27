@@ -7,7 +7,7 @@ from .routers import registry
 from .settings import get_api_settings, APISettings
 
 
-def get_app() -> FastAPI:
+def start_app() -> FastAPI:
     """Application factory function.
 
     Returns a FastAPI app for us to use.
@@ -24,7 +24,7 @@ def get_app() -> FastAPI:
     return app
 
 
-app = get_app()
+app = start_app()
 
 
 @app.get("/info")
