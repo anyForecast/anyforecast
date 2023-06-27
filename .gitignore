@@ -1,8 +1,8 @@
 # MacOS
 .DS_Store
 */.idea/*
-.idea/*
-api/.idea/*
+.idea/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -62,3 +62,10 @@ docs/_build/
 */.ipynb_checkpoints/*
 *.ipynb
 jupyter/work/
+
+# Python venv
+venv/
+
+# Dotenvs
+api/.env
+
