@@ -1,6 +1,0 @@
-[submodule "forecastapi/submodules/skorch_forecasting"]
-	path = forecastapi/submodules/skorch_forecasting
-	url = https://github.com/ramonAV98/skorch_forecasting.git
-[submodule "forecastapi/submodules/pyrm"]
-	path = forecastapi/submodules/pyrm
-	url = https://github.com/ramonAV98/pyrm.git
