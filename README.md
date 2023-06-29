@@ -14,6 +14,7 @@ all the required services which include,
 | postgres | Backend storage.                        | ❌   | 6543         |
 
 > **Note**
+> 
 > Default Port values correspond to the ones published to the **host** and can be customized through the .env file.
 
 > **Note**
