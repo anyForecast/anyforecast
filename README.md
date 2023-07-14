@@ -1,38 +1,36 @@
 Containerized machine learning end-to-end lifecycle system for time series 
-forecasting.  A manifest file (i.e., Dockerfile) is provided for building all 
-the required services.
+forecasting. A manifest file (i.e., docker-compose-yml) is provided for building
+all the required services which include,
  
-Services
---------
 
-| Name       | Description                             | GUI | Default Port |
-|------------|-----------------------------------------|-----|--------------|
-| `mlflow`   | Experiment tracking and model registry. | ✅   | 5000         |
-| `minio`    | S3 compatible object store.             | ✅   | 9000         |
-| `api`      | Web app for handling tasks requests.    | ✅   | 80           |
-| `rabbitmq` | Celery message broker.                  | ❌   | 5672         |
-| `redis`    | Celery backend.                         | ❌   | 6379         |
-| `flower`   | Monitors Celery jobs and workers.       | ✅   | 5672         |
-| `postgres` | Backend storage.                        | ❌   | 6543         |
+| Name     | Description                             | GUI | Port |
+|----------|-----------------------------------------|-----|------|
+| mlflow   | Experiment tracking and model registry. | ✅   | 5000 |
+| minio    | S3 compatible object store.             | ✅   | 9000 |
+| api      | Web app for handling tasks requests.    | ✅   | 80   |
+| rabbitmq | Celery message broker.                  | ❌   | 5672 |
+| redis    | Celery backend.                         | ❌   | 6379 |
+| flower   | Monitors Celery jobs and workers.       | ✅   | 5672 |
+| postgres | Backend storage.                        | ❌   | 6543 |
 
 > **Note**
-> Default Port values correspond to the ones published to the host and can be customized through the .env file.
+> 
+> Port values correspond to the ones published to the **host** and can be customized through the .env file.
+
 
 Workflow
 --------
-(Workflow diagram in progress)
+(Coming soon!)
 
 
-
-Run on Amazon ECS
------------------
-(Instructions in progress)
-
+Build in GCP
+------------
+(Coming soon!)
 
 
 Run locally
--------------------
+-----------
 ```
 docker-compose up -d --build
 ```
-Open your browser to http://localhost:`<port>` to view any of the available UI's.
+Open your browser to http://localhost:<*port*> to view any of the available UI's.

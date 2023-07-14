@@ -1,18 +1,19 @@
-import importlib
-from abc import ABCMeta
-from typing import Optional, Dict, Any, TypedDict
-
-import pandas as pd
+from abc import ABC, abstractmethod
+from typing import (
+    Optional,
+    Dict,
+    Any,
+    Callable
+)
 
 import celery
-from . import serializers
-from .celery import app
+import pandas as pd
+
+from . import serializers, celeryapp
 
 
-class BaseTask(metaclass=ABCMeta):
-    """Base class for Tasks.
-
-    Use :meth:`create_celery_task` to create Celery tasks.
+class AnyForecastTask(ABC):
+    """Base class for anyForecast tasks.
 
     .. note::
         This class should not be used directly. Use derived classes instead.
@@ -29,7 +30,11 @@ class BaseTask(metaclass=ABCMeta):
         self.name = name
         self.kwargs = kwargs
 
-        self._celery_task_creator = CeleryTaskCreator(app)
+        self._celery_task_creator = CeleryTaskCreator(celeryapp.app)
+
+    @abstractmethod
+    def run(self, *args, **kwargs):
+        pass
 
     def serialize_result(self, result: Any) -> Dict:
         """Serializes result.
@@ -44,8 +49,8 @@ class BaseTask(metaclass=ABCMeta):
         """
         return self.serializer.serialize(result)
 
-    def create_celery_task(self) -> celery.Task:
-        """Creates celery task from object (self)
+    def create_celery_task(self) -> Callable:
+        """Factory for celery tasks objects.
 
         Returns
         -------
@@ -54,20 +59,35 @@ class BaseTask(metaclass=ABCMeta):
         return self._celery_task_creator.create_celery_task(
             self, self.name, **self.kwargs)
 
-    def get_celery_uuid(self, celery_task):
-        return celery_task.request.id.__str__()
-
 
 class CeleryTaskCreator:
+    """Celery tasks creator.
+
+    Parameters
+    ----------
+    celery_app : celery.Celery
+        Celery app.
+    """
+
     def __init__(self, celery_app: celery.Celery):
         self.celery_app = celery_app
 
     def create_celery_task(
             self,
-            task: BaseTask,
+            task: AnyForecastTask,
             name: Optional[str] = None,
             **kwargs
-    ):
+    ) -> Callable:
+        """Creates Celery task from anyForecast task.
+
+        Parameters
+        ----------
+        task : AnyForecastTask
+            anyForecast task object.
+
+        name : str, default=None
+            Celery task name. If None, ``task`` class name is used.
+        """
         if name is None:
             name = task.__class__.__name__
 
@@ -83,39 +103,14 @@ class CeleryTaskCreator:
         return self.celery_app.task(name=name, **kwargs)
 
 
-class ForecastArgs(TypedDict):
-    """Time series neuralmodels args.
-    """
-    algorithm: str
-    freq: str
-    horizon: int
-
-
-class DatasetArgs(TypedDict):
-    group_ids: list[str]
-    timestamp: str
-    target: str
-    freq: str
-
-
-class TimeseriesDatasetArgs(DatasetArgs):
-    time_varying_known: list[str]
-    time_varying_unknown: list[str]
-    static_categoricals: list[str]
-
-
-class Train(BaseTask):
+class Train(AnyForecastTask):
     def __init__(self):
         super().__init__(ignore_result=True)
 
-    def run(self,
+    def run(
+            self,
             data: pd.DataFrame,
-            ts_dataset_args: TimeseriesDatasetArgs,
-            forecast_args: ForecastArgs
-            ):
-
-        algo = forecast_args['algorithm']
-        cls = importlib.import_module(f"algorithm.{algo}")
-        cls(ts_dataset_args, forecast_args)
-
-
+            ts_dataset_args: Dict,
+            forecast_args: Dict
+    ):
+        pass
