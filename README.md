@@ -18,14 +18,14 @@ all the required services which include,
 > Port values correspond to the ones published to the **host** and can be customized through the .env file.
 
 
-
-
-
+Workflow
+--------
+(Coming soon!)
 
 
 Build in GCP
 ------------
-(Comming soon!)
+(Coming soon!)
 
 
 Run locally
