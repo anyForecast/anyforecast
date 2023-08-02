@@ -13,7 +13,7 @@ def create_signature(task_name, **kwargs):
     return celery.signature(task_name, kwargs=kwargs, app=celery_app)
 
 
-@router.post("/tasks/deepforecast/")
+@router.post("/tasks/make_forecast/")
 async def make_deepforecast(
         tsdataset_args: models.TimeseriesDatasetArgs,
         forecast_args: models.ForecastArgs,
