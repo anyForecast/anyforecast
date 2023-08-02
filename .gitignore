@@ -63,9 +63,10 @@ docs/_build/
 *.ipynb
 jupyter/work/
 
-# Python venv
+# Virtual envs
 venv/
+env/
 
 # Dotenvs
-api/.env
+.env
 
