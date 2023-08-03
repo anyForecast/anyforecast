@@ -18,7 +18,7 @@ ROOT = os.path.dirname(__file__)
 
 
 def get_version():
-    path = os.path.join(ROOT, 'skorch_forecasting', 'version.py')
+    path = os.path.join(ROOT, 'anyforecast', 'version.py')
     init = open(path).read()
     return VERSION_RE.search(init).group(1)
 
@@ -35,7 +35,7 @@ def get_packages():
 python_requires = '>=3.8'
 
 setup(
-    name="skorch-forecasting",
+    name="anyforecast",
     version=get_version(),
     install_requires=get_requirements(),
     packages=get_packages(),
