@@ -1,10 +1,16 @@
 import logging
 
-from . import _base
-from tasks.celeryapp import app
-from tasks.tasks import Task
+from celery import Celery
+
+from anyforecast.settings import conf
+from . import base
 
 log = logging.getLogger(__name__)
+
+celery_settings = conf.get_celery_settings()
+celery_app_name = celery_settings.get("celery", "celery-executor")
+
+app = Celery(celery_app_name, config_source=celery_settings)
 
 
 @app.task(name="run_celery")
@@ -16,7 +22,10 @@ def run_task(task: Task):
     task.run()
 
 
-class CeleryExecutor(_base.BaseExecutor):
+class CeleryExecutor(base.Executor):
+
+    def start(self):
+        log.debug("Starting Celery Executor.")
 
     def submit(self, task: Task):
         kwargs = task.get_kwargs('celery')
