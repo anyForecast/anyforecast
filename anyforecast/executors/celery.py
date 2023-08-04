@@ -27,9 +27,8 @@ class CeleryExecutor(base.Executor):
     def start(self):
         log.debug("Starting Celery Executor.")
 
-    def submit(self, task: Task):
-        kwargs = task.get_kwargs('celery')
-        run_task.apply_async(args=[task], **kwargs)
+    def submit(self, task):
+        run_task.apply_async(args=[task])
 
     def shutdown(self):
         pass
