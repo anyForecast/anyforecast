@@ -1,4 +1,5 @@
 from anyforecast import AnyForecast
 
-app = AnyForecast()
+app = AnyForecast(executor=executor)
 app.start()
+
