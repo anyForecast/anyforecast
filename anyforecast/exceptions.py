@@ -47,4 +47,4 @@ class UnknownPandasSerializer(BaseError):
 
 
 class UnknownTaskError(BaseError):
-    fmt = 'Task with name "{name}" does not exist in the registry.'
+    fmt = 'Task with name "{name}" does not exist.'
