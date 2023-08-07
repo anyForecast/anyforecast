@@ -6,7 +6,7 @@ from fastapi.security import HTTPBasicCredentials
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-from api.settings import get_token_settings
+from anyforecast.settings import conf
 from .models import UserInDB
 
 fake_users_db = {
@@ -34,6 +34,7 @@ class UserProvider:
 class PasswordHelper:
     """Container for password utility methods.
     """
+
     def __init__(self):
         self._pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -138,7 +139,7 @@ class JWTAuth(Authenticator):
         return user
 
     def decode_username(self, token: str) -> str:
-        token_settings = get_token_settings()
+        token_settings = conf.get_token_settings()
         payload = jwt.decode(token, token_settings.key,
                              algorithms=[token_settings.algorithm])
 

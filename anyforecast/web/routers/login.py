@@ -6,7 +6,7 @@ from fastapi.security import HTTPBasicCredentials
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import jwt
 
-from api.settings import get_token_settings
+from anyforecast.settings import conf
 from ..auth import BasicAuth
 from ..models import Token
 
@@ -35,7 +35,7 @@ def create_access_token(
 
     to_encode.update({"exp": expire})
 
-    token_settings = get_token_settings()
+    token_settings = conf.get_token_settings()
     encoded_jwt = jwt.encode(to_encode, token_settings.key)
     return encoded_jwt
 

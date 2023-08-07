@@ -1,14 +1,18 @@
 from abc import abstractmethod
-from tasks.tasks import Task
 
 
-class BaseExecutor:
-    """Base class to inherit for concrete executors such as Celery, Ray, Local,
-    etc.
+class Executor:
+    """Base class to inherit for concrete executors.
+
+    . note::
+        This class should not be used directly. Use derived classes instead.
     """
 
+    def start(self):
+        """Executors may need to get things started."""
+
     @abstractmethod
-    def submit(self, task: Task):
+    def submit(self, task, *args, **kwargs):
         """Submits the task to be executed.
 
         Schedules the task to be executed and returns a Future instance
