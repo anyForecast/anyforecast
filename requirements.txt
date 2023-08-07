@@ -13,3 +13,5 @@ bcrypt
 asyncpg
 fastapi-users[sqlalchemy]
 pandas
+pydantic-settings
+click
