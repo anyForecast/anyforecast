@@ -12,7 +12,7 @@ class Executor:
         """Executors may need to get things started."""
 
     @abstractmethod
-    def submit(self, task: Task):
+    def submit(self, task, *args, **kwargs):
         """Submits the task to be executed.
 
         Schedules the task to be executed and returns a Future instance

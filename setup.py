@@ -39,5 +39,9 @@ setup(
     version=get_version(),
     install_requires=get_requirements(),
     packages=get_packages(),
-    python_requires=python_requires
+    python_requires=python_requires,
+    entry_points="""
+        [console_scripts]
+        anyforecast=anyforecast.cli:cli
+    """
 )

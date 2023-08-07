@@ -1,7 +1,7 @@
 from typing import List
 
 import dotenv
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 
 def find_dotenv(name) -> str:

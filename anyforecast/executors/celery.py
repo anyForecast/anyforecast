@@ -8,27 +8,27 @@ from . import base
 log = logging.getLogger(__name__)
 
 celery_settings = conf.get_celery_settings()
-celery_app_name = celery_settings.get("celery", "celery-executor")
+celery_app_name = getattr(celery_settings, "celery", "celery-executor")
 
 app = Celery(celery_app_name, config_source=celery_settings)
 
 
 @app.task(name="run_celery")
-def run_task(task: Task):
+def run_task(task, *args, **kwargs):
     """Runs given task.
     """
     celery_task_id = app.current_task.request.id
     log.info(f"[{celery_task_id}] Executing task in Celery: {task.name}")
-    task.run()
+    task.run(*args, **kwargs)
 
 
 class CeleryExecutor(base.Executor):
 
     def start(self):
-        log.debug("Starting Celery Executor.")
+        log.debug("Starting Local Executor.")
 
-    def submit(self, task):
-        run_task.apply_async(args=[task])
+    def submit(self, task, *args, **kwargs):
+        return run_task.delay(task, *args, **kwargs)
 
     def shutdown(self):
         pass
