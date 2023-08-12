@@ -12,6 +12,8 @@ python-multipart
 bcrypt
 asyncpg
 fastapi-users[sqlalchemy]
+sqlalchemy
 pandas
 pydantic-settings
 click
+ray[air]

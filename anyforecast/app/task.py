@@ -1,8 +1,8 @@
-from typing import Callable, Optional
+from typing import Callable
 
 
 def gen_task_name(name, module_name):
-    return '.'.join([module_name.split('.')[-1], name])
+    return ".".join([module_name.split(".")[-1], name])
 
 
 class Task:
@@ -12,21 +12,35 @@ class Task:
     ----------
     name : str
         Name of the task
-
-    executor : str, default=None
-        Default task executor.
     """
 
-    def __init__(self, name, executor: Optional[str] = None):
-        self.name = name
-        self.executor = executor
+    name = None
 
     def run(self, *args, **kwargs):
         """The body of the task executed by workers."""
-        raise NotImplementedError('Tasks must define the run method.')
+        raise NotImplementedError("Tasks must define the _run method.")
 
     def __call__(self, *args, **kwargs):
-        return self.run(*args, **kwargs)
+        try:
+            retval = self(*args, **kwargs)
+        except Exception as exc:
+            self.on_failure(exc, args, kwargs)
+
+        self.on_success(retval, args, kwargs)
+
+    def on_success(self, retval, task_id, args, kwargs):
+        """Success handler.
+
+        Run by the worker if the task executes successfully.
+        """
+        pass
+
+    def on_failure(self, exc, task_id, args, kwargs):
+        """Error handler.
+
+        This is run by the worker when the task fails.
+        """
+        pass
 
     @classmethod
     def from_callable(cls, fun: Callable, **kwargs):
@@ -34,12 +48,13 @@ class Task:
             kwargs["name"] = gen_task_name(fun.__name__, fun.__module__)
 
         base = cls
-        methods = {
-            'run': staticmethod(fun),
-            '__doc__': fun.__doc__,
-            '__module__': fun.__module__
+        kwargs = {
+            "run": staticmethod(fun),
+            "__doc__": fun.__doc__,
+            "__module__": fun.__module__,
+            **kwargs,
         }
 
-        task = type(fun.__name__, (base,), methods)(**kwargs)
+        task = type(fun.__name__, (base,), kwargs)
 
         return task

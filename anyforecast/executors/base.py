@@ -1,7 +1,13 @@
+import logging
 from abc import abstractmethod
+
+from anyforecast.app.task import Task
+
+log = logging.getLogger(__name__)
 
 
 class Executor:
+
     """Base class to inherit for concrete executors.
 
     . note::
@@ -12,20 +18,13 @@ class Executor:
         """Executors may need to get things started."""
 
     @abstractmethod
-    def submit(self, task, *args, **kwargs):
-        """Submits the task to be executed.
-
-        Schedules the task to be executed and returns a Future instance
-        representing the execution of the task.
-
-        Returns
-        -------
-        A Future representing the given call.
-        """
+    def execute(self, task: Task, *args, **kwargs) -> None:
+        """Executes the task."""
         pass
 
-    @abstractmethod
+    def get_state(self) -> str:
+        pass
+
     def shutdown(self):
-        """Clean-up the resources associated with the Executor.
-        """
+        """Clean-up the resources associated with the Executor."""
         pass

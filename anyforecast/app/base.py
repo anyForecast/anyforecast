@@ -1,49 +1,45 @@
 import importlib
-from typing import Callable, Tuple, Dict
+from typing import Callable, Dict, Optional, Tuple
+
+from kombu.utils.uuid import uuid
 
 from anyforecast.exceptions import UnknownTaskError
-from anyforecast.web import webapp
 from anyforecast.executors import get_executor
+from anyforecast.web import webapp
+
 from .task import Task
+from .taskrunner import TaskRunner
 
 
 class AnyForecast:
-    """AnyForecast application.
-    """
+    """AnyForecast application."""
 
     def __init__(self):
         self._webapp = webapp
         self._tasks = {}
 
-    def start(self):
-        self._import_tasks()
-        # self._start_webapp()
-
-    def _start_webapp(self):
-        self._webapp.start()
-
     def _import_tasks(self) -> None:
         importlib.import_module("anyforecast.tasks")
 
-    def send_task(
-            self,
-            name: str,
-            args: Tuple = (),
-            kwargs: Dict = None,
-            executor: str = None
-    ):
+    def create_runner(
+        self,
+        name: str,
+        args: Tuple = (),
+        kwargs: Optional[Dict] = None,
+        task_id: Optional[str] = None,
+    ) -> TaskRunner:
         """Sends task by name.
 
         Parameters
         ----------
         name: str
-            Name of task to call (e.g., `"tasks.add"`).
+            Name of task to run (e.g., `"tasks.add"`).
 
         args: list
-            The keyword arguments to pass on to the task.
+            The positional arguments to pass on to the task.
 
         kwargs : dict
-            Dict of task kwargs.
+            The keyword arguments to pass on to the task.
 
         executor : str, default=None
             Task executor.
@@ -51,13 +47,12 @@ class AnyForecast:
         if kwargs is None:
             kwargs = {}
 
+        task_id = task_id or uuid()
         task = self.get_task(name)
-        executor = get_executor(task.executor or executor)
-        return executor.submit(task, *args, **kwargs)
+        return TaskRunner(task_id, task, args, kwargs)
 
     def get_task(self, name: str) -> Task:
-        """Returns task from name.
-        """
+        """Returns task from name."""
         if name not in self._tasks:
             raise UnknownTaskError(name=name)
         return self._tasks[name]
@@ -70,8 +65,8 @@ class AnyForecast:
         """
 
         def task_decorator(fun: Callable):
-            """Actual decorator.
-            """
+            """Actual decorator."""
+
             def create_task_object():
                 task = Task.from_callable(fun, **kwargs)
                 self._tasks[task.name] = task
@@ -79,7 +74,7 @@ class AnyForecast:
 
             return create_task_object()
 
-        # There is only 1 positional argument allowed, and it must be a
+        # Only 1 positional argument is allowed and it must be a
         # python callable (from which the Task object will be created).
         if args:
             if len(args) == 1:
@@ -87,10 +82,12 @@ class AnyForecast:
                 if callable(fun):
                     return task_decorator(fun)
                 raise TypeError(
-                    "First positional argument to @task() must be a callable")
+                    "First positional argument to @task() must be a callable"
+                )
 
             raise TypeError(
-                f'@task() takes exactly 1 positional argument '
-                f'({len(args)} given).')
+                f"@task() takes exactly 1 positional argument "
+                f"({len(args)} given)."
+            )
 
         return task_decorator
