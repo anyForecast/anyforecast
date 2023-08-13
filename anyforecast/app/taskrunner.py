@@ -1,10 +1,22 @@
 from typing import Dict, Tuple, Union
 
-from anyforecast.app.taskfuture import TaskFuture
-from anyforecast.executors import Executor, LocalExecutor, get_executor
+from anyforecast.executors import Executor, Future, get_executor
 from anyforecast.models.taskexecution import TaskExecution
 
 from .task import Task
+
+
+class TaskAsyncResult:
+    def __init__(self, task_id: str, future: Future):
+        self.task_id = task_id
+        self.future = future
+
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__}: {self.task_id}>"
+
+    @property
+    def state(self):
+        return self.future.get_state()
 
 
 class TaskRunner:
@@ -13,14 +25,14 @@ class TaskRunner:
         self.task = task
         self.args = args
         self.kwargs = kwargs
-        self._executor = LocalExecutor()
+        self._executor = get_executor("local")
 
-    def run(self) -> TaskFuture:
-        self.execute_task()
-        return TaskFuture(self.task_id, self._executor)
+    def run(self) -> TaskAsyncResult:
+        future = self.execute_task()
+        return TaskAsyncResult(self.task_id, future)
 
     def execute_task(self) -> None:
-        self._executor.execute(self.task, *self.args, **self.kwargs)
+        return self._executor.execute(self.task, *self.args, **self.kwargs)
 
     def set_executor(self, executor: Union[str, Executor]) -> None:
         self._executor = get_executor(executor)

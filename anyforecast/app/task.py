@@ -6,23 +6,17 @@ def gen_task_name(name, module_name):
 
 
 class Task:
-    """AnyForecast Task
-
-    Parameters
-    ----------
-    name : str
-        Name of the task
-    """
+    """AnyForecast Task"""
 
     name = None
 
     def run(self, *args, **kwargs):
         """The body of the task executed by workers."""
-        raise NotImplementedError("Tasks must define the _run method.")
+        raise NotImplementedError("Tasks must define the run method.")
 
     def __call__(self, *args, **kwargs):
         try:
-            retval = self(*args, **kwargs)
+            retval = self.run(*args, **kwargs)
         except Exception as exc:
             self.on_failure(exc, args, kwargs)
 

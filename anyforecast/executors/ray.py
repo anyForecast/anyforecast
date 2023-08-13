@@ -18,4 +18,4 @@ class RayExecutor(base.Executor):
         log.debug("Starting Ray Executor.")
 
     def execute(self, task, *args, **kwargs):
-        self._async = run_task.remote(task, *args, **kwargs)
+        self.async_ = run_task.remote(task, *args, **kwargs)
