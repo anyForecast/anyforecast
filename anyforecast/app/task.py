@@ -1,8 +1,21 @@
-from typing import Callable
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Callable, Dict, Tuple
+
+from anyforecast.executors import Future
 
 
 def gen_task_name(name, module_name):
     return ".".join([module_name.split(".")[-1], name])
+
+
+@dataclass
+class TaskDescription:
+    task: Task
+    args: Tuple
+    kwargs: Dict
+    task_id: str
 
 
 class Task:
@@ -12,15 +25,10 @@ class Task:
 
     def run(self, *args, **kwargs):
         """The body of the task executed by workers."""
-        raise NotImplementedError("Tasks must define the run method.")
+        raise NotImplementedError("Tasks must define the `run` method.")
 
     def __call__(self, *args, **kwargs):
-        try:
-            retval = self.run(*args, **kwargs)
-        except Exception as exc:
-            self.on_failure(exc, args, kwargs)
-
-        self.on_success(retval, args, kwargs)
+        return self.run(*args, **kwargs)
 
     def on_success(self, retval, task_id, args, kwargs):
         """Success handler.
@@ -37,7 +45,7 @@ class Task:
         pass
 
     @classmethod
-    def from_callable(cls, fun: Callable, **kwargs):
+    def from_callable(cls, fun: Callable, **kwargs) -> Task:
         if "name" not in kwargs:
             kwargs["name"] = gen_task_name(fun.__name__, fun.__module__)
 
@@ -51,4 +59,31 @@ class Task:
 
         task = type(fun.__name__, (base,), kwargs)
 
-        return task
+        return task()
+
+
+class TaskAsyncResult:
+    def __init__(self, task_id: str, future: Future):
+        self.task_id = task_id
+        self.future = future
+
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__}: {self.task_id}>"
+
+    @property
+    def state(self):
+        return self.future.get_state()
+
+
+class TaskRunner:
+    def __init__(self, task_descr: TaskDescription):
+        self.task_descr = task_descr
+
+    def run(self):
+        try:
+            # Run the actual task.
+            retval = self.task_descr.task(*self.args, **self.kwargs)
+        except Exception as exc:
+            pass
+
+        return retval

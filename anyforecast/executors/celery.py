@@ -5,7 +5,7 @@ from celery.result import AsyncResult as CeleryAsyncResult
 
 from anyforecast.settings import conf
 
-from . import base
+from . import executorbackend
 
 log = logging.getLogger(__name__)
 
@@ -16,12 +16,12 @@ celery_app = Celery(celery_app_name, config_source=celery_settings)
 
 
 @celery_app.task(name="run_celery")
-def run_task(task, *args, **kwargs):
+def run_task(runner):
     """Runs given task."""
-    task(*args, **kwargs)
+    runner.run()
 
 
-class CeleryFuture(base.Future):
+class CeleryFuture(executorbackend.Future):
     """Wrapper for Celery async result."""
 
     def __init__(self, celery_async_result: CeleryAsyncResult):
@@ -31,16 +31,13 @@ class CeleryFuture(base.Future):
         return self.celery_async_result.state
 
 
-class CeleryExecutor(base.Executor):
+class CeleryExecutor(executorbackend.Executor):
     def start(self):
         log.debug("Starting Local Executor.")
 
-    def execute(self, task, *args, **kwargs):
-        celery_async_result = run_task.delay(task, *args, **kwargs)
+    def execute(self, runner: executorbackend.Runner, **opts):
+        celery_async_result = run_task.apply_async(runner, **opts)
         return CeleryFuture(celery_async_result)
-
-    def get_state(self) -> str:
-        return self.async_.state
 
     def shutdown(self):
         pass

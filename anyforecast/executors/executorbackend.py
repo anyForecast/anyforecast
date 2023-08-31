@@ -1,10 +1,15 @@
 import logging
 from abc import abstractmethod
-from inspect import isclass
-
-from anyforecast.app.task import Task
+from typing import Protocol
 
 log = logging.getLogger(__name__)
+
+
+class Runner(Protocol):
+    """Runner interace."""
+
+    def run(self):
+        ...
 
 
 class Future:
@@ -18,7 +23,7 @@ class Future:
         pass
 
 
-class Executor:
+class ExecutorBackend:
 
     """Base class to inherit for concrete executors.
 
@@ -30,7 +35,7 @@ class Executor:
         """Executors may need to get things started."""
 
     @abstractmethod
-    def execute(self, task: Task, *args, **kwargs) -> Future:
+    def execute(self, runner: Runner, **opts) -> Future:
         """Executes the task."""
         pass
 

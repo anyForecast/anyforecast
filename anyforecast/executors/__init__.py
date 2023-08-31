@@ -1,6 +1,6 @@
 from typing import Dict
 
-from .base import Executor, Future
+from .executorbackend import ExecutorBackend, Future
 from .celery import CeleryExecutor
 from .local import LocalExecutor
 from .ray import RayExecutor
@@ -12,7 +12,7 @@ _EXECUTORS = {
 }
 
 
-def get_executors() -> Dict[str, Executor]:
+def get_executors() -> Dict[str, ExecutorBackend]:
     return _EXECUTORS
 
 
@@ -24,7 +24,7 @@ def get_executor(name: str):
     name : str
         Executor name.
     """
-    if isinstance(name, Executor):
+    if isinstance(name, ExecutorBackend):
         return name
 
     return _EXECUTORS[name]()

@@ -1,14 +1,14 @@
-import importlib
-from typing import Callable, Dict, Optional, Tuple
+from __future__ import annotations
 
-from kombu.utils.uuid import uuid
+import importlib
+from typing import Callable, Dict, Tuple
 
 from anyforecast.exceptions import UnknownTaskError
-from anyforecast.executors import get_executor
+from anyforecast.executors import ExecutorBackend, LocalExecutor
 from anyforecast.web import webapp
 
-from .task import Task
-from .taskrunner import TaskRunner
+from .executor import Executor
+from .task import Task, TaskAsyncResult, TaskDescription
 
 
 class AnyForecast:
@@ -16,40 +16,29 @@ class AnyForecast:
 
     def __init__(self):
         self._webapp = webapp
+        self._executor = Executor()
         self._tasks = {}
+
+    def start(self) -> None:
+        self._import_tasks()
 
     def _import_tasks(self) -> None:
         importlib.import_module("anyforecast.tasks")
 
-    def create_runner(
+    def execute_task(
         self,
-        name: str,
+        name,
         args: Tuple = (),
-        kwargs: Optional[Dict] = None,
-        task_id: Optional[str] = None,
-    ) -> TaskRunner:
-        """Sends task by name.
-
-        Parameters
-        ----------
-        name: str
-            Name of task to run (e.g., `"tasks.add"`).
-
-        args: list
-            The positional arguments to pass on to the task.
-
-        kwargs : dict
-            The keyword arguments to pass on to the task.
-
-        executor : str, default=None
-            Task executor.
-        """
+        kwargs: Dict = None,
+        exec_backend: ExecutorBackend = LocalExecutor(),
+        **opts,
+    ) -> TaskAsyncResult:
         if kwargs is None:
             kwargs = {}
 
-        task_id = task_id or uuid()
         task = self.get_task(name)
-        return TaskRunner(task_id, task, args, kwargs)
+        task_descr = TaskDescription(task, args, kwargs)
+        return self._executor.launch_task(exec_backend, task_descr)
 
     def get_task(self, name: str) -> Task:
         """Returns task from name."""
