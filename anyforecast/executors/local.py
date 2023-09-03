@@ -3,18 +3,14 @@ import queue
 
 from anyforecast.app.task import Task
 
-from . import executorbackend
+from . import base
 
 log = logging.getLogger(__name__)
 
 
-class LocalExecutor(executorbackend.Executor):
-    def start(self):
-        log.debug("Starting Local Executor.")
-
-    def execute(self, task: Task, *args, **kwargs):
-        print(f'Task: {task}')
-        return task(*args, **kwargs)
+class LocalExecutor(base.ExecutorBackend):
+    def execute(self, runner: base.Runner, **opts):
+        return runner.run()
 
     def shutdown(self):
         pass

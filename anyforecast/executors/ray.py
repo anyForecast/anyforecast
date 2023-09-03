@@ -2,7 +2,7 @@ import logging
 
 import ray
 
-from . import executorbackend
+from . import base
 
 
 log = logging.getLogger(__name__)
@@ -14,12 +14,12 @@ def run_task(task, *args, **kwargs):
     task(*args, **kwargs)
 
 
-class RayFuture(executorbackend.Future):
+class RayFuture(base.Future):
     def __init__(self, ray_async_result):
         self.ray_async_result = ray_async_result
-            
 
-class RayExecutor(executorbackend.Executor):
+
+class RayExecutor(base.ExecutorBackend):
     def start(self):
         log.debug("Starting Ray Executor.")
 

@@ -1,7 +1,6 @@
 import datetime
 
 from sqlalchemy import Column, DateTime, Float, Integer, String
-from sqlalchemy.dialects.postgresql import JSONB
 
 from .base import Base
 
@@ -16,7 +15,7 @@ class TaskExecution(Base):
     start_time = Column(DateTime)
     end_time = Column(DateTime)
     duration = Column(Float)
+    status = Column(Integer)
     task_name = Column(String(100))
-    task_async = Column(JSONB)
     hostname = Column(String(500))
     updated_at = Column(DateTime, onupdate=datetime.datetime.now)

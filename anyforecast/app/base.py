@@ -3,12 +3,15 @@ from __future__ import annotations
 import importlib
 from typing import Callable, Dict, Tuple
 
-from anyforecast.exceptions import UnknownTaskError
+from kombu.utils.uuid import uuid
+
 from anyforecast.executors import ExecutorBackend, LocalExecutor
 from anyforecast.web import webapp
 
 from .executor import Executor
-from .task import Task, TaskAsyncResult, TaskDescription
+from .objects_registry import create_registry
+from .task import Task, TaskAsyncResult, TaskContainer
+from .dbsession import validate_database
 
 
 class AnyForecast:
@@ -17,9 +20,10 @@ class AnyForecast:
     def __init__(self):
         self._webapp = webapp
         self._executor = Executor()
-        self._tasks = {}
+        self._tasks_registry = create_registry()
 
     def start(self) -> None:
+        validate_database()
         self._import_tasks()
 
     def _import_tasks(self) -> None:
@@ -31,20 +35,48 @@ class AnyForecast:
         args: Tuple = (),
         kwargs: Dict = None,
         exec_backend: ExecutorBackend = LocalExecutor(),
+        task_id: str = None,
         **opts,
     ) -> TaskAsyncResult:
+        """Executes tasks on the specified executor backend.
+
+        Patameters
+        ----------
+        name : str
+            Name of the task name to execute.
+
+        args : tuple, default=()
+            Task positional arguments.
+
+        kwargs : dict, default=None
+            Task key-word arguments
+
+        exec_backend : ExecutorBackend, default=LocalExecutor()
+            Executor backend.
+
+        task_id : str, default=None
+            Task identifier.
+
+        **opts : optional args
+            Optional arguments to executor backend.
+        """
         if kwargs is None:
             kwargs = {}
 
         task = self.get_task(name)
-        task_descr = TaskDescription(task, args, kwargs)
-        return self._executor.launch_task(exec_backend, task_descr)
+        task_id = task_id or uuid()
+        task_container = TaskContainer(task, args, kwargs, task_id)
+        return self._executor.launch_task(exec_backend, task_container, **opts)
 
     def get_task(self, name: str) -> Task:
-        """Returns task from name."""
-        if name not in self._tasks:
-            raise UnknownTaskError(name=name)
-        return self._tasks[name]
+        """Returns task by name.
+
+        Parameters
+        ----------
+        name : str
+            Name of the task.
+        """
+        return self._tasks_registry.get(name)
 
     def task(self, *args, **kwargs):
         """Decorator to create a task class out of any callable.
@@ -58,7 +90,7 @@ class AnyForecast:
 
             def create_task_object():
                 task = Task.from_callable(fun, **kwargs)
-                self._tasks[task.name] = task
+                self._tasks_registry.put(task.name, task)
                 return task
 
             return create_task_object()

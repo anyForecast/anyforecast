@@ -1,6 +1,6 @@
 from typing import Dict
 
-from .executorbackend import ExecutorBackend, Future
+from .base import ExecutorBackend, Future
 from .celery import CeleryExecutor
 from .local import LocalExecutor
 from .ray import RayExecutor
