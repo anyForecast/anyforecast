@@ -29,6 +29,7 @@ class TokenSettings(BaseSettings):
     expires : int, default=30
         Expiration of the token in minutes.
     """
+
     key: str
     algorithm: str = "HS256"
     expires: int = 30
@@ -38,20 +39,17 @@ class TokenSettings(BaseSettings):
 
 
 class DBSettings(BaseSettings):
-    """Database settings
-    """
-    host: str
-    user: str
-    password: str
-    port: int = 5432
+    """Database settings"""
+
+    url: str
 
     class Config:
         env_prefix = "DB_"
 
 
 class CelerySettings(BaseSettings):
-    """Celery settings.
-    """
+    """Celery settings."""
+
     broker_url: str = "amqp://rabbitmq:5672"
     result_backend: str = "redis://redis:6379/0"
     accept_content: List[str] = ["json"]
@@ -62,14 +60,13 @@ class CelerySettings(BaseSettings):
 
 
 class EnvSettings(BaseSettings):
-    """Specifies the environment file to use.
-    """
+    """Specifies the environment file to use."""
+
     env_file: str = ".env"
 
 
 def get_dotenv() -> str:
-    """Returns dotenv filename.
-    """
+    """Returns dotenv filename."""
     env_settings = EnvSettings()
     return find_dotenv(env_settings.env_file)
 
@@ -87,24 +84,21 @@ def get_settings(name):
     settings = {
         "db": DBSettings,
         "token": TokenSettings,
-        "celery": CelerySettings
+        "celery": CelerySettings,
     }
 
     return settings[name](_env_file=get_dotenv())
 
 
 class AnyForecastConfigParser:
-    """Returns anyForecast settings.
-    """
+    """Returns anyForecast settings."""
 
     def get_token_settings(self) -> TokenSettings:
-        """Returns token settings.
-        """
+        """Returns token settings."""
         return get_settings("token")
 
     def get_db_settings(self) -> DBSettings:
-        """Returns database settings.
-        """
+        """Returns database settings."""
         return get_settings("db")
 
     def get_celery_settings(self) -> CelerySettings:
@@ -113,4 +107,4 @@ class AnyForecastConfigParser:
 
 conf: AnyForecastConfigParser = AnyForecastConfigParser()
 
-__all__ = ['conf']
+__all__ = ["conf"]

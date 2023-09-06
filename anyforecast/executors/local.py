@@ -1,7 +1,4 @@
 import logging
-import queue
-
-from anyforecast.app.task import Task
 
 from . import base
 
