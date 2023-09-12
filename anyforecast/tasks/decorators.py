@@ -14,7 +14,7 @@ def task(*args, **kwargs):
 
         def create_task_object():
             task = Task.from_callable(fun, **kwargs)
-            task_registry[task.name] = task
+            task_registry.register(task)
             return task
 
         return create_task_object()

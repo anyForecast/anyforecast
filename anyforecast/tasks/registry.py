@@ -22,15 +22,17 @@ class TaskRegistry(dict):
         self[task.name] = task
 
     def unregister(self, name: str):
-        """Unregister task by name.
+        """Unregisters task by name.
 
         Parameters
         ----------
-        name : str (str): name of the task to unregister, or a
-                :class:`celery.app.task.Task` with a valid `name` attribute.
+        name : str or Task
+            name of the task to unregister, or a
+            :class:`anyforecast.tasks.Task` with a valid `name` attribute.
 
-        Raises:
-            celery.exceptions.NotRegistered: if the task is not registered.
+        Raises
+        ------
+        anyforecast.exceptions.TaskNotRegistered if the task is not registered.
         """
         try:
             self.pop(getattr(name, "name", name))
