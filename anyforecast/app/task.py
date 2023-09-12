@@ -1,45 +1,74 @@
-from typing import Callable, Optional
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Dict, Tuple
+
+from anyforecast.executors import Future
+from anyforecast.tasks import Task
 
 
-def gen_task_name(name, module_name):
-    return '.'.join([module_name.split('.')[-1], name])
+class TaskStatus(Enum):
+    """Task status.
+
+    Attributes
+    ----------
+    READY. Task has not been run.
+    RUNNING. Task is currently in progress.
+    COMPLETED. Task has completed
+    FAILED. An error occurred with the task.
+    """
+
+    READY = 0
+    RUNNING = 1
+    COMPLETED = 2
+    FAILED = 3
 
 
-class Task:
-    """AnyForecast Task
+class TaskPromise:
+    """Query task state.
 
     Parameters
     ----------
-    name : str
-        Name of the task
-
-    executor : str, default=None
-        Default task executor.
+    task_id : str
+        The task's UUID.
     """
 
-    def __init__(self, name, executor: Optional[str] = None):
-        self.name = name
-        self.executor = executor
+    def __init__(self, task_id: str, future: Future):
+        self.task_id = task_id
+        self.future = future
 
-    def run(self, *args, **kwargs):
-        """The body of the task executed by workers."""
-        raise NotImplementedError('Tasks must define the run method.')
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__}: {self.task_id}>"
 
-    def __call__(self, *args, **kwargs):
-        return self.run(*args, **kwargs)
+    @property
+    def state(self):
+        return self.future.get_state()
 
-    @classmethod
-    def from_callable(cls, fun: Callable, **kwargs):
-        if "name" not in kwargs:
-            kwargs["name"] = gen_task_name(fun.__name__, fun.__module__)
 
-        base = cls
-        methods = {
-            'run': staticmethod(fun),
-            '__doc__': fun.__doc__,
-            '__module__': fun.__module__
-        }
+@dataclass
+class TaskContainer:
+    """Holds the Task instance and its parameters.
 
-        task = type(fun.__name__, (base,), methods)(**kwargs)
+    Parameters
+    ----------
+    task : Task
+        Task instance.
 
-        return task
+    args : tuple
+            Task positional arguments.
+
+    kwargs : dict
+        Task key-word arguments
+
+    task_id : str
+        The task's UUID.
+    """
+
+    task: Task
+    args: Tuple
+    kwargs: Dict
+    task_id: str
+
+    def run(self) -> Any:
+        return self.task(*self.args, **self.kwargs)

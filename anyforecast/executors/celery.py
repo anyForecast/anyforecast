@@ -1,34 +1,42 @@
-import logging
+from __future__ import annotations
 
 from celery import Celery
+from celery.result import AsyncResult as CeleryAsyncResult
 
 from anyforecast.settings import conf
-from . import base
 
-log = logging.getLogger(__name__)
+from . import base
 
 celery_settings = conf.get_celery_settings()
 celery_app_name = getattr(celery_settings, "celery", "celery-executor")
 
-app = Celery(celery_app_name, config_source=celery_settings)
+celery_app = Celery(celery_app_name, config_source=celery_settings)
 
 
-@app.task(name="run_celery")
-def run_task(task, *args, **kwargs):
-    """Runs given task.
-    """
-    celery_task_id = app.current_task.request.id
-    log.info(f"[{celery_task_id}] Executing task in Celery: {task.name}")
-    task.run(*args, **kwargs)
+@celery_app.task(name="run_celery")
+def run_task(runner):
+    """Runs given task."""
+    return runner.run()
 
 
-class CeleryExecutor(base.Executor):
+class CeleryFuture(base.Future):
+    """Wrapper for Celery async result."""
 
-    def start(self):
-        log.debug("Starting Local Executor.")
+    def __init__(self, celery_async_result: CeleryAsyncResult):
+        self.celery_async_result = celery_async_result
 
-    def submit(self, task, *args, **kwargs):
-        return run_task.delay(task, *args, **kwargs)
+    def get_id(self) -> str:
+        return self.celery_async_result.id
 
-    def shutdown(self):
-        pass
+    def get_state(self) -> str:
+        return self.celery_async_result.state
+
+    @classmethod
+    def from_id(cls, id: str) -> CeleryFuture:
+        return cls(CeleryAsyncResult(id=id))
+
+
+class CeleryExecutor(base.ExecutorBackend):
+    def execute(self, runner: base.Runner, **opts):
+        celery_async_result = run_task.apply_async(runner, **opts)
+        return CeleryFuture(celery_async_result)

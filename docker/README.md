@@ -23,10 +23,6 @@ Workflow
 (Coming soon!)
 
 
-Build in GCP
-------------
-(Coming soon!)
-
 
 Run locally
 -----------

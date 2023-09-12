@@ -3,12 +3,10 @@
 */.idea/*
 .idea/
 
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 **/__pycache__/
 *.py[cod]
-
 
 # C extensions
 *.so
@@ -57,11 +55,8 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
-# Jupyter
-.ipynb_checkpoints
-*/.ipynb_checkpoints/*
-*.ipynb
-jupyter/work/
+# IDE
+.vscode/
 
 # Virtual envs
 venv/
@@ -69,4 +64,7 @@ env/
 
 # Dotenvs
 .env
+
+# Db
+*.db
 

@@ -1,31 +1,48 @@
-from abc import abstractmethod
+from __future__ import annotations
+
+import logging
+from abc import ABC, abstractmethod
+from typing import Protocol
+
+log = logging.getLogger(__name__)
 
 
-class Executor:
+class Runner(Protocol):
+    """Runner interace."""
+
+    def run(self):
+        ...
+
+
+class Future(ABC):
+    """Base class to inherit for concrete future/async results.
+
+    . note::
+        This class should not be used directly. Use derived classes instead.
+    """
+
+    @abstractmethod
+    def get_state(self) -> str:
+        pass
+
+    @abstractmethod
+    def get_id(self) -> str:
+        pass
+
+    @classmethod
+    def from_id(cls, id: str) -> Future:
+        raise NotImplementedError()
+
+
+class ExecutorBackend(ABC):
+
     """Base class to inherit for concrete executors.
 
     . note::
         This class should not be used directly. Use derived classes instead.
     """
 
-    def start(self):
-        """Executors may need to get things started."""
-
     @abstractmethod
-    def submit(self, task, *args, **kwargs):
-        """Submits the task to be executed.
-
-        Schedules the task to be executed and returns a Future instance
-        representing the execution of the task.
-
-        Returns
-        -------
-        A Future representing the given call.
-        """
-        pass
-
-    @abstractmethod
-    def shutdown(self):
-        """Clean-up the resources associated with the Executor.
-        """
+    def execute(self, runner: Runner, **opts) -> Future:
+        """Executes the task."""
         pass
