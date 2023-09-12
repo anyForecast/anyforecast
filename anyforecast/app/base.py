@@ -6,11 +6,11 @@ from kombu.utils.uuid import uuid
 
 from anyforecast.executors import ExecutorBackend, LocalExecutor
 from anyforecast.models.dbsession import validate_database
-from anyforecast.tasks import Task, tasks_registry
+from anyforecast.tasks import Task, task_registry
 from anyforecast.web import webapp
 
 from .execution import Executor
-from .task import TaskAsyncResult, TaskContainer
+from .task import TaskContainer, TaskPromise
 
 
 class AnyForecast:
@@ -31,7 +31,7 @@ class AnyForecast:
         exec_backend: ExecutorBackend = LocalExecutor(),
         task_id: str = None,
         **opts,
-    ) -> TaskAsyncResult:
+    ) -> TaskPromise:
         """Executes tasks on the specified executor backend.
 
         Patameters
@@ -70,4 +70,4 @@ class AnyForecast:
         name : str
             Name of the task.
         """
-        return tasks_registry.get(name)
+        return task_registry[name]

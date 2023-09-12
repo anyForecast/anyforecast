@@ -8,23 +8,18 @@ from anyforecast.executors import ExecutorBackend, Future
 from anyforecast.models.dbsession import DBSession
 from anyforecast.models.taskexecution import TaskExecution
 
-from .task import TaskAsyncResult, TaskContainer, TaskStatus
+from .task import TaskContainer, TaskPromise, TaskStatus
 
 
 class TaskRunner:
-    def __init__(self, executor: Executor, task_container: TaskContainer):
-        self.executor = executor
+    def __init__(self, task_container: TaskContainer):
         self.task_container = task_container
-
-    @cached_property
-    def execution(self) -> TaskExecution:
-        """Returns the TaskExecution object associated to this run."""
-        task_id = self.task_container.task_id
-        task_name = self.task_container.task.name
-        return self.executor.get_execution(task_id, task_name=task_name)
 
     def run(self) -> Any:
         """Run the actual task and measure its runtime."""
+        # Make new child process should use their own session.
+        self.db_session = DBSession()
+
         try:
             self.start()
             retval = self.task_container.run()
@@ -34,6 +29,15 @@ class TaskRunner:
 
         self.finish(TaskStatus.COMPLETED)
         return retval
+
+    @cached_property
+    def execution(self) -> TaskExecution:
+        """Returns the TaskExecution object associated to this run."""
+        task_id = self.task_container.task_id
+        task_name = self.task_container.task.name
+        return self.db_session.get_or_create(
+            TaskExecution, task_id=task_id, task_name=task_name
+        )
 
     def start(self) -> None:
         """Updates initial task execution attributes."""
@@ -66,7 +70,7 @@ class TaskRunner:
         value : Any
             Value to set.
         """
-        self.executor.update_execution(self.execution, attr, value)
+        self.db_session.update(self.execution, attr, value)
 
     def update_status(self, status: TaskStatus) -> None:
         """Updates task execution status.
@@ -76,7 +80,7 @@ class TaskRunner:
         status : TaskStatus
             Status to set.
         """
-        self.executor.update_status(self.execution, status)
+        self.update_execution("status", status.value)
 
 
 class Executor:
@@ -85,63 +89,12 @@ class Executor:
     def __init__(self):
         self.db_session = DBSession()
 
-    def get_execution(self, task_id: str, **kwargs) -> TaskExecution:
-        """Retrieves task execution from database.
-
-        Parameters
-        ----------
-        task_id : str
-            Task's UUID.
-        """
-        return self.db_session.get_or_create(
-            TaskExecution, task_id=task_id, **kwargs
-        )
-
-    def update_execution(
-        self, task_execution: TaskExecution, attr: str, value: Any
-    ) -> None:
-        """Updates task execution object and commits the result.
-
-        Parameters
-        ----------
-        task_execution : TaskExecution
-            Task execution object to update.
-
-        attr : str
-            Attribute to update.
-
-        value : Any
-            Value to set.
-        """
-        if not isinstance(task_execution, TaskExecution):
-            raise TypeError(
-                "Object must be of type TaskExecution. "
-                f"Instead got: {type(task_execution).__name__}"
-            )
-
-        self.db_session.update(task_execution, attr, value)
-
-    def update_status(
-        self, task_execution: TaskExecution, status: TaskStatus
-    ) -> None:
-        """Updates task execution status.
-
-        Parameters
-        ----------
-        task_execution : TaskExecution
-            Task execution object to update.
-
-        status : TaskStatus
-            Status to set.
-        """
-        self.update_execution(task_execution, "status", status.value)
-
     def launch_task(
         self,
         exec_backend: ExecutorBackend,
         task_container: TaskContainer,
         **opts,
-    ) -> TaskAsyncResult:
+    ) -> TaskPromise:
         """Launches task to executor backend.
 
         Parameters
@@ -155,9 +108,6 @@ class Executor:
         **opts : keyword arguments.
             Optional keyword argument to pass to executor backend.
         """
-        task_runner = TaskRunner(self, task_container)
-        execution: TaskExecution = task_runner.execution
-        self.update_status(execution, TaskStatus.READY)
+        task_runner = TaskRunner(task_container)
         future: Future = exec_backend.execute(task_runner, **opts)
-        self.update_execution(execution, "future_id", future)
-        return TaskAsyncResult(task_container.task_id, future)
+        return TaskPromise(task_container.task_id, future)

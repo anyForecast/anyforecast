@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Dict, Tuple
 
 from anyforecast.executors import Future
+from anyforecast.tasks import Task
 
 
 class TaskStatus(Enum):
@@ -24,7 +25,7 @@ class TaskStatus(Enum):
     FAILED = 3
 
 
-class TaskAsyncResult:
+class TaskPromise:
     """Query task state.
 
     Parameters

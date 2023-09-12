@@ -42,8 +42,12 @@ class UnknownPandasSerializer(BaseError):
     fmt = 'Pandas serializer "{name}" does not exist.'
 
 
-class UnknownTaskError(BaseError):
-    fmt = 'Task with name "{name}" does not exist.'
+class TaskNotRegistered(BaseError):
+    fmt = 'Task with name "{name}" is not registered.'
+
+
+class InvalidTaskError(BaseError):
+    fmt = 'Task class "{name}" must specify .name attribute.'
 
 
 class NotExecutedError(BaseError):

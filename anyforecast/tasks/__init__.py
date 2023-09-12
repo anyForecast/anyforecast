@@ -1,4 +1,5 @@
+from .task import Task
 from .examples import add
-from .tasks_registry import Task, tasks_registry
+from .registry import task_registry
 
-__all__ = ["tasks_registry", "add", "Task"]
+__all__ = ["task_registry", "add", "Task"]

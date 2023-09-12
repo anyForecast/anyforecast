@@ -16,7 +16,7 @@ celery_app = Celery(celery_app_name, config_source=celery_settings)
 @celery_app.task(name="run_celery")
 def run_task(runner):
     """Runs given task."""
-    runner.run()
+    return runner.run()
 
 
 class CeleryFuture(base.Future):

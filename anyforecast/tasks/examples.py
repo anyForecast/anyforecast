@@ -1,4 +1,4 @@
-from .tasks_registry import task
+from .decorators import task
 
 
 @task
