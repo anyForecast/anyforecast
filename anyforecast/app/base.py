@@ -1,96 +1,73 @@
-import importlib
-from typing import Callable, Tuple, Dict
+from __future__ import annotations
 
-from anyforecast.exceptions import UnknownTaskError
+from typing import Dict, Tuple
+
+from kombu.utils.uuid import uuid
+
+from anyforecast.executors import ExecutorBackend, LocalExecutor
+from anyforecast.models.dbsession import validate_database
+from anyforecast.tasks import Task, task_registry
 from anyforecast.web import webapp
-from anyforecast.executors import get_executor
-from .task import Task
+
+from .execution import Executor
+from .task import TaskContainer, TaskPromise
 
 
 class AnyForecast:
-    """AnyForecast application.
-    """
+    """AnyForecast application."""
 
     def __init__(self):
         self._webapp = webapp
-        self._tasks = {}
+        self._executor = Executor()
 
-    def start(self):
-        self._import_tasks()
-        # self._start_webapp()
+    def start(self) -> None:
+        validate_database()
 
-    def _start_webapp(self):
-        self._webapp.start()
+    def execute_task(
+        self,
+        name,
+        args: Tuple = (),
+        kwargs: Dict = None,
+        exec_backend: ExecutorBackend = LocalExecutor(),
+        task_id: str = None,
+        **opts,
+    ) -> TaskPromise:
+        """Executes tasks on the specified executor backend.
 
-    def _import_tasks(self) -> None:
-        importlib.import_module("anyforecast.tasks")
-
-    def send_task(
-            self,
-            name: str,
-            args: Tuple = (),
-            kwargs: Dict = None,
-            executor: str = None
-    ):
-        """Sends task by name.
-
-        Parameters
+        Patameters
         ----------
-        name: str
-            Name of task to call (e.g., `"tasks.add"`).
+        name : str
+            Name of the task name to execute.
 
-        args: list
-            The keyword arguments to pass on to the task.
+        args : tuple, default=()
+            Task positional arguments.
 
-        kwargs : dict
-            Dict of task kwargs.
+        kwargs : dict, default=None
+            Task key-word arguments
 
-        executor : str, default=None
-            Task executor.
+        exec_backend : ExecutorBackend, default=LocalExecutor()
+            Executor backend.
+
+        task_id : str, default=None
+            Task identifier.
+
+        **opts : optional args
+            Optional arguments to executor backend.
         """
         if kwargs is None:
             kwargs = {}
 
         task = self.get_task(name)
-        executor = get_executor(task.executor or executor)
-        return executor.submit(task, *args, **kwargs)
+        task_id = task_id or uuid()
+        task_container = TaskContainer(task, args, kwargs, task_id)
+        return self._executor.launch_task(exec_backend, task_container, **opts)
 
     def get_task(self, name: str) -> Task:
-        """Returns task from name.
+        """Returns task by name.
+
+        Parameters
+        ----------
+        name : str
+            Name of the task.
         """
-        if name not in self._tasks:
-            raise UnknownTaskError(name=name)
-        return self._tasks[name]
-
-    def task(self, *args, **kwargs):
-        """Decorator to create a task class out of any callable.
-
-        See :ref:`Task options<task-options>` for a list of the
-        arguments that can be passed to this decorator.
-        """
-
-        def task_decorator(fun: Callable):
-            """Actual decorator.
-            """
-            def create_task_object():
-                task = Task.from_callable(fun, **kwargs)
-                self._tasks[task.name] = task
-                return task
-
-            return create_task_object()
-
-        # There is only 1 positional argument allowed, and it must be a
-        # python callable (from which the Task object will be created).
-        if args:
-            if len(args) == 1:
-                fun = args[0]
-                if callable(fun):
-                    return task_decorator(fun)
-                raise TypeError(
-                    "First positional argument to @task() must be a callable")
-
-            raise TypeError(
-                f'@task() takes exactly 1 positional argument '
-                f'({len(args)} given).')
-
-        return task_decorator
+        return task_registry[name]

@@ -1,6 +1,6 @@
-from anyforecast.main import app
+from .decorators import task
 
 
-@app.task()
+@task
 def add(x, y):
     return x + y
