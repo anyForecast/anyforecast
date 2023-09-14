@@ -3,6 +3,8 @@ from concurrent.futures import ProcessPoolExecutor
 
 from . import base
 
+PYTHON_EXECUTOR = ProcessPoolExecutor()
+
 
 class LocalFuture(base.Future):
     def __init__(self, python_future: PythonFuture) -> None:
@@ -15,10 +17,17 @@ class LocalFuture(base.Future):
         pass
 
 
+def execute_task(executor: base.Executor, **opts):
+    return PYTHON_EXECUTOR.submit(executor.execute, **opts)
+
+
 class LocalExecutor(base.ExecutorBackend):
     def __init__(self):
-        self._python_executor = ProcessPoolExecutor()
+        super().__init__(future_cls=LocalFuture)
 
-    def execute(self, runner: base.Runner, **opts) -> LocalFuture:
-        future = self._python_executor.submit(runner.run, **opts)
+    def execute(self, executor: base.Executor, **opts) -> LocalFuture:
+        future = execute_task(executor)
         return LocalFuture(future)
+
+    def get_future_cls(self):
+        return LocalFuture

@@ -1,14 +1,12 @@
 import datetime
 
-from sqlalchemy import Column, DateTime, Float, Integer, String, JSON
+from sqlalchemy import Column, DateTime, Float, Integer, String
 
 from .base import Base
 
 
 class TaskExecution(Base):
-    """Stores the task execution information."""
-
-    __tablename__ = "task_execution"
+    """Stores task execution information."""
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     task_id = Column(String(36))
@@ -18,5 +16,5 @@ class TaskExecution(Base):
     duration = Column(Float)
     status = Column(Integer)
     future_id = Column(String(36))
-    hostname = Column(String(500))
+    exec_backend = Column(String(10))
     updated_at = Column(DateTime, onupdate=datetime.datetime.now)

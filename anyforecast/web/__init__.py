@@ -1,5 +1,3 @@
-from .app import webapp
+from anyforecast.web.app import webapp
 
-__all__ = [
-    'webapp'
-]
+__all__ = ["webapp"]

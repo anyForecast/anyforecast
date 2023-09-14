@@ -1,24 +1,91 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
 from functools import cached_property
-from typing import Any
+from typing import Any, Dict, Tuple
 
 from anyforecast.executors import ExecutorBackend, Future
-from anyforecast.models.dbsession import DBSession
+from anyforecast.models.base import check_db, sessionfactory
 from anyforecast.models.taskexecution import TaskExecution
+from anyforecast.tasks import Task
 
-from .task import TaskContainer, TaskPromise, TaskStatus
+from .promise import TaskPromise
 
 
-class TaskRunner:
-    def __init__(self, task_container: TaskContainer):
-        self.task_container = task_container
+class TaskStatus(Enum):
+    """Task status.
+
+    Attributes
+    ----------
+    READY. Task has not been run.
+    RUNNING. Task is currently in progress.
+    COMPLETED. Task has completed
+    FAILED. An error occurred with the task.
+    """
+
+    READY = 0
+    RUNNING = 1
+    COMPLETED = 2
+    FAILED = 3
+
+
+@dataclass
+class TaskContainer:
+    """Holds the Task instance and its parameters.
+
+    Parameters
+    ----------
+    task : Task
+        Task instance.
+
+    args : tuple
+            Task positional arguments.
+
+    kwargs : dict
+        Task key-word arguments
+
+    task_id : str
+        The task's UUID.
+    """
+
+    task: Task
+    args: Tuple
+    kwargs: Dict
+    task_id: str
 
     def run(self) -> Any:
-        """Run the actual task and measure its runtime."""
-        # Make new child process should use their own session.
-        self.db_session = DBSession()
+        """Runs the actual task"""
+        return self.task(*self.args, **self.kwargs)
+
+
+class TaskExecutor:
+    """Executes the actual task.
+
+    :class:`TaskExecutor` instances encapulsate the running of a single task.
+    Each running process starts a fresh db session used to update the state of
+    the task and its runtime values.
+
+    Parameters
+    ----------
+    task_container : TaskContainer
+        Holds the Task instance and its parameters.
+    """
+
+    def __init__(
+        self, task_container: TaskContainer, exec_backend: ExecutorBackend
+    ):
+        self.task_container = task_container
+        self.exec_backend = exec_backend
+        check_db()
+
+    def submit(self, **opts) -> Future:
+        return self.exec_backend.execute(self, **opts)
+
+    def execute(self) -> Any:
+        # Make new child process use its own databse session.
+        self.session = sessionfactory()
 
         try:
             self.start()
@@ -35,8 +102,8 @@ class TaskRunner:
         """Returns the TaskExecution object associated to this run."""
         task_id = self.task_container.task_id
         task_name = self.task_container.task.name
-        return self.db_session.get_or_create(
-            TaskExecution, task_id=task_id, task_name=task_name
+        return TaskExecution.get_or_create(
+            self.session, task_id=task_id, task_name=task_name
         )
 
     def start(self) -> None:
@@ -70,7 +137,8 @@ class TaskRunner:
         value : Any
             Value to set.
         """
-        self.db_session.update(self.execution, attr, value)
+        setattr(self.execution, attr, value)
+        self.session.commit()
 
     def update_status(self, status: TaskStatus) -> None:
         """Updates task execution status.
@@ -83,11 +151,8 @@ class TaskRunner:
         self.update_execution("status", status.value)
 
 
-class Executor:
-    """Executes tasks on the specified executor backend."""
-
-    def __init__(self):
-        self.db_session = DBSession()
+class ClientExecutorBridge:
+    """Bridges client and executors."""
 
     def launch_task(
         self,
@@ -96,6 +161,9 @@ class Executor:
         **opts,
     ) -> TaskPromise:
         """Launches task to executor backend.
+
+        Internally, :meth:`launch_task` creates an instance of
+        :class:`TaskRunner` which is then passed to the executor backend.
 
         Parameters
         ----------
@@ -106,8 +174,8 @@ class Executor:
             Task container.
 
         **opts : keyword arguments.
-            Optional keyword argument to pass to executor backend.
+            Optional keyword arguments to pass to executor backend.
         """
-        task_runner = TaskRunner(task_container)
-        future: Future = exec_backend.execute(task_runner, **opts)
+        task_executor = TaskExecutor(task_container, exec_backend)
+        future = task_executor.submit()
         return TaskPromise(task_container.task_id, future)
