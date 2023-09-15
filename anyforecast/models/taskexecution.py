@@ -8,6 +8,8 @@ from .base import Base
 class TaskExecution(Base):
     """Stores task execution information."""
 
+    __tablename__ = "task_execution"
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     task_id = Column(String(36))
     task_name = Column(String(100))

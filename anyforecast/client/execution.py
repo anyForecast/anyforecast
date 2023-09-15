@@ -7,8 +7,9 @@ from functools import cached_property
 from typing import Any, Dict, Tuple
 
 from anyforecast.executors import ExecutorBackend, Future
-from anyforecast.models.base import check_db, sessionfactory
+from anyforecast.models.base import sessionfactory
 from anyforecast.models.taskexecution import TaskExecution
+from anyforecast.models.utils import check_db
 from anyforecast.tasks import Task
 
 from .promise import TaskPromise
@@ -152,18 +153,15 @@ class TaskExecutor:
 
 
 class ClientExecutorBridge:
-    """Bridges client and executors."""
+    """Bridges client and task executor."""
 
-    def launch_task(
+    def submit_task(
         self,
         exec_backend: ExecutorBackend,
         task_container: TaskContainer,
         **opts,
     ) -> TaskPromise:
-        """Launches task to executor backend.
-
-        Internally, :meth:`launch_task` creates an instance of
-        :class:`TaskRunner` which is then passed to the executor backend.
+        """Launched task to executor.
 
         Parameters
         ----------
