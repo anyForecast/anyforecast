@@ -14,8 +14,7 @@ router = APIRouter(prefix="/login", tags=["login"])
 
 
 def create_access_token(
-        data: dict,
-        expires_delta: Optional[timedelta] = None
+    data: dict, expires_delta: Optional[timedelta] = None
 ) -> str:
     """Returns access token.
 
@@ -42,13 +41,11 @@ def create_access_token(
 
 @router.post("/", response_model=Token)
 async def login_for_access_token(
-        form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ):
-    """User login.
-    """
+    """User login."""
     credentials = HTTPBasicCredentials(
-        username=form_data.username,
-        password=form_data.password
+        username=form_data.username, password=form_data.password
     )
 
     user = BasicAuth().authenticate(credentials)

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Any
+from typing import Any, Optional
 
 from fastapi import HTTPException, status
 from fastapi.security import HTTPBasicCredentials
@@ -7,6 +7,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from anyforecast.settings import conf
+
 from .models import UserInDB
 
 fake_users_db = {
@@ -14,14 +15,13 @@ fake_users_db = {
         "username": "user",
         "full_name": "John Doe",
         "email": "johndoe@example.com",
-        "hashed_password": '$2b$12$O0mUAiZNpbR2A6Bk7Fq2TOT1ODcXyl.ahU9vIFDQ8p0.4Bzn6vEn6',
+        "hashed_password": "$2b$12$O0mUAiZNpbR2A6Bk7Fq2TOT1ODcXyl.ahU9vIFDQ8p0.4Bzn6vEn6",
         "disabled": False,
     }
 }
 
 
 class UserProvider:
-
     def __init__(self):
         self.db = fake_users_db
 
@@ -32,8 +32,7 @@ class UserProvider:
 
 
 class PasswordHelper:
-    """Container for password utility methods.
-    """
+    """Container for password utility methods."""
 
     def __init__(self):
         self._pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -77,8 +76,7 @@ class Authenticator(ABC):
 
     @abstractmethod
     def authenticate(self, data: Any) -> UserInDB:
-        """Authenticates data and returns user.
-        """
+        """Authenticates data and returns user."""
         pass
 
     def raise_exception(self, detail: Optional[str] = None) -> None:
@@ -99,13 +97,12 @@ class Authenticator(ABC):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             headers={"WWW-Authenticate": "Bearer"},
-            detail=detail
+            detail=detail,
         )
 
 
 class JWTAuth(Authenticator):
-    """Authenticates user from access token.
-    """
+    """Authenticates user from access token."""
 
     def __init__(self):
         super().__init__()
@@ -119,7 +116,6 @@ class JWTAuth(Authenticator):
         * Decoded payload subject ("sub") is None.
         * Username from decoded payload does not exist.
         * Decoding failed (JWTError).
-
 
         Parameters
         ----------
@@ -140,8 +136,9 @@ class JWTAuth(Authenticator):
 
     def decode_username(self, token: str) -> str:
         token_settings = conf.get_token_settings()
-        payload = jwt.decode(token, token_settings.key,
-                             algorithms=[token_settings.algorithm])
+        payload = jwt.decode(
+            token, token_settings.key, algorithms=[token_settings.algorithm]
+        )
 
         username: str = payload.get("sub")
         if username is None:
@@ -150,17 +147,14 @@ class JWTAuth(Authenticator):
 
 
 class BasicAuth(Authenticator):
-    """Basic username and password authentication.
-    """
+    """Basic username and password authentication."""
 
     def __init__(self):
         super().__init__()
         self._passhelper = PasswordHelper()
 
     def verify_password(
-            self,
-            plain_password: str,
-            hashed_password: str
+        self, plain_password: str, hashed_password: str
     ) -> bool:
         return self._passhelper.verify(plain_password, hashed_password)
 
@@ -187,10 +181,7 @@ class BasicAuth(Authenticator):
         if user is None:
             self.raise_exception(detail)
 
-        if not self.verify_password(
-                credentials.password,
-                user.hashed_password
-        ):
+        if not self.verify_password(credentials.password, user.hashed_password):
             raise self.raise_exception(detail)
 
         return user

@@ -1,5 +1,3 @@
-from typing import List
-
 import dotenv
 from pydantic_settings import BaseSettings
 
@@ -39,7 +37,13 @@ class TokenSettings(BaseSettings):
 
 
 class DBSettings(BaseSettings):
-    """Database settings"""
+    """Database settings.
+
+    Parameters
+    ----------
+    url : str
+        Database connection url.
+    """
 
     url: str
 
@@ -52,7 +56,7 @@ class CelerySettings(BaseSettings):
 
     broker_url: str = "amqp://rabbitmq:5672"
     result_backend: str = "redis://redis:6379/0"
-    accept_content: List[str] = ["json"]
+    accept_content: list[str] = ["json"]
     event_serializer: str = "json"
 
     class Config:
@@ -63,6 +67,34 @@ class EnvSettings(BaseSettings):
     """Specifies the environment file to use."""
 
     env_file: str = ".env"
+
+
+class AppPublicInfo(BaseSettings):
+    """App general info.
+
+    Parameters
+    ----------
+    name : str
+        Application name.
+
+    author : str
+        Application author.
+
+    email : str
+        Application contact email.
+    """
+
+    name: str = "AnyForecast"
+    author: str = "RamonAmez"
+    email: str = "concat@anyforecast.com"
+
+
+def get_public_info() -> AppPublicInfo:
+    """Returns app public info.
+
+    Api settings contains general and public information about the application.
+    """
+    return AppPublicInfo()
 
 
 def get_dotenv() -> str:

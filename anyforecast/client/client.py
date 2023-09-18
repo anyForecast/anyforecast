@@ -4,24 +4,42 @@ from typing import Dict, Tuple
 
 from kombu.utils.uuid import uuid
 
+from anyforecast.exceptions import RunningTasksDoesNotExist
 from anyforecast.executors import ExecutorBackend, LocalExecutor
-from anyforecast.models.dbsession import validate_database
 from anyforecast.tasks import Task, task_registry
-from anyforecast.web import webapp
 
-from .execution import Executor
-from .task import TaskContainer, TaskPromise
+from .execution import ClientExecutorBridge, TaskContainer
+from .promise import TaskPromise
 
 
-class AnyForecast:
-    """AnyForecast application."""
+class RunningTasks(dict):
+    """Map of running task promises."""
+
+    def __missing__(self, key):
+        raise RunningTasksDoesNotExist(task_id=key)
+
+    def add(self, promise: TaskPromise):
+        self[promise.task_id] = promise
+
+    def remove(self, task_id: str):
+        self.pop(task_id)
+
+    def get(self, task_id: str):
+        return self[task_id]
+
+
+class AnyForecastClient:
+    """AnyForecast client application."""
 
     def __init__(self):
-        self._webapp = webapp
-        self._executor = Executor()
+        self._running = RunningTasks()
 
-    def start(self) -> None:
-        validate_database()
+    def save_promise(self, promise: TaskPromise) -> None:
+        """Saves promise."""
+        self._running.add(promise)
+
+    def get_promise(self, task_id: str) -> TaskPromise:
+        return self._running.get(task_id)
 
     def execute_task(
         self,
@@ -45,7 +63,7 @@ class AnyForecast:
         kwargs : dict, default=None
             Task key-word arguments
 
-        exec_backend : ExecutorBackend, default=LocalExecutor()
+        exec_backend : str or ExecutorBackend, default="local"
             Executor backend.
 
         task_id : str, default=None
@@ -57,13 +75,22 @@ class AnyForecast:
         if kwargs is None:
             kwargs = {}
 
+        client_executor_bridge = ClientExecutorBridge()
         task = self.get_task(name)
         task_id = task_id or uuid()
         task_container = TaskContainer(task, args, kwargs, task_id)
-        return self._executor.launch_task(exec_backend, task_container, **opts)
+        promise = client_executor_bridge.submit_task(
+            exec_backend, task_container, **opts
+        )
+        self.save_promise(promise)
+        return promise
+
+    def get_available_tasks(self) -> list:
+        """Returns tasks registry."""
+        return list(task_registry)
 
     def get_task(self, name: str) -> Task:
-        """Returns task by name.
+        """Returns single task by name.
 
         Parameters
         ----------

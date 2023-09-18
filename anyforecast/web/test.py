@@ -1,13 +1,11 @@
 from fastapi.testclient import TestClient
 
-from .main import app
+from .app import webapp
 
-client = TestClient(app)
+client = TestClient(webapp.fastapi)
 
 
 def test_app():
     response = client.get("/info")
     data = response.json()
-    assert data == {
-        "app_name": "anyForecast"
-    }
+    assert data == {"app_name": "anyForecast"}

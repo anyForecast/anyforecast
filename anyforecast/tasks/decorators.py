@@ -3,11 +3,7 @@ from .task import Task
 
 
 def task(*args, **kwargs):
-    """Decorator to create a task class out of any callable.
-
-    See :ref:`Task options<task-options>` for a list of the
-    arguments that can be passed to this decorator.
-    """
+    """Decorator to create a task class out of any callable."""
 
     def task_decorator(fun: callable):
         """Actual decorator."""

@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import logging
 from abc import ABC, abstractmethod
-from typing import Protocol
-
-log = logging.getLogger(__name__)
+from typing import Protocol, Type
 
 
-class Runner(Protocol):
-    """Runner interace."""
+class Executor(Protocol):
+    """Executor interface."""
 
-    def run(self):
+    def execute(self):
         ...
 
 
@@ -30,19 +27,25 @@ class Future(ABC):
         pass
 
     @classmethod
-    def from_id(cls, id: str) -> Future:
+    def from_id(cls, id: str):
         raise NotImplementedError()
 
 
 class ExecutorBackend(ABC):
-
     """Base class to inherit for concrete executors.
 
     . note::
         This class should not be used directly. Use derived classes instead.
     """
 
+    def __init__(self, future_cls: Type[Future]):
+        self._future_cls = future_cls
+
     @abstractmethod
-    def execute(self, runner: Runner, **opts) -> Future:
-        """Executes the task."""
+    def execute(self, executor: Executor, **opts) -> Future:
+        """Executes task."""
         pass
+
+    def get_future_cls(self) -> Type[Future]:
+        """Returns executor backend's associated future class."""
+        return self._future_cls
