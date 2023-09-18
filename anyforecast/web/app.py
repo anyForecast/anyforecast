@@ -1,23 +1,39 @@
+from typing import Annotated
+
 import uvicorn
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 
-from .routers import registry
+from anyforecast.models.utils import check_db
+from anyforecast.settings import AppPublicInfo, get_public_info
+
+from .routers import login, tasks, users
 
 
-class WebApp:
-    """FastAPI wrapper.
-    """
+def create_fastapi_app() -> FastAPI:
+    app = FastAPI()
+    app.include_router(users.router)
+    app.include_router(login.router)
+    app.include_router(tasks.router)
+
+    return app
+
+
+class AnyForecastWebApp:
+    """AnyForecast webapp."""
 
     def __init__(self):
-        self.app = FastAPI()
+        check_db(if_not_exists="create")
+        self.fastapi = create_fastapi_app()
 
-        for _, router in registry.get_routers().items():
-            self.app.include_router(router)
-
-    def start(self):
-        """Runs FastAPI by calling uvicorn.
-        """
-        uvicorn.run(self.app, host="0.0.0.0", port=8000)
+    def run_server(self, host="0.0.0.0", port=80):
+        """Runs FastAPI by calling uvicorn."""
+        uvicorn.run(self.fastapi, host=host, port=port)
 
 
-webapp = WebApp()
+webapp = AnyForecastWebApp()
+
+
+@webapp.fastapi.get("/info")
+async def info(info: Annotated[AppPublicInfo, Depends(get_public_info)]):
+    """Application general information."""
+    return info.model_dump()

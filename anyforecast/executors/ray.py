@@ -1,17 +1,12 @@
-import logging
-
 import ray
 
 from . import base
 
 
-log = logging.getLogger(__name__)
-
-
 @ray.remote
-def run_task(task, *args, **kwargs):
+def execute_task(executor: base.Executor):
     """Runs given task."""
-    task(*args, **kwargs)
+    return executor.execute
 
 
 class RayFuture(base.Future):
@@ -20,9 +15,9 @@ class RayFuture(base.Future):
 
 
 class RayExecutor(base.ExecutorBackend):
-    def start(self):
-        log.debug("Starting Ray Executor.")
+    def __init__(self):
+        super().__init__(future_cls=RayFuture)
 
-    def execute(self, task, *args, **kwargs):
-        ray_async_result = run_task.remote(task, *args, **kwargs)
-        return RayFuture(ray_async_result)
+    def execute(self, executor: base.Executor):
+        ray_async_result = execute_task.remote(executor)
+        return self.future_cls(ray_async_result)
