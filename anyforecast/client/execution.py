@@ -20,13 +20,13 @@ class TaskStatus(Enum):
 
     Attributes
     ----------
-    READY. Task has not been run.
+    PENDING. Task has not been run.
     RUNNING. Task is currently in progress.
-    COMPLETED. Task has completed
+    COMPLETED. Task has completed succesfully.
     FAILED. An error occurred with the task.
     """
 
-    READY = 0
+    PENDING = 0
     RUNNING = 1
     COMPLETED = 2
     FAILED = 3
@@ -72,10 +72,18 @@ class TaskExecutor:
     ----------
     task_container : TaskContainer
         Holds the Task instance and its parameters.
+
+    task_execution : TaskExecution
+        SQLAlchemy TaskExecution model instance.
+
+    exec_backend : ExecutorBackend
+        Executor backend.
     """
 
     def __init__(
-        self, task_container: TaskContainer, exec_backend: ExecutorBackend
+        self,
+        task_container: TaskContainer,
+        exec_backend: ExecutorBackend,
     ):
         self.task_container = task_container
         self.exec_backend = exec_backend
@@ -102,15 +110,13 @@ class TaskExecutor:
     def execution(self) -> TaskExecution:
         """Returns the TaskExecution object associated to this run."""
         task_id = self.task_container.task_id
-        task_name = self.task_container.task.name
-        return TaskExecution.get_or_create(
-            self.session, task_id=task_id, task_name=task_name
-        )
+        return TaskExecution.get_or_create(self.session, task_id=task_id)
 
     def start(self) -> None:
         """Updates initial task execution attributes."""
         self.start_time = datetime.now()
         self.update_execution("start_time", self.start_time)
+        self.update_execution("task_name", self.task_container.task.name)
         self.update_status(TaskStatus.RUNNING)
 
     def finish(self, status: TaskStatus) -> None:
@@ -153,7 +159,7 @@ class TaskExecutor:
 
 
 class ClientExecutorBridge:
-    """Bridges client and task executor."""
+    """Bridges client and task execution."""
 
     def submit_task(
         self,
@@ -161,7 +167,7 @@ class ClientExecutorBridge:
         task_container: TaskContainer,
         **opts,
     ) -> TaskPromise:
-        """Launched task to executor.
+        """Submits task to executor.
 
         Parameters
         ----------
@@ -174,6 +180,11 @@ class ClientExecutorBridge:
         **opts : keyword arguments.
             Optional keyword arguments to pass to executor backend.
         """
+        # Create TaskExecution entry in database with PENDING status before
+        # submitting to backend executor.
+        TaskExecution.get_or_create(
+            task_id=task_container.task_id, status=TaskStatus.PENDING.value
+        )
         task_executor = TaskExecutor(task_container, exec_backend)
         future = task_executor.submit()
         return TaskPromise(task_container.task_id, future)

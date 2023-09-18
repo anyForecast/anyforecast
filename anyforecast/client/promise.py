@@ -10,7 +10,6 @@ def get_future_from_task_id(task_id: str) -> Future:
     task_id : str
         Task's UUID.
     """
-
     execution = TaskExecution.get_or_create(task_id=task_id)
     exec_backend = get_executor_backend(execution.executor_cls)
     future_cls = exec_backend.get_future_cls()

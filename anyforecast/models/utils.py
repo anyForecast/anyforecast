@@ -3,7 +3,6 @@ from typing import Literal
 from sqlalchemy_utils.functions import create_database, database_exists
 
 from anyforecast.exceptions import DatabaseDoesNotExist
-from anyforecast.models.taskexecution import TaskExecution
 
 from .base import Base
 from .engine import create_db_engine, db_settings
@@ -11,6 +10,8 @@ from .engine import create_db_engine, db_settings
 
 def create_db() -> None:
     """Creates AnyForecast database."""
+    from anyforecast.models.taskexecution import TaskExecution
+
     engine = create_db_engine()
     create_database(engine.url)
     Base.metadata.create_all(engine)

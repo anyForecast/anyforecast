@@ -79,18 +79,15 @@ class AnyForecastClient:
         task = self.get_task(name)
         task_id = task_id or uuid()
         task_container = TaskContainer(task, args, kwargs, task_id)
-        promise = client_executor_bridge.launch_task(
+        promise = client_executor_bridge.submit_task(
             exec_backend, task_container, **opts
         )
         self.save_promise(promise)
         return promise
 
-    def get_promise(self, task_id: str) -> TaskPromise:
-        return self._executor.get_promise(task_id)
-
-    def get_task_registry(self) -> Dict:
+    def get_available_tasks(self) -> list:
         """Returns tasks registry."""
-        return task_registry
+        return list(task_registry)
 
     def get_task(self, name: str) -> Task:
         """Returns single task by name.

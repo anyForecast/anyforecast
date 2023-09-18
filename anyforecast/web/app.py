@@ -1,7 +1,10 @@
-import uvicorn
-from fastapi import FastAPI
+from typing import Annotated
 
-from anyforecast.models.session import check_db
+import uvicorn
+from fastapi import Depends, FastAPI
+
+from anyforecast.models.utils import check_db
+from anyforecast.settings import AppPublicInfo, get_public_info
 
 from .routers import login, tasks, users
 
@@ -19,7 +22,7 @@ class AnyForecastWebApp:
     """AnyForecast webapp."""
 
     def __init__(self):
-        check_db("create")
+        check_db(if_not_exists="create")
         self.fastapi = create_fastapi_app()
 
     def run_server(self, host="0.0.0.0", port=80):
@@ -28,3 +31,9 @@ class AnyForecastWebApp:
 
 
 webapp = AnyForecastWebApp()
+
+
+@webapp.fastapi.get("/info")
+async def info(info: Annotated[AppPublicInfo, Depends(get_public_info)]):
+    """Application general information."""
+    return info.model_dump()
