@@ -5,7 +5,6 @@ from typing import Dict, Tuple
 from kombu.utils.uuid import uuid
 
 from anyforecast.exceptions import RunningTasksDoesNotExist
-from anyforecast.executors import ExecutorBackend, LocalExecutor
 from anyforecast.tasks import Task, task_registry
 
 from .execution import ClientExecutorBridge, TaskContainer
@@ -46,7 +45,7 @@ class AnyForecastClient:
         name,
         args: Tuple = (),
         kwargs: Dict = None,
-        exec_backend: ExecutorBackend = LocalExecutor(),
+        backend: str = "local",
         task_id: str = None,
         **opts,
     ) -> TaskPromise:
@@ -63,8 +62,8 @@ class AnyForecastClient:
         kwargs : dict, default=None
             Task key-word arguments
 
-        exec_backend : str or ExecutorBackend, default="local"
-            Executor backend.
+        backend : str or ExecutorBackend, default="local"
+            Backend executor.
 
         task_id : str, default=None
             Task identifier.
@@ -80,7 +79,7 @@ class AnyForecastClient:
         task_id = task_id or uuid()
         task_container = TaskContainer(task, args, kwargs, task_id)
         promise = client_executor_bridge.submit_task(
-            exec_backend, task_container, **opts
+            backend, task_container, **opts
         )
         self.save_promise(promise)
         return promise

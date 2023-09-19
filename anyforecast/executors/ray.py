@@ -14,7 +14,8 @@ class RayFuture(base.Future):
         self.ray_async_result = ray_async_result
 
 
-class RayExecutor(base.ExecutorBackend):
+@base.BackendExecutorFactory.register("ray")
+class RayExecutor(base.BackendExecutor):
     def __init__(self):
         super().__init__(future_cls=RayFuture)
 
