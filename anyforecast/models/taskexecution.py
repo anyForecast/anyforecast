@@ -18,5 +18,5 @@ class TaskExecution(Base):
     duration = Column(Float)
     status = Column(Integer)
     future_id = Column(String(36))
-    exec_backend = Column(String(10))
+    backend_exec = Column(String(10))
     updated_at = Column(DateTime, onupdate=datetime.datetime.now)

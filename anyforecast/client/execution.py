@@ -6,7 +6,11 @@ from enum import Enum
 from functools import cached_property
 from typing import Any, Dict, Tuple
 
-from anyforecast.executors import ExecutorBackend, Future
+from anyforecast.executors import (
+    BackendExecutor,
+    BackendExecutorFactory,
+    Future,
+)
 from anyforecast.models.base import sessionfactory
 from anyforecast.models.taskexecution import TaskExecution
 from anyforecast.models.utils import check_db
@@ -83,14 +87,14 @@ class TaskExecutor:
     def __init__(
         self,
         task_container: TaskContainer,
-        exec_backend: ExecutorBackend,
+        backend_exec: BackendExecutor,
     ):
         self.task_container = task_container
-        self.exec_backend = exec_backend
+        self.backend_exec = backend_exec
         check_db()
 
     def submit(self, **opts) -> Future:
-        return self.exec_backend.execute(self, **opts)
+        return self.backend_exec.execute(self, **opts)
 
     def execute(self) -> Any:
         # Make new child process use its own databse session.
@@ -161,9 +165,26 @@ class TaskExecutor:
 class ClientExecutorBridge:
     """Bridges client and task execution."""
 
+    def create_task_execution(self, task_id: str, backend_exec: str) -> None:
+        """Create TaskExecution entry in database with PENDING status.
+
+        Parameters
+        ----------
+        task_id : str
+            Task's UUID
+
+        backend_exec : str
+            Backend executor name.
+        """
+        TaskExecution.get_or_create(
+            task_id=task_id,
+            status=TaskStatus.PENDING.value,
+            backend_exec=backend_exec,
+        )
+
     def submit_task(
         self,
-        exec_backend: ExecutorBackend,
+        backend_exec: str,
         task_container: TaskContainer,
         **opts,
     ) -> TaskPromise:
@@ -171,8 +192,8 @@ class ClientExecutorBridge:
 
         Parameters
         ----------
-        exec_backend : ExecutorBackend
-            Executor backend where the task will be run.
+        backend_exec : str
+            Backend executor name.
 
         task_container : TaskContainer
             Task container.
@@ -180,11 +201,8 @@ class ClientExecutorBridge:
         **opts : keyword arguments.
             Optional keyword arguments to pass to executor backend.
         """
-        # Create TaskExecution entry in database with PENDING status before
-        # submitting to backend executor.
-        TaskExecution.get_or_create(
-            task_id=task_container.task_id, status=TaskStatus.PENDING.value
-        )
-        task_executor = TaskExecutor(task_container, exec_backend)
+        self.create_task_execution(task_container.task_id, backend_exec)
+        backend_exec = BackendExecutorFactory.create(backend_exec, **opts)
+        task_executor = TaskExecutor(task_container, backend_exec)
         future = task_executor.submit()
         return TaskPromise(task_container.task_id, future)

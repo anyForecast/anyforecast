@@ -21,7 +21,14 @@ def execute_task(executor: base.Executor, **opts):
     return PYTHON_EXECUTOR.submit(executor.execute, **opts)
 
 
-class LocalExecutor(base.ExecutorBackend):
+@base.BackendExecutorFactory.register("local")
+class LocalExecutor(base.BackendExecutor):
+    """Local executor.
+
+    The local executor uses the built-in :class:`ProcessPoolExecutor` located
+    in the ``concurrent`` python package.
+    """
+
     def __init__(self):
         super().__init__(future_cls=LocalFuture)
 

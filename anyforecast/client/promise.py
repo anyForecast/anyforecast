@@ -1,4 +1,4 @@
-from anyforecast.executors import Future, get_executor_backend
+from anyforecast.executors import BackendExecutorFactory, Future
 from anyforecast.models.taskexecution import TaskExecution
 
 
@@ -11,8 +11,8 @@ def get_future_from_task_id(task_id: str) -> Future:
         Task's UUID.
     """
     execution = TaskExecution.get_or_create(task_id=task_id)
-    exec_backend = get_executor_backend(execution.executor_cls)
-    future_cls = exec_backend.get_future_cls()
+    backend_exec = BackendExecutorFactory.create(execution.backend_exec)
+    future_cls = backend_exec.get_future_cls()
     return future_cls.from_id(execution.future_id)
 
 
