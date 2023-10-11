@@ -48,8 +48,13 @@ class BackendExecutor(ABC):
 
     @abstractmethod
     def execute(self, executor: Executor, **opts) -> Future:
-        """Executes task."""
-        pass
+        """Executes task.
+        
+        Parameters
+        ----------
+        executor : Executor
+            Object with :meth:`execute`.
+        """
 
     def get_future_cls(self) -> Type[Future]:
         """Returns executor backend's associated future class."""
@@ -91,8 +96,7 @@ class BackendExecutorFactory:
         """Backend executors factory.
 
         This method retrieves the BackendExecutor class from the registry and
-        creates an instance of it, while passing in the parameters given in
-        ``kwargs``.
+        creates an instance of it.
 
         Parameters
         ----------

@@ -1,4 +1,4 @@
-from .client import AnyForecastClient
+from .client import TasksClient
 from .promise import TaskPromise
 
-__all__ = ["AnyForecastClient", "TaskPromise"]
+__all__ = ["TasksClient", "TaskPromise"]

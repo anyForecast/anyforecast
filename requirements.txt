@@ -18,3 +18,5 @@ pandas
 pydantic-settings
 click
 ray[air]
+docker
+mlflow

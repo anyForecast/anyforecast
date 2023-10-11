@@ -66,7 +66,7 @@ class TaskContainer:
 
 
 class TaskExecutor:
-    """Executes the actual task.
+    """Executes tasks on the selected backend.
 
     :class:`TaskExecutor` instances encapulsate the running of a single task.
     Each running process starts a fresh db session used to update the state of

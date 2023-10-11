@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Dict, Tuple
+from typing import Any
 
 from kombu.utils.uuid import uuid
 
 from anyforecast.exceptions import RunningTasksDoesNotExist
-from anyforecast.tasks import Task, task_registry
+from anyforecast.tasks import Task, TasksFactory
 
 from .execution import ClientExecutorBridge, TaskContainer
 from .promise import TaskPromise
@@ -27,7 +27,7 @@ class RunningTasks(dict):
         return self[task_id]
 
 
-class AnyForecastClient:
+class TasksClient:
     """AnyForecast client application."""
 
     def __init__(self):
@@ -40,11 +40,11 @@ class AnyForecastClient:
     def get_promise(self, task_id: str) -> TaskPromise:
         return self._running.get(task_id)
 
-    def execute_task(
+    def execute_async(
         self,
-        name,
-        args: Tuple = (),
-        kwargs: Dict = None,
+        name: str,
+        args: tuple = (),
+        kwargs: dict | None = None,
         backend: str = "local",
         task_id: str = None,
         **opts,
@@ -60,7 +60,7 @@ class AnyForecastClient:
             Task positional arguments.
 
         kwargs : dict, default=None
-            Task key-word arguments
+            Task key-word arguments.
 
         backend : str or ExecutorBackend, default="local"
             Backend executor.
@@ -84,9 +84,30 @@ class AnyForecastClient:
         self.save_promise(promise)
         return promise
 
-    def get_available_tasks(self) -> list:
-        """Returns tasks registry."""
-        return list(task_registry)
+    def execute(
+        self,
+        name: str,
+        args: tuple = (),
+        kwargs: dict | None = None,
+    ) -> Any:
+        """Executes tasks synchronously.
+
+        Patameters
+        ----------
+        name : str
+            Name of the task name to execute.
+
+        args : tuple, default=()
+            Task positional arguments.
+
+        kwargs : dict, default=None
+            Task key-word arguments.
+        """
+        return self.get_task(name)(*args, **kwargs)
+
+    def list_tasks(self) -> list[str]:
+        """Returns available tasks"""
+        return list(TasksFactory.registry)
 
     def get_task(self, name: str) -> Task:
         """Returns single task by name.
@@ -96,4 +117,4 @@ class AnyForecastClient:
         name : str
             Name of the task.
         """
-        return task_registry[name]
+        return TasksFactory.get(name)

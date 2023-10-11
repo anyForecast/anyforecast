@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 from anyforecast.executors import BackendExecutorFactory, Future
 from anyforecast.models.taskexecution import TaskExecution
 
 
-def get_future_from_task_id(task_id: str) -> Future:
+def get_future(task_id: str) -> Future:
     """Returns :class:`Future` instance from task_id.
 
     Parameters
@@ -27,11 +29,7 @@ class TaskPromise:
 
     def __init__(self, task_id: str, future: Future | None = None):
         self.task_id = task_id
-
-        if future is None:
-            future = get_future_from_task_id(task_id)
-
-        self.future = future
+        self.future = future or get_future(task_id)
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}: {self.task_id}>"
