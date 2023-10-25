@@ -128,7 +128,7 @@ class Task:
         pass
 
     @classmethod
-    def from_callable(cls, fun: callable, name: str | None, **kwargs) -> Task:
+    def from_callable(cls, fun: callable, name: str | None = None, **kwargs) -> Task:
         name = name or gen_task_name(fun.__name__, fun.__module__)
         base = cls
         kwargs = {

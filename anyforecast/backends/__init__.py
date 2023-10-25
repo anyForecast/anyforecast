@@ -1,5 +1,5 @@
 from . import celery, local, ray
-from .base import BackendExecutor, BackendExecutorFactory, Future
+from .base import BackendExecutor, BackendExecutorFactory, BackendFuture
 
 __all__ = [
     "celery",
@@ -7,5 +7,5 @@ __all__ = [
     "ray",
     "BackendExecutorFactory",
     "BackendExecutor",
-    "Future",
+    "BackendFuture",
 ]

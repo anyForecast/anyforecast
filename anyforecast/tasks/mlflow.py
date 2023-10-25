@@ -2,7 +2,7 @@ from typing import Any, Literal
 
 import mlflow
 
-from .task import TasksFactory
+from .base import TasksFactory
 
 
 @TasksFactory.register()

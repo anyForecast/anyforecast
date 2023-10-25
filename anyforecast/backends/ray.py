@@ -9,7 +9,7 @@ def execute_task(executor: base.Executor):
     return executor.execute
 
 
-class RayFuture(base.Future):
+class RayFuture(base.BackendFuture):
     def __init__(self, ray_async_result):
         self.ray_async_result = ray_async_result
 

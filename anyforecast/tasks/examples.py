@@ -1,4 +1,4 @@
-from .task import TasksFactory
+from .base import TasksFactory
 
 
 @TasksFactory.register()

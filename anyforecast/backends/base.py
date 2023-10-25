@@ -1,19 +1,38 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Protocol, Type
+from typing import Any, Protocol, Type
 
 from anyforecast.exceptions import ExecutorBackendDoesNotExist
+
+
+def create_backend(name: str) -> callable:
+    """Backend executors factory.
+
+    This method retrieves the BackendExecutor class from the registry and
+    creates an instance of it.
+
+    Parameters
+    ----------
+    name : str
+        The name of the executor to create.
+
+    Returns
+    -------
+    backend_executor : BackendExecutor
+        An instance of the backend executor that is created.
+    """
+    return BackendExecutorFactory.register(name)
 
 
 class Executor(Protocol):
     """Executor interface."""
 
-    def execute(self):
+    def execute(self) -> Any:
         ...
 
 
-class Future(ABC):
+class BackendFuture(ABC):
     """Base class to inherit for concrete future/async results.
 
     . note::
@@ -43,20 +62,20 @@ class BackendExecutor(ABC):
         This class should not be used directly. Use derived classes instead.
     """
 
-    def __init__(self, future_cls: Type[Future]):
+    def __init__(self, future_cls: Type[BackendFuture]):
         self._future_cls = future_cls
 
     @abstractmethod
-    def execute(self, executor: Executor, **opts) -> Future:
+    def execute(self, executor: Executor, **opts) -> BackendFuture:
         """Executes task.
-        
+
         Parameters
         ----------
         executor : Executor
             Object with :meth:`execute`.
         """
 
-    def get_future_cls(self) -> Type[Future]:
+    def get_future_cls(self) -> Type[BackendFuture]:
         """Returns executor backend's associated future class."""
         return self._future_cls
 

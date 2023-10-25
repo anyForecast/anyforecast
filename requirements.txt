@@ -19,4 +19,4 @@ pydantic-settings
 click
 ray[air]
 docker
-mlflow
+mlflow==2.0.1

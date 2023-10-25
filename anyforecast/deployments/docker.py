@@ -1,170 +1,8 @@
-from __future__ import annotations
+from typing import Literal
 
-from dataclasses import dataclass
-from typing import Any
+import mlflow
 
-from mlflow.models import build_docker as build_docker_api
-
-import docker
-
-
-@dataclass
-class PythonCommand:
-    """Represents a python command.
-
-    Parameters
-    ----------
-    script : name
-        Python script to invocate.
-
-    args : dict
-        Python scripts arguments.
-
-    name : str, default="python"
-        Python command name.
-    """
-
-    script: str
-    args: dict | None = None
-    name: str = "python"
-
-    def list(self) -> list[str]:
-        args = self.args or {}
-        args_list = [f"--{k}={v}" for k, v in args.items()]
-        return [self.name, self.script] + args_list
-
-
-class DockerRunner:
-    """Runs Docker containers.
-
-    Parameters
-    ----------
-    image_uri : str
-        The image to run.
-
-    command : str
-        The command to run in the container.
-
-    environment : dict
-        Environment variables to set inside the container, as a dictionary.
-
-    entrypoint : str or list of str
-        The entrypoint for the container
-
-    volumes : list of str or dict
-        A dictionary to configure volumes mounted inside the container.
-        Or a list of strings which each one of its elements specifies a mount
-        volume.
-
-    kwargs : keyword args
-        Additonal arguments to pass to :meth:`docker.client.containers.run`.
-    """
-
-    def __init__(
-        self,
-        image_uri: str,
-        command: str | list[str] | None = None,
-        environment: dict[str, str] | None = None,
-        entrypoint: str | list[str] | None = None,
-        volumes: list[str] | dict[str, str] | None = None,
-        **kwargs,
-    ) -> None:
-        self.image_uri = image_uri
-        self.command = command
-        self.environment = environment
-        self.entrypoint = entrypoint
-        self.volumes = volumes
-        self.kwargs = kwargs
-
-        #: Actual Docker Python client.
-        self.docker_client = docker.from_env()
-
-    def run(self, **kwargs) -> None:
-        """Runs container.
-
-        Parameters
-        ----------
-        kwargs : keyword args
-            Additonal arguments to pass to :meth:`docker.client.containers.run`.
-        """
-        self.docker_client.containers.run(
-            image=self.image_uri,
-            command=self.command,
-            entrypoint=self.entrypoint,
-            environment=self.environment,
-            volumes=self.volumes,
-            **kwargs,
-        )
-
-
-class DockerScriptRunner:
-    """Runs Python scripts inside Docker containers.
-
-    Parameters
-    ----------
-    script: str
-        Path to the python script
-
-    image_uri : str
-        Docker image to run.
-
-    environment : dict
-        Environment variables to set inside the container.
-
-    args : dict
-        Script args. These are passed to the script as arguments.
-    """
-
-    #: Script volume to be mounted in the container.
-    SCRIPT_VOLUME = "{script}:/tmp/{script}"
-
-    def __init__(
-        self,
-        script: str,
-        image_uri: str,
-        environment: dict[str, str] | None = None,
-        args: dict[str, Any] | None = None,
-    ) -> None:
-        self.script = script
-        self.image_uri = image_uri
-        self.environment = environment
-        self.args = args
-
-    @property
-    def script_volume(self) -> str:
-        return self.SCRIPT_VOLUME.format(script=self.script)
-
-    def run(self, **kwargs) -> None:
-        """Runs script inside Docker container.
-
-        Parameters
-        ----------
-        kwargs : keyword args
-            Additonal arguments to pass to :meth:`docker.client.containers.run`.
-        """
-        docker_runner = self.create_docker_runner()
-        docker_runner.run(**kwargs)
-
-    def create_docker_runner(self) -> DockerRunner:
-        """Creates Docker runner.
-
-        Returns
-        -------
-        runner : DockerRunner
-        """
-        volumes = [self.script_volume]
-        command = self.create_command().list()
-        return DockerRunner(
-            image_uri=self.image_uri,
-            command=command,
-            environment=self.environment,
-            volumes=volumes,
-        )
-
-    def create_command(self) -> PythonCommand:
-        # Script path inside container.
-        script = self.script_volume.split(":")[-1]
-        return PythonCommand(script=script, args=self.args)
+from .docker_utils import DockerRunner
 
 
 class DockerDeployer:
@@ -173,11 +11,15 @@ class DockerDeployer:
         name: str,
         model_uri: str,
         container_name: str | None = None,
-        env_manager: str = "virtualenv",
+        env_manager: Literal["local", "virtualenv", "conda"] = "virtualenv",
         port: int = 8080,
         environment: dict[str, str] = None,
     ) -> None:
-        """Deploy a model to a Docker container.
+        """Deploys model locally in a Docker container.
+
+        Builds a Docker image whose default entrypoint serves an MLflow model
+        at the specified ``port``. The container serves the model referenced by
+        ``model-uri``.
 
         Parameters
         ----------
@@ -190,28 +32,62 @@ class DockerDeployer:
 
         container_name, str, default=None
             If None, value in ``name`` will be used.
+
+        env_manager : str, {"local", "virtualenv", "conda"},
+        default="virtualenv"
+            Create an environment for MLmodel using the specified environment
+            manager.
+
+        port : int, default=8080
+            Port in the host machine to map.
+
+        environment: dict, default=None
+            Environment variables to set inside the container.
         """
         container_name = container_name or name
-        self.build_docker(name, model_uri, env_manager)
-        runner = self.create_docker_runner(
+        flavor_backend = self.build_image(name, model_uri, env_manager)
+        self.run_image(
             image_uri=name,
             container_name=container_name,
             environment=environment,
             port=port,
         )
-        runner.run()
 
-    def create_docker_runner(
-        self, image_uri, container_name, environment, port
-    ) -> DockerRunner:
-        return DockerRunner(
+    def run_image(
+        self,
+        image_uri: str,
+        container_name: str,
+        environment: dict[str, str] | None,
+        port: int,
+    ) -> None:
+        runner = DockerRunner(
             image_uri,
             name=container_name,
             environment=environment,
             ports={"8080/tcp": port},
         )
 
-    def build_docker(
-        self, name: str, model_uri: str, env_manager: str = "virtualenv"
-    ) -> None:
-        build_docker_api(model_uri, name, env_manager)
+        runner.run()
+
+    def build_image(
+        self,
+        name: str,
+        model_uri: str,
+        env_manager: str = "virtualenv",
+        mlflow_home: str | None = None,
+        install_mlflow: bool = False,
+        enable_mlserver: bool = False,
+    ):
+        """Builds MLFlow Docker image.
+
+        For more details see:
+        https://mlflow.org/docs/latest/cli.html#mlflow-models
+        """
+        return mlflow.models.build_docker(
+            model_uri=model_uri,
+            name=name,
+            env_manager=env_manager,
+            mlflow_home=mlflow_home,
+            install_mlflow=install_mlflow,
+            enable_mlserver=enable_mlserver,
+        )

@@ -1,4 +1,4 @@
-from anyforecast.estimator import MLFlowEstimator
+from anyforecast.ml.estimator import MLFlowEstimator
 
 
 def test_train_seq2seq():

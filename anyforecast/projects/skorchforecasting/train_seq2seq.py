@@ -1,4 +1,5 @@
 import click
+import mlflow
 import pandas as pd
 from options import skorchforecasting_options
 from preprocessing import make_preprocessor
@@ -68,7 +69,10 @@ def train(
     )
 
     pipe = Pipeline([("preprocessor", preprocessor), ("estimator", estimator)])
-    pipe.fit(data)
+
+    with mlflow.start_run():
+        pipe.fit(data)
+        mlflow.sklearn.log_model(sk_model=pipe, artifact_path="model")
 
 
 if __name__ == "__main__":
