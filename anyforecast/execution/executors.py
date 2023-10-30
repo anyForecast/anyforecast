@@ -6,15 +6,13 @@ from enum import Enum
 from functools import cached_property
 from typing import Any, Dict, Tuple
 
-from anyforecast.executors import (
-    BackendExecutor,
-    BackendExecutorFactory,
-    Future,
-)
+from kombu.utils.uuid import uuid
+
+from anyforecast import backends, tasks
+from anyforecast.exceptions import RunningTasksDoesNotExist
 from anyforecast.models.base import sessionfactory
 from anyforecast.models.taskexecution import TaskExecution
-from anyforecast.models.utils import check_db
-from anyforecast.tasks import Task
+from anyforecast.utils.db import check_db
 
 from .promise import TaskPromise
 
@@ -55,7 +53,7 @@ class TaskContainer:
         The task's UUID.
     """
 
-    task: Task
+    task: tasks.Task
     args: Tuple
     kwargs: Dict
     task_id: str
@@ -65,8 +63,24 @@ class TaskContainer:
         return self.task(*self.args, **self.kwargs)
 
 
+class RunningTasks(dict):
+    """Map of running task promises."""
+
+    def __missing__(self, key):
+        raise RunningTasksDoesNotExist(task_id=key)
+
+    def add(self, promise: TaskPromise):
+        self[promise.task_id] = promise
+
+    def remove(self, task_id: str):
+        self.pop(task_id)
+
+    def get(self, task_id: str):
+        return self[task_id]
+
+
 class TaskExecutor:
-    """Executes the actual task.
+    """Executes tasks on the selected backend.
 
     :class:`TaskExecutor` instances encapulsate the running of a single task.
     Each running process starts a fresh db session used to update the state of
@@ -87,13 +101,13 @@ class TaskExecutor:
     def __init__(
         self,
         task_container: TaskContainer,
-        backend_exec: BackendExecutor,
+        backend_exec: backends.BackendExecutor,
     ):
         self.task_container = task_container
         self.backend_exec = backend_exec
         check_db()
 
-    def submit(self, **opts) -> Future:
+    def submit(self, **opts) -> backends.BackendFuture:
         return self.backend_exec.execute(self, **opts)
 
     def execute(self) -> Any:
@@ -182,6 +196,18 @@ class ClientExecutorBridge:
             backend_exec=backend_exec,
         )
 
+    def create_backend_exec(
+        self, name: str, **opts
+    ) -> backends.BackendExecutor:
+        """Creates backend executor.
+
+        Parameters
+        ----------
+        name : str
+            Backend executor name.
+        """
+        return backends.BackendExecutorFactory.create(name, **opts)
+
     def submit_task(
         self,
         backend_exec: str,
@@ -202,7 +228,106 @@ class ClientExecutorBridge:
             Optional keyword arguments to pass to executor backend.
         """
         self.create_task_execution(task_container.task_id, backend_exec)
-        backend_exec = BackendExecutorFactory.create(backend_exec, **opts)
-        task_executor = TaskExecutor(task_container, backend_exec)
-        future = task_executor.submit()
+        backend_exec = self.create_backend_exec(backend_exec, **opts)
+        executor = TaskExecutor(task_container, backend_exec)
+        future = executor.submit(**opts)
         return TaskPromise(task_container.task_id, future)
+
+
+class RegisteredTasksExecutor:
+    """Provides access to the execution of registered tasks.
+
+    Call :meth:`list_tasks` to see available tasks.
+    """
+
+    def __init__(self):
+        self._running = RunningTasks()
+
+    def save_promise(self, promise: TaskPromise) -> None:
+        """Saves promise."""
+        self._running.add(promise)
+
+    def get_promise(self, task_id: str) -> TaskPromise:
+        return self._running.get(task_id)
+
+    def execute_async(
+        self,
+        name: str,
+        args: tuple = (),
+        kwargs: dict | None = None,
+        backend_exec: str = "local",
+        task_id: str = None,
+        **opts,
+    ) -> TaskPromise:
+        """Executes registered tasks on the specified executor backend.
+
+        Patameters
+        ----------
+        name : str
+            Name of the task name to execute.
+
+        args : tuple, default=()
+            Task positional arguments.
+
+        kwargs : dict, default=None
+            Task key-word arguments.
+
+        backend : str or ExecutorBackend, default="local"
+            Backend executor.
+
+        task_id : str, default=None
+            Task identifier.
+
+        **opts : optional args
+            Optional arguments to executor backend.
+        """
+        if kwargs is None:
+            kwargs = {}
+
+        client_executor_bridge = ClientExecutorBridge()
+        task = self.get_task(name)
+        task_id = task_id or uuid()
+        task_container = TaskContainer(task, args, kwargs, task_id)
+        promise = client_executor_bridge.submit_task(
+            backend_exec, task_container, **opts
+        )
+        self.save_promise(promise)
+        return promise
+
+    def execute(
+        self,
+        name: str,
+        args: tuple = (),
+        kwargs: dict | None = None,
+    ) -> Any:
+        """Executes registered tasks synchronously.
+
+        Patameters
+        ----------
+        name : str
+            Name of the task name to execute.
+
+        args : tuple, default=()
+            Task positional arguments.
+
+        kwargs : dict, default=None
+            Task key-word arguments.
+        """
+        if kwargs is None:
+            kwargs = {}
+
+        return self.get_task(name)(*args, **kwargs)
+
+    def list_tasks(self) -> list[str]:
+        """Returns available tasks"""
+        return list(tasks.TasksFactory.registry)
+
+    def get_task(self, name: str) -> tasks.Task:
+        """Returns single task by name.
+
+        Parameters
+        ----------
+        name : str
+            Name of the task.
+        """
+        return tasks.TasksFactory.get(name)

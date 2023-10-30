@@ -19,7 +19,7 @@ def execute_task(executor: base.Executor):
     return executor.execute()
 
 
-class CeleryFuture(base.Future):
+class CeleryFuture(base.BackendFuture):
     """Wrapper for Celery async result."""
 
     def __init__(self, celery_async_result: CeleryAsyncResult):

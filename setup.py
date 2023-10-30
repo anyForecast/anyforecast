@@ -1,7 +1,7 @@
 import os
 import re
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 
 def is_comment_or_empty(line):
@@ -13,12 +13,12 @@ def remove_comments_and_empty_lines(lines):
     return [line for line in lines if not is_comment_or_empty(line)]
 
 
-VERSION_RE = re.compile(r'''VERSION = ['"]([0-9.]+)['"]''')
+VERSION_RE = re.compile(r"""VERSION = ['"]([0-9.]+)['"]""")
 ROOT = os.path.dirname(__file__)
 
 
 def get_version():
-    path = os.path.join(ROOT, 'anyforecast', 'version.py')
+    path = os.path.join(ROOT, "anyforecast", "version.py")
     init = open(path).read()
     return VERSION_RE.search(init).group(1)
 
@@ -32,7 +32,7 @@ def get_packages():
     return find_packages(exclude=["tests", "tests.*"])
 
 
-python_requires = '>=3.8'
+python_requires = ">=3.10"
 
 setup(
     name="anyforecast",
@@ -43,5 +43,5 @@ setup(
     entry_points="""
         [console_scripts]
         anyforecast=anyforecast.cli:cli
-    """
+    """,
 )
