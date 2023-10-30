@@ -68,3 +68,6 @@ env/
 # Db
 *.db
 
+# MLFlow
+mlruns/
+

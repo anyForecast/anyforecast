@@ -1,6 +1,4 @@
-from anyforecast.app.task import TaskPromise
-from anyforecast.client import AnyForecastClient
-
+from anyforecast.execution import RegisteredTasksExecutor, TaskPromise
 
 __all__ = ("execute_task",)
 
@@ -42,7 +40,7 @@ def execute_task(
 
 class WebTaskExecutor:
     def __init__(self) -> None:
-        self.client = AnyForecastClient()
+        self.executor = RegisteredTasksExecutor()
 
     def execute_task(
         self,
@@ -53,7 +51,7 @@ class WebTaskExecutor:
         task_id: str | None = None,
         **opts
     ) -> TaskPromise:
-        return self.client.execute_task(
+        return self.executor.execute_async(
             name, args, kwargs, exec_backend, task_id, **opts
         )
 

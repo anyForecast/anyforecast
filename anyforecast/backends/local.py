@@ -6,7 +6,7 @@ from . import base
 PYTHON_EXECUTOR = ProcessPoolExecutor()
 
 
-class LocalFuture(base.Future):
+class LocalFuture(base.BackendFuture):
     def __init__(self, python_future: PythonFuture) -> None:
         self.python_future = python_future
 

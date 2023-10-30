@@ -1,5 +1,5 @@
-from .task import Task
 from .examples import add
-from .registry import task_registry
+from .mlflow import run_mlflow_project
+from .base import Task, TasksFactory
 
-__all__ = ["task_registry", "add", "Task"]
+__all__ = ["TasksFactory", "Task"]

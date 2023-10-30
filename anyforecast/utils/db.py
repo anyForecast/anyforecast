@@ -3,9 +3,8 @@ from typing import Literal
 from sqlalchemy_utils.functions import create_database, database_exists
 
 from anyforecast.exceptions import DatabaseDoesNotExist
-
-from .base import Base
-from .engine import create_db_engine, db_settings
+from anyforecast.models.base import Base
+from anyforecast.models.engine import create_db_engine, db_settings
 
 
 def create_db() -> None:
