@@ -1,22 +1,14 @@
 import os
-from typing import Any, Literal, Self
+from typing import Any, Literal
+
+from mlflow.projects.submitted_run import SubmittedRun
 
 from anyforecast.definitions import PROJECTS_PATH
-from anyforecast.deployments import get_deployer
+from anyforecast.deployments import Deployer, get_deployer
 from anyforecast.execution import RegisteredTasksExecutor, TaskPromise
 
 
-class MLFlowPredictor:
-    def predict(self):
-        pass
-
-
-class MLFlowDeployer:
-    def deploy():
-        pass
-
-
-class MLFlowEstimator:
+class Estimator:
     """Handle end-to-end training and deployment of MLFlow projects.
 
     Parameters
@@ -48,7 +40,7 @@ class MLFlowEstimator:
     """
 
     #: Name of the task to be executed.
-    task_name: str = "mlflow.run_mlflow_project"
+    task_name: str = "anyforecast.tasks.mlflow.run_mlflow_project"
 
     def __init__(
         self,
@@ -106,18 +98,29 @@ class MLFlowEstimator:
             name=self.task_name, kwargs=kwargs, backend_exec=backend_exec
         )
 
-    def fit(self, inputs: dict[str, str]) -> Self:
+    def fit(self, inputs: dict[str, str]):
         """Fits estimator.
 
         Parameters
         ----------
         inputs : dict, str -> str
             Location where training data is saved.
+
+        Returns
+        -------
+        self : object
         """
         kwargs = self.get_kwargs(inputs)
-        self.run_ = self.executor.execute(name=self.task_name, kwargs=kwargs)
+        self.run_: SubmittedRun = self.executor.execute(
+            name=self.task_name, kwargs=kwargs
+        )
         return self
 
-    def deploy(self, mode: str = "local"):
-        deployer = get_deployer(mode)
-        return deployer.deploy()
+    def deploy(self, mode: str = "local", config: dict = None):
+        if config is None:
+            config = {}
+
+        run_id = self.run_.run_id
+        model_uri = f"runs:/{run_id}/model"
+        deployer: Deployer = get_deployer(mode, **config)
+        return deployer.deploy(run_id, model_uri)

@@ -32,7 +32,7 @@ def get_packages():
     return find_packages(exclude=["tests", "tests.*"])
 
 
-python_requires = ">=3.11"
+python_requires = ">=3.10"
 
 setup(
     name="anyforecast",

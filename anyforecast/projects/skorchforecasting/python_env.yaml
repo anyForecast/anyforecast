@@ -1,5 +1,5 @@
 # Python version required to run the project.
-python: "3.10"
+python: "3.10.4"
 # Dependencies required to build packages. This field is optional.
 build_dependencies:
   - pip
@@ -9,9 +9,9 @@ build_dependencies:
 dependencies:
   - numpy
   - pandas
-  - scikit-learn>1.0.0
+  - scikit-learn>=1.0.0
   - click
   - skorch-forecasting @ git+https://github.com/skorch-forecasting-dev/skorch-forecasting.git
-  - mlflow
+  - mlflow>=2.0.1
   
 

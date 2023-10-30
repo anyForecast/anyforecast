@@ -1,5 +1,5 @@
 import click
-from options import skorchforecasting_options
+from cli_options import skorchforecasting_options
 from preprocessing import make_preprocessor
 from sklearn.pipeline import Pipeline
 from skorch_forecasting.models import TemporalFusionTransformer as TFT

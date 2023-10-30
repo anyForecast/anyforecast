@@ -3,8 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from mlflow.models import build_docker as build_docker_api
-
 import docker
 
 
@@ -42,22 +40,25 @@ class DockerRunner:
     image_uri : str
         The image to run.
 
-    command : str
+    command : str, default=None
         The command to run in the container.
 
-    environment : dict
+    environment : dict, default=None
         Environment variables to set inside the container, as a dictionary.
 
-    entrypoint : str or list of str
+    entrypoint : str or list of str, default=None
         The entrypoint for the container
 
-    volumes : list of str or dict
+    volumes : list of str or dict, default=None
         A dictionary to configure volumes mounted inside the container.
         Or a list of strings which each one of its elements specifies a mount
         volume.
 
-    kwargs : keyword args
-        Additonal arguments to pass to :meth:`docker.client.containers.run`.
+    name : str, default=None
+        Name of the container.
+
+    detach : bool, default=False
+        Run container in the background and return a Container object.
     """
 
     def __init__(
@@ -67,33 +68,38 @@ class DockerRunner:
         environment: dict[str, str] | None = None,
         entrypoint: str | list[str] | None = None,
         volumes: list[str] | dict[str, str] | None = None,
-        **kwargs,
+        ports: dict | None = None,
+        name: str | None = None,
+        detach: bool = False,
     ) -> None:
         self.image_uri = image_uri
         self.command = command
         self.environment = environment
         self.entrypoint = entrypoint
         self.volumes = volumes
-        self.kwargs = kwargs
+        self.ports = ports
+        self.name = name
+        self.detach = detach
 
         #: Actual Docker Python client.
         self.docker_client = docker.from_env()
 
-    def run(self, **kwargs) -> None:
+    def run(self) -> None | docker.models.containers.Container:
         """Runs container.
 
-        Parameters
-        ----------
-        kwargs : keyword args
-            Additonal arguments to pass to :meth:`docker.client.containers.run`.
+        Returns
+        -------
+        If detach is True, a Container object is returned instead else None.
         """
-        self.docker_client.containers.run(
+        return self.docker_client.containers.run(
             image=self.image_uri,
             command=self.command,
             entrypoint=self.entrypoint,
             environment=self.environment,
             volumes=self.volumes,
-            **kwargs,
+            ports=self.ports,
+            name=self.name,
+            detach=self.detach,
         )
 
 
@@ -165,4 +171,3 @@ class DockerScriptRunner:
         # Script path inside container.
         script = self.script_volume.split(":")[-1]
         return PythonCommand(script=script, args=self.args)
-

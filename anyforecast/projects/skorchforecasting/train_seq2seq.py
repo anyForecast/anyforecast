@@ -1,7 +1,7 @@
 import click
 import mlflow
 import pandas as pd
-from options import skorchforecasting_options
+from cli_options import skorchforecasting_options
 from preprocessing import make_preprocessor
 from pytorch_forecasting.data.examples import get_stallion_data
 from sklearn.pipeline import Pipeline
@@ -9,7 +9,7 @@ from skorch_forecasting.models import Seq2Seq
 
 
 def get_sample_data() -> pd.DataFrame:
-    data = get_stallion_data()
+    data: pd.DataFrame = get_stallion_data()
 
     cols = [
         "agency",

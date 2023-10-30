@@ -1,4 +1,4 @@
-from anyforecast.ml.estimator import MLFlowEstimator
+from anyforecast.ml.estimator import Estimator
 
 
 def test_train_seq2seq():
@@ -12,7 +12,7 @@ def test_train_seq2seq():
     }
 
     inputs = {"train": "train.csv"}
-    estimator = MLFlowEstimator(project=project, parameters=parameters)
+    estimator = Estimator(project=project, parameters=parameters)
     estimator.fit(inputs)
     return estimator
 

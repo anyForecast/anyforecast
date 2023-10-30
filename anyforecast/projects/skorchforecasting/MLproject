@@ -31,5 +31,3 @@ entry_points:
     --freq {freq}
     --device {device}
     "
-
-    mlflow models build-docker --model-uri "runs:/dd460b9c865d4285b7faf09be553f2c7/model" --name "seq2seq-endpoint"
