@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from anyforecast.web.executor import execute_task
+from anyforecast.web.executor import execute
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -13,8 +13,6 @@ class Numbers(BaseModel):
 
 @router.post("/add")
 async def add(numbers: Numbers):
-    promise = execute_task(
+    return execute(
         name="anyforecast.tasks.examples.add", kwargs=numbers.model_dump()
     )
-
-    return {"task_id": promise.task_id}

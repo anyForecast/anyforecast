@@ -11,6 +11,7 @@ httpx
 python-multipart
 bcrypt
 asyncpg
+psycopg2>=2.9.9
 sqlalchemy>=2.0
 sqlalchemy_utils
 pandas
