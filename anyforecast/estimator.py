@@ -1,14 +1,14 @@
 import os
+from abc import ABC, abstractmethod
 from typing import Any, Literal
 
 from mlflow.projects.submitted_run import SubmittedRun
 
-from anyforecast.definitions import PROJECTS_PATH
 from anyforecast.deployments import Deployer, get_deployer
 from anyforecast.execution import RegisteredTasksExecutor, TaskPromise
 
 
-class Estimator:
+class MLFlowEstimator(ABC):
     """Handle end-to-end training and deployment of MLFlow projects.
 
     Parameters
@@ -18,9 +18,6 @@ class Estimator:
 
     entry_point : str, default="main"
         Entry point to run within the project.
-
-    parameters : dict, default=None
-        Parameters (dictionary) for the entry point command.
 
     experiment_name : str, default=None
         Name of experiment under which to launch the run.
@@ -44,17 +41,15 @@ class Estimator:
 
     def __init__(
         self,
-        project: str,
+        project_uri: str,
         entry_point: str = "main",
-        parameters: dict[str, Any] | None = None,
         experiment_name: str | None = None,
         experiment_id: str | None = None,
         run_name: str | None = None,
         env_manager: Literal["local", "virtualenv", "conda"] | None = None,
     ):
-        self.project = project
+        self.project_uri = project_uri
         self.entry_point = entry_point
-        self.parameters = parameters
         self.experiment_name = experiment_name
         self.experiment_id = experiment_id
         self.run_name = run_name
@@ -62,27 +57,22 @@ class Estimator:
 
         self.executor = RegisteredTasksExecutor()
 
-    @property
-    def project_uri(self) -> str:
-        return os.path.join(PROJECTS_PATH, self.project)
+    @abstractmethod
+    def get_parameters(self) -> dict:
+        pass
 
-    def get_kwargs(self, inputs: dict[str, str]) -> dict[str, Any]:
-        parameters = {} if self.parameters is None else self.parameters.copy()
-        parameters.update(inputs)
-
+    def get_kwargs(self) -> dict[str, Any]:
         return {
             "uri": self.project_uri,
             "entry_point": self.entry_point,
-            "parameters": parameters,
+            "parameters": self.get_parameters(),
             "experiment_name": self.experiment_name,
             "experiment_id": self.experiment_id,
             "run_name": self.run_name,
             "env_manager": self.env_manager,
         }
 
-    def fit_async(
-        self, inputs: dict[str, str], backend_exec: str = "local"
-    ) -> TaskPromise:
+    def fit_async(self, backend_exec: str = "local") -> TaskPromise:
         """Fits estimator asynchronously.
 
         Parameters
@@ -93,12 +83,13 @@ class Estimator:
         backend_exec : str
             Backend executor.
         """
-        kwargs = self.get_kwargs(inputs)
         return self.executor.execute_async(
-            name=self.task_name, kwargs=kwargs, backend_exec=backend_exec
+            name=self.task_name,
+            kwargs=self.get_kwargs(),
+            backend_exec=backend_exec,
         )
 
-    def fit(self, inputs: dict[str, str]):
+    def fit(self):
         """Fits estimator.
 
         Parameters
@@ -110,9 +101,8 @@ class Estimator:
         -------
         self : object
         """
-        kwargs = self.get_kwargs(inputs)
         self.run_: SubmittedRun = self.executor.execute(
-            name=self.task_name, kwargs=kwargs
+            name=self.task_name, kwargs=self.get_kwargs()
         )
         return self
 

@@ -10,7 +10,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
 async def get_current_user(
-        token: Annotated[str, Depends(oauth2_scheme)]
+    token: Annotated[str, Depends(oauth2_scheme)]
 ) -> User:
     """Authenticates token and returns user.
 
@@ -28,7 +28,7 @@ async def get_current_user(
 
 
 async def get_current_active_user(
-        current_user: Annotated[User, Depends(get_current_user)]
+    current_user: Annotated[User, Depends(get_current_user)]
 ) -> User:
     """Returns user only if is active.
 

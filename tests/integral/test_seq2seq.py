@@ -1,4 +1,4 @@
-from anyforecast.ml.estimator import Estimator
+from anyforecast.estimator import Estimator
 
 
 def test_train_seq2seq():

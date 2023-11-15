@@ -10,8 +10,8 @@ from kombu.utils.uuid import uuid
 
 from anyforecast import backends, tasks
 from anyforecast.exceptions import RunningTasksDoesNotExist
-from anyforecast.models.base import sessionfactory
-from anyforecast.models.taskexecution import TaskExecution
+from anyforecast.db.base import sessionfactory
+from anyforecast.db.taskexecution import TaskExecution
 from anyforecast.utils.db import check_db
 
 from .promise import TaskPromise

@@ -1,5 +1,5 @@
 import dotenv
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def find_dotenv(name) -> str:
@@ -32,8 +32,7 @@ class TokenSettings(BaseSettings):
     algorithm: str = "HS256"
     expires: int = 30
 
-    class Config:
-        env_prefix = "TOKEN_"
+    model_config = SettingsConfigDict(env_prefix="TOKEN_")
 
 
 class DBSettings(BaseSettings):
@@ -47,8 +46,7 @@ class DBSettings(BaseSettings):
 
     url: str
 
-    class Config:
-        env_prefix = "DB_"
+    model_config = SettingsConfigDict(env_prefix="DB_")
 
 
 class CelerySettings(BaseSettings):
@@ -59,8 +57,7 @@ class CelerySettings(BaseSettings):
     accept_content: list[str] = ["json"]
     event_serializer: str = "json"
 
-    class Config:
-        env_prefix = "CELERY_"
+    model_config = SettingsConfigDict(env_prefix="CELERY_")
 
 
 class EnvSettings(BaseSettings):
@@ -84,9 +81,9 @@ class AppPublicInfo(BaseSettings):
         Application contact email.
     """
 
-    name: str = "AnyForecast"
-    author: str = "RamonAmez"
-    email: str = "concat@anyforecast.com"
+    name: str = "anyforecast"
+    author: str = "ramonamezquita"
+    email: str = "contact@anyforecast.com"
 
 
 def get_public_info() -> AppPublicInfo:

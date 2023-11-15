@@ -1,38 +1,10 @@
 import click
 import mlflow
 import pandas as pd
-from cli_options import skorchforecasting_options
+from common import skorchforecasting_options
 from preprocessing import make_preprocessor
-from pytorch_forecasting.data.examples import get_stallion_data
 from sklearn.pipeline import Pipeline
 from skorch_forecasting.models import Seq2Seq
-
-
-def get_sample_data() -> pd.DataFrame:
-    data: pd.DataFrame = get_stallion_data()
-
-    cols = [
-        "agency",
-        "sku",
-        "volume",
-        "date",
-        "industry_volume",
-        "price_regular",
-        "price_actual",
-        "discount",
-    ]
-
-    group_ids = ["agency", "sku"]
-
-    top_groups = (
-        data.groupby(group_ids)
-        .agg({"volume": "sum"})["volume"]
-        .nlargest(10)
-        .index.to_list()
-    )
-
-    data = data.set_index(group_ids).loc[top_groups].reset_index()
-    return data[cols]
 
 
 @click.command()
@@ -50,8 +22,13 @@ def train(
     max_encoder_length,
     freq,
     device,
+    max_epochs,
+    verbose,
 ):
-    data = get_sample_data()
+    data = pd.read_csv(train)
+    data[group_ids] = data[group_ids].astype("category")
+    data[timestamp] = pd.to_datetime(data[timestamp])
+
     preprocessor = make_preprocessor(group_ids, timestamp, target, freq)
     estimator = Seq2Seq(
         group_ids=group_ids,
@@ -66,6 +43,8 @@ def train(
         min_prediction_length=1,
         max_prediction_length=max_prediction_length,
         device=device,
+        max_epochs=max_epochs,
+        verbose=verbose,
     )
 
     pipe = Pipeline([("preprocessor", preprocessor), ("estimator", estimator)])
