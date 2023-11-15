@@ -1,7 +1,7 @@
-name: seq2seq
+name: skorch-forecasting
 python_env: python_env.yaml
 entry_points:
-  main:
+  train_seq2seq:
     parameters:
       train: {type: str}
       group-ids: {type: str}
@@ -15,6 +15,8 @@ entry_points:
       max-encoder-length: {type: int, default: 24}
       freq: {type: int, default: D}
       device: {type: str, default: cpu}
+      max-epochs: {type: int, default: 10}
+      verbose: {type: int, default: 1}
     
     command: "
     python train_seq2seq.py 
@@ -30,4 +32,6 @@ entry_points:
     --max-encoder-length {max-encoder-length}
     --freq {freq}
     --device {device}
+    --max-epochs {max-epochs}
+    --verbose {verbose}
     "

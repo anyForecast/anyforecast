@@ -3,13 +3,13 @@ from typing import Literal
 from sqlalchemy_utils.functions import create_database, database_exists
 
 from anyforecast.exceptions import DatabaseDoesNotExist
-from anyforecast.models.base import Base
-from anyforecast.models.engine import create_db_engine, db_settings
+from anyforecast.db.base import Base
+from anyforecast.db.engine import create_db_engine, db_settings
 
 
 def create_db() -> None:
     """Creates AnyForecast database."""
-    from anyforecast.models.taskexecution import TaskExecution
+    from anyforecast.db.taskexecution import TaskExecution
 
     engine = create_db_engine()
     create_database(engine.url)

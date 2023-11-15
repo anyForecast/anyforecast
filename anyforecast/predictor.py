@@ -1,34 +1,28 @@
 import os
 from typing import Any, Protocol
 
-import pandas as pd
 import requests
+
+from .serializers import IdentitySerializer
 
 
 class Serializer(Protocol):
-    def serialize(self, data: Any) -> dict:
+    def serialize(self, data: Any) -> Any:
         ...
-
-
-class IdentitySerializer:
-    def serialize(self, data: dict) -> dict:
-        return data
-
-
-class PandasSerializer:
-    def serialize(self, data: pd.DataFrame) -> dict:
-        return data.to_dict(orient="split")
 
 
 class Predictor:
     """Real time inference for MLFlow hosted models."""
 
     def __init__(
-        self, endpoint_name, serializer: Serializer = IdentitySerializer()
+        self,
+        endpoint_name,
+        serializer: Serializer = IdentitySerializer(),
+        session: requests.Session = requests.Session(),
     ):
         self.endpoint_name = endpoint_name
         self.serializer = serializer
-        self.session = requests.Session()
+        self.session = session
 
     @property
     def url(self) -> str:

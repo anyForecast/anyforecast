@@ -1,0 +1,6 @@
+numpy
+pandas
+scikit-learn>=1.0.0
+click
+skorch-forecasting @ git+https://github.com/skorch-forecasting-dev/skorch-forecasting.git
+mlflow>=2.0.1

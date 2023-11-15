@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from anyforecast import backends
-from anyforecast.models.taskexecution import TaskExecution
+from anyforecast.db.taskexecution import TaskExecution
 
 
 def get_future(task_id: str) -> backends.BackendFuture:
