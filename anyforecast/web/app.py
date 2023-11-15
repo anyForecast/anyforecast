@@ -25,9 +25,11 @@ class AnyForecastWebApp:
         check_db(if_not_exists="create")
         self.fastapi = create_fastapi_app()
 
-    def run_server(self, host="0.0.0.0", port=80):
+    def run_server(
+        self, host: str = "0.0.0.0", port: int = 80, reload: bool = False
+    ):
         """Runs FastAPI by calling uvicorn."""
-        uvicorn.run(self.fastapi, host=host, port=port)
+        uvicorn.run(self.fastapi, host=host, port=port, reload=reload)
 
 
 webapp = AnyForecastWebApp()

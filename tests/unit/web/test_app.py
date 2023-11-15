@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from .app import webapp
+from anyforecast.web.app import webapp
 
 client = TestClient(webapp.fastapi)
 
