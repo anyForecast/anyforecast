@@ -3,8 +3,8 @@ from typing import Annotated
 import uvicorn
 from fastapi import Depends, FastAPI
 
-from anyforecast.utils.db import check_db
 from anyforecast.settings import AppPublicInfo, get_public_info
+from anyforecast.utils.db import check_db
 
 from .routers import login, tasks, users
 

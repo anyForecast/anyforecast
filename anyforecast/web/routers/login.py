@@ -2,11 +2,11 @@ from datetime import datetime, timedelta
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends
-from fastapi.security import HTTPBasicCredentials
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import HTTPBasicCredentials, OAuth2PasswordRequestForm
 from jose import jwt
 
 from anyforecast.settings import conf
+
 from ..auth import BasicAuth
 from ..models import Token
 

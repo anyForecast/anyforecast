@@ -1,7 +1,7 @@
-from anyforecast.web.executor import execute_task
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from anyforecast.web.executor import execute_task
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
