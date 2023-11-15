@@ -1,5 +1,4 @@
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from .engine import create_db_engine
 
@@ -7,7 +6,7 @@ engine = create_db_engine()
 sessionfactory = sessionmaker(engine)
 
 
-class Base:
+class Base(DeclarativeBase):
     @classmethod
     def get_or_create(cls, session: Session | None = None, **kwargs):
         """Gets object if it already exists or creates one it if it does not.
@@ -28,6 +27,3 @@ class Base:
             session.add(instance)
             session.commit()
             return instance
-
-
-Base = declarative_base(cls=Base)
