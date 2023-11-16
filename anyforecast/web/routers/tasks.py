@@ -12,7 +12,7 @@ class Numbers(BaseModel):
 
 
 @router.post("/add")
-async def add(numbers: Numbers):
+async def add(numbers: Numbers) -> int:
     return execute(
         name="anyforecast.tasks.examples.add", kwargs=numbers.model_dump()
     )
