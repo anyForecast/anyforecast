@@ -2,8 +2,11 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from .engine import create_db_engine
 
-engine = create_db_engine()
-sessionfactory = sessionmaker(engine)
+
+def sessionfactory() -> Session:
+    """Factory of SQLAlchemy sessions."""
+    engine = create_db_engine()
+    return sessionmaker(engine)()
 
 
 class Base(DeclarativeBase):
