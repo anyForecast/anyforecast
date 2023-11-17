@@ -19,5 +19,5 @@ pydantic-settings
 click
 ray[air]
 docker
-mlflow==2.5
+mlflow-skinny
 pytest
