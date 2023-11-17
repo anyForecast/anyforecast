@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.10
 
 ENV PYTHONUNBUFFERED True
 ENV PORT 8080
@@ -10,7 +10,7 @@ USER worker
 WORKDIR /home/worker/
 
 ENV APP_HOME /home/worker/anyforecast
-COPY . ${APP_HOME}
+COPY --chown=worker:worker . ${APP_HOME}
 
 
 ENV PATH /home/worker/.local/bin:${PATH}
