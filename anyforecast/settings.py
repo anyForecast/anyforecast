@@ -44,7 +44,7 @@ class DBSettings(BaseSettings):
         Database connection url.
     """
 
-    url: str
+    url: str | None = None
 
     model_config = SettingsConfigDict(env_prefix="DB_")
 

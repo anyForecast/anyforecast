@@ -2,9 +2,10 @@ from typing import Literal
 
 from sqlalchemy_utils.functions import create_database, database_exists
 
-from anyforecast.exceptions import DatabaseDoesNotExist
 from anyforecast.db.base import Base
-from anyforecast.db.engine import create_db_engine, db_settings
+from anyforecast.db.engine import create_db_engine
+from anyforecast.exceptions import DatabaseDoesNotExist
+from anyforecast.settings import conf
 
 
 def create_db() -> None:
@@ -24,6 +25,8 @@ def check_db(if_not_exists: Literal["create", "raise"] = "raise") -> None:
     if_not_exists : str {"create", "raise"}, default="raise"
         Behaviour if database does not exists.
     """
+    db_settings = conf.get_db_settings()
+
     if not database_exists(db_settings.url):
         if if_not_exists == "create":
             create_db()
