@@ -9,11 +9,11 @@ from typing import Any, Dict, Tuple
 from kombu.utils.uuid import uuid
 
 from anyforecast import backends, tasks
-from anyforecast.exceptions import RunningTasksDoesNotExist
 from anyforecast.db.base import sessionfactory
 from anyforecast.db.taskexecution import TaskExecution
-from anyforecast.utils.db import check_db
+from anyforecast.exceptions import RunningTasksDoesNotExist
 
+from .db_utils import check_db
 from .promise import TaskPromise
 
 
@@ -241,6 +241,7 @@ class RegisteredTasksExecutor:
     """
 
     def __init__(self):
+        check_db(if_not_exists="create")
         self._running = RunningTasks()
 
     def save_promise(self, promise: TaskPromise) -> None:

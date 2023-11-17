@@ -4,16 +4,15 @@ import uvicorn
 from fastapi import Depends, FastAPI
 
 from anyforecast.settings import AppPublicInfo, get_public_info
-from anyforecast.utils.db import check_db
 
-from .routers import login, tasks, users
+from .routers import login, models, users
 
 
 def create_fastapi_app() -> FastAPI:
     app = FastAPI()
     app.include_router(users.router)
     app.include_router(login.router)
-    app.include_router(tasks.router)
+    app.include_router(models.router)
 
     return app
 
@@ -22,7 +21,6 @@ class AnyForecastWebApp:
     """AnyForecast webapp."""
 
     def __init__(self):
-        check_db(if_not_exists="create")
         self.fastapi = create_fastapi_app()
 
     def run_server(
