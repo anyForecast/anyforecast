@@ -1,6 +1,5 @@
 from typing import Annotated
 
-import uvicorn
 from fastapi import Depends, FastAPI
 
 from anyforecast.settings import AppPublicInfo, get_public_info
@@ -17,23 +16,15 @@ def create_fastapi_app() -> FastAPI:
     return app
 
 
-class AnyForecastWebApp:
-    """AnyForecast webapp."""
-
-    def __init__(self):
-        self.fastapi = create_fastapi_app()
-
-    def run_server(
-        self, host: str = "0.0.0.0", port: int = 80, reload: bool = False
-    ):
-        """Runs FastAPI by calling uvicorn."""
-        uvicorn.run(self.fastapi, host=host, port=port, reload=reload)
+app = create_fastapi_app()
 
 
-webapp = AnyForecastWebApp()
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
 
 
-@webapp.fastapi.get("/info")
+@app.get("/info")
 async def info(info: Annotated[AppPublicInfo, Depends(get_public_info)]):
     """Application general information."""
     return info.model_dump()
