@@ -1,6 +1,7 @@
 import click
+import uvicorn
 
-from .app import webapp
+from .app import app
 
 
 @click.group("web", help="Start and manage anyforecast web application.")
@@ -27,11 +28,5 @@ def commands():
     default=80,
     help="The port to listen on (default: 80).",
 )
-@click.option(
-    "--reload",
-    "-r",
-    type=bool,
-    default=False,
-)
-def start(host, port, reload):
-    webapp.run_server(host, port, reload)
+def start(host, port):
+    uvicorn.run(app, host=host, port=port)
