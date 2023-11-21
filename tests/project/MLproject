@@ -1,4 +1,4 @@
-name: randomforest
+name: test_project
 python_env: python_env.yaml
 entry_points:
   main:

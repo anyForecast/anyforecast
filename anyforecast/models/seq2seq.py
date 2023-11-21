@@ -76,12 +76,12 @@ class Seq2Seq(MLFlowEstimator):
         entry_point = "train_seq2seq"
 
         super().__init__(
-            project_uri,
-            entry_point,
-            experiment_name,
-            experiment_id,
-            run_name,
-            env_manager,
+            project_uri=project_uri,
+            entry_point=entry_point,
+            experiment_name=experiment_name,
+            experiment_id=experiment_id,
+            run_name=run_name,
+            env_manager=env_manager,
         )
 
     def get_parameters(self) -> dict:
