@@ -1,17 +1,17 @@
 from __future__ import annotations
 
+import os
 import unittest
-from os.path import abspath, dirname, join
 from typing import Literal
 
 from mlflow.projects.submitted_run import SubmittedRun
 
 from anyforecast.estimator import MLFlowEstimator
 
-TESTS_DIR = dirname(dirname(dirname(abspath(__file__))))
-PROJECT_DIR = join(TESTS_DIR, "project")
+PROJECT_DIR = os.path.join(os.getcwd(), "projects")
+TRAIN_DATA = ""
 
-EXPECTED_CMD = "python main.py " f"--train {STALLION_CSV} " "--max_depth 7"
+EXPECTED_CMD = f"python main.py --train {TRAIN_DATA} --max_depth 7"
 
 
 def get_run_cmd(run: SubmittedRun) -> str:
@@ -55,6 +55,9 @@ class TestEstimator(unittest.TestCase):
     def setUp(self) -> None:
         self.estimator = create_estimator()
         self.estimator.fit()
+
+    def test_is_fitted(self) -> None:
+        assert hasattr(self.estimator.run_)
 
     def test_exit_code(self) -> None:
         exit_code = get_exit_code(self.estimator.run_)
