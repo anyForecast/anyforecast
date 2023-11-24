@@ -1,0 +1,68 @@
+##
+# compose-core.yml
+#
+# Files in this direcotry named compose-*.yml rely on inheriting from the 
+# services defined here.
+# 
+# Usage:
+#   docker-compose -f compose.yml
+##
+
+version: "3"
+services:
+
+  web:
+    restart: always
+    build: ./web
+    image: anyforecast/web
+    container_name: anyforecast-web
+    ports:
+      - 90:8080
+    env_file:
+      - .env
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - DB_URL=${POSTGRES_URL}/anyforecast
+
+  minio:
+    build: ./minio
+    image: anyforecast/minio
+    container_name: anyforecast-minio
+    volumes:
+      - minio_data:/data
+    ports:
+      - 9000:9000
+      - 9001:9001
+    
+  mlflow:
+    restart: always
+    build: ./mlflow
+    image: anyforecast/mlflow
+    container_name: anyforecast-mlflow
+    env_file:
+      - .env
+    environment:
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - BACKEND_URI=${POSTGRES_URL}/mlflow
+      - ARTIFACT_ROOT=s3://mlflow/artifacts/
+    ports:
+      - 5000:5000
+    depends_on:
+      - postgres
+      - minio
+
+  postgres:
+    restart: always
+    build: ./postgres
+    image: anyforecast/postgres
+    container_name: anyforecast-postgres
+    env_file:
+      - .env
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+volumes:
+  pg_data:
+  minio_data:
+  
+
