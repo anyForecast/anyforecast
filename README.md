@@ -1,11 +1,11 @@
-Automated and distributed time series forecasting 🚀.
+Automated ⚙️ and distributed time series forecasting 🚀.
 
 anyforecast is a containerized machine learning end-to-end system for time 
 series forecasting. 
 
 
 # Run locally
-A docker-compose.yml file 🧾 is provided for building the required services,
+A docker-compose.yml file is provided for building the required services,
 which include
 
 | Name     | Description                          | GUI | Port |
