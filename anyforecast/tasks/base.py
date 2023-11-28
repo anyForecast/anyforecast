@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from anyforecast.exceptions import TaskNotRegistered
+from anyforecast.callbacks import Callback
+
+from .registry import TasksRegistry
 
 
 def gen_task_name(name, module_name):
@@ -9,39 +11,6 @@ def gen_task_name(name, module_name):
 
 def unpickle_task(name) -> Task:
     return TasksFactory.registry[name]
-
-
-class TasksRegistry(dict):
-    """Map of registered tasks."""
-
-    def __missing__(self, key):
-        raise TaskNotRegistered(name=key)
-
-    def register(self, name, task):
-        """Register a task in the task registry.
-
-        The task will be automatically instantiated if not already an
-        instance. Name must be configured prior to registration.
-        """
-        self[name] = task
-
-    def unregister(self, name: str):
-        """Unregisters task by name.
-
-        Parameters
-        ----------
-        name : str or Task
-            name of the task to unregister, or a
-            :class:`anyforecast.tasks.Task` with a valid `name` attribute.
-
-        Raises
-        ------
-        anyforecast.exceptions.TaskNotRegistered if the task is not registered.
-        """
-        try:
-            self.pop(getattr(name, "name", name))
-        except KeyError:
-            raise TaskNotRegistered(name=name)
 
 
 class TasksFactory:
@@ -95,13 +64,16 @@ class Task:
 
     Notes
     -----
-    When called tasks apply the :meth:`run` method.  This method must
+    When called, tasks apply the :meth:`run` method.  This method must
     be defined by all tasks (that is unless the :meth:`__call__` method
     is overridden).
     """
 
     #: Name of the task.
-    name = None
+    name: str = None
+
+    #: Run behavior. Do nothing by default,
+    callbacks: list[Callback] = []
 
     def run(self, *args, **kwargs):
         """The body of the task executed by workers."""
@@ -113,22 +85,17 @@ class Task:
     def __reduce__(self):
         return (unpickle_task, (self.name,), None)
 
-    def on_success(self, retval, task_id, args, kwargs) -> None:
-        """Success handler.
+    def notify(self, method_name: str, **kwargs) -> None:
+        for cb in self.callbacks:
+            getattr(cb, method_name)(**kwargs)
 
-        Run by the worker if the task executes successfully.
-        """
-        pass
-
-    def on_failure(self, exc, task_id, args, kwargs) -> None:
-        """Error handler.
-
-        This is run by the worker when the task fails.
-        """
-        pass
+    def set_callbacks(self, callbacks: list[Callback]) -> Task:
+        self.callbacks = callbacks
 
     @classmethod
-    def from_callable(cls, fun: callable, name: str | None = None, **kwargs) -> Task:
+    def from_callable(
+        cls, fun: callable, name: str | None = None, **kwargs
+    ) -> Task:
         name = name or gen_task_name(fun.__name__, fun.__module__)
         base = cls
         kwargs = {

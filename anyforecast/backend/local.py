@@ -3,8 +3,6 @@ from concurrent.futures import ProcessPoolExecutor
 
 from . import base
 
-PYTHON_EXECUTOR = ProcessPoolExecutor()
-
 
 class LocalFuture(base.BackendFuture):
     def __init__(self, python_future: PythonFuture) -> None:
@@ -17,23 +15,18 @@ class LocalFuture(base.BackendFuture):
         pass
 
 
-def execute_task(executor: base.Executor, **opts):
-    return PYTHON_EXECUTOR.submit(executor.execute, **opts)
-
-
-@base.BackendExecutorFactory.register("local")
-class LocalExecutor(base.BackendExecutor):
+class LocalBackend(base.Backend):
     """Local executor.
 
     The local executor uses the built-in :class:`ProcessPoolExecutor` located
     in the ``concurrent`` python package.
     """
 
-    def __init__(self):
-        super().__init__(future_cls=LocalFuture)
+    def __init__(self, max_workers: int | None = None):
+        self._executor = ProcessPoolExecutor(max_workers=max_workers)
 
-    def execute(self, executor: base.Executor, **opts) -> LocalFuture:
-        future = execute_task(executor)
+    def run(self, runner: base.BackendRunner) -> LocalFuture:
+        future = self._executor.submit(runner.run)
         return LocalFuture(future)
 
     def get_future_cls(self):

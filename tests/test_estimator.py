@@ -8,10 +8,11 @@ from mlflow.projects.submitted_run import SubmittedRun
 
 from anyforecast.estimator import MLFlowEstimator
 
-PROJECT_DIR = os.path.join(os.getcwd(), "projects")
-TRAIN_DATA = ""
+TESTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJECT_DIR = os.path.join(TESTS_DIR, "unit/projects")
+IRIS_CSV = os.path.join(TESTS_DIR, "data/iris.csv")
 
-EXPECTED_CMD = f"python main.py --train {TRAIN_DATA} --max_depth 7"
+EXPECTED_CMD = f"python main.py --train {IRIS_CSV} --max_depth 7"
 
 
 def get_run_cmd(run: SubmittedRun) -> str:
@@ -25,18 +26,20 @@ def get_exit_code(run: SubmittedRun) -> int:
 
 
 def create_estimator() -> RandomForecastEstimator:
-    return RandomForecastEstimator()
+    return RandomForecastEstimator(train=IRIS_CSV)
 
 
 class RandomForecastEstimator(MLFlowEstimator):
     def __init__(
         self,
+        train : str,
         max_depth: int = 7,
         experiment_name: str | None = None,
         experiment_id: str | None = None,
         run_name: str | None = None,
         env_manager: Literal["local", "virtualenv", "conda"] | None = None,
     ):
+        self.train = train
         self.max_depth = max_depth
 
         super().__init__(
@@ -48,13 +51,14 @@ class RandomForecastEstimator(MLFlowEstimator):
         )
 
     def get_parameters(self) -> dict:
-        return {"max_depth": self.max_depth}
+        return {"train": self.train, "max_depth": self.max_depth}
 
 
 class TestEstimator(unittest.TestCase):
-    def setUp(self) -> None:
-        self.estimator = create_estimator()
-        self.estimator.fit()
+    @classmethod
+    def setUpClass(cls):
+        cls.estimator = create_estimator()
+        cls.estimator.fit()
 
     def test_is_fitted(self) -> None:
         assert hasattr(self.estimator.run_)

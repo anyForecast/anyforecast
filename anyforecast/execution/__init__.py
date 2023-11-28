@@ -1,4 +1,5 @@
-from .executors import RegisteredTasksExecutor
+from .executor import TasksExecutor
 from .promise import TaskPromise
+from .runner import TaskRunner
 
-__all__ = ["RegisteredTasksExecutor", "TaskPromise"]
+__all__ = ["TasksExecutor", "TaskPromise", "TaskRunner"]

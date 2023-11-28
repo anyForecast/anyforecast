@@ -10,7 +10,7 @@ from anyforecast.settings import conf
 
 def create_db() -> None:
     """Creates AnyForecast database."""
-    from anyforecast.db.taskexecution import TaskExecution
+    from anyforecast.db.models import TaskExecution
 
     engine = create_db_engine()
     create_database(engine.url)
