@@ -36,7 +36,7 @@ class CeleryFuture(base.BackendFuture):
         return cls(CeleryAsyncResult(id=id))
 
 
-class CeleryExecutor(base.Backend):
+class CeleryExecutor(base.BackendExecutor):
     def __init__(self):
         super().__init__(future_cls=CeleryFuture)
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from kombu.utils.uuid import uuid
 
-from anyforecast.backend import Backend, LocalBackend
+from anyforecast.backend import BackendExecutor, LocalBackend
 from anyforecast.callbacks import Callback
 from anyforecast.tasks import Task, TasksFactory
 
@@ -13,14 +13,14 @@ from .runner import TaskRunner
 class TasksExecutor:
     """Bridges client and task execution."""
 
-    def __init__(self, backend: Backend = LocalBackend()):
-        self._backend = backend
+    def __init__(self, backend_exec: BackendExecutor = LocalBackend()):
+        self._backend_exec = backend_exec
 
-    def set_backend(self, backend: Backend) -> None:
-        self._backend = backend
+    def set_backend_exec(self, backend_exec: BackendExecutor) -> None:
+        self._backend_exec = backend_exec
 
-    def get_backend(self) -> Backend:
-        return self._backend
+    def get_backend_exec(self) -> BackendExecutor:
+        return self._backend_exec
 
     def list_tasks(self) -> list[str]:
         """Returns available tasks"""
@@ -44,7 +44,7 @@ class TasksExecutor:
         task_id: str | None = None,
         callbacks: list[Callback] = (),
     ) -> TaskPromise:
-        """Executes tasks on the configured backend.
+        """Executes tasks on the configured backend executor.
 
         Parameters
         ----------
@@ -68,5 +68,5 @@ class TasksExecutor:
         task.set_callbacks(callbacks)
         task_id = task_id or uuid()
         runner = TaskRunner(task, args, kwargs, task_id)
-        future = self._backend.run(runner)
+        future = self._backend_exec.run(runner)
         return TaskPromise(task_id=task_id, future=future)

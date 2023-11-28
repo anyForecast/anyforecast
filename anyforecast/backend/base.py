@@ -6,8 +6,8 @@ from typing import Any, Protocol, Type
 
 class BackendRunner(Protocol):
     """Runner interface.
-    
-    Any object implementing the :class:`BackendRuner` interface can be given
+
+    Any object implementing the :class:`BackendRuner` interface can be passed
     to the backend executors.
     """
 
@@ -35,11 +35,11 @@ class BackendFuture(ABC):
         raise NotImplementedError()
 
 
-class Backend(ABC):
+class BackendExecutor(ABC):
     """Base class to inherit for concrete backend executors.
 
-    Backend executors recieve any executable (object with :meth:`execute`)
-    and execute it on their own workers.
+    Backend executors recieve any runner (object with :meth:`run`)
+    and run it on their own workers.
 
     . note::
         This class should not be used directly. Use derived classes instead.
@@ -47,7 +47,7 @@ class Backend(ABC):
 
     @abstractmethod
     def run(self, runner: BackendRunner) -> BackendFuture:
-        """Executes task.
+        """Runs task.
 
         Parameters
         ----------

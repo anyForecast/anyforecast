@@ -6,6 +6,9 @@ class Callback:
 
     All custom callbacks should inherit from this class. The subclass
     may override any of the ``on_...`` methods.
+
+    . note::
+        This class should not be used directly. Use derived classes instead.
     """
 
     def on_begin(self, task_id: str) -> None:

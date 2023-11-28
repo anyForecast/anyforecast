@@ -1,4 +1,4 @@
-from .base import Backend, BackendFuture, BackendRunner
+from .base import BackendExecutor, BackendFuture, BackendRunner
 from .local import LocalBackend
 from .ray import RayBackend
 
@@ -6,7 +6,7 @@ __all__ = [
     "celery",
     "local",
     "ray",
-    "Backend",
+    "BackendExecutor",
     "BackendFuture",
     "BackendRunner",
     "LocalBackend",

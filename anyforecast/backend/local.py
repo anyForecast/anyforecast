@@ -15,7 +15,7 @@ class LocalFuture(base.BackendFuture):
         pass
 
 
-class LocalBackend(base.Backend):
+class LocalBackend(base.BackendExecutor):
     """Local executor.
 
     The local executor uses the built-in :class:`ProcessPoolExecutor` located

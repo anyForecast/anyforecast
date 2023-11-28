@@ -14,7 +14,7 @@ class RayFuture(base.BackendFuture):
         self.ray_async_result = ray_async_result
 
 
-class RayBackend(base.Backend):
+class RayBackend(base.BackendExecutor):
     def run(self, runner: base.BackendRunner) -> base.BackendFuture:
         ray_async_result = run_task.remote(runner)
         return self.future_cls(ray_async_result)
