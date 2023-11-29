@@ -1,18 +1,7 @@
-##
-# compose-core.yml
-#
-# Files in this direcotry named compose-*.yml rely on inheriting from the 
-# services defined here.
-# 
-# Usage:
-#   docker-compose -f compose.yml
-##
-
 version: "3"
 services:
 
   web:
-    restart: always
     build: ./web
     image: anyforecast/web
     container_name: anyforecast-web
@@ -35,7 +24,6 @@ services:
       - 9001:9001
     
   mlflow:
-    restart: always
     build: ./mlflow
     image: anyforecast/mlflow
     container_name: anyforecast-mlflow
@@ -52,7 +40,6 @@ services:
       - minio
 
   postgres:
-    restart: always
     build: ./postgres
     image: anyforecast/postgres
     container_name: anyforecast-postgres
@@ -61,8 +48,40 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
 
+  ray-head:
+    build: ./ray
+    image: anyforecast/ray
+    ports:
+      - "${REDISPORT}:${REDISPORT}"
+      - "${DASHBOARDPORT}:${DASHBOARDPORT}"
+      - "${HEADNODEPORT}:${HEADNODEPORT}"
+    env_file:
+      - .env
+    command: bash -c "ray start --head --dashboard-host=0.0.0.0 --dashboard-port=${DASHBOARDPORT} --port=${REDISPORT} --redis-password=${REDISPASSWORD} --block"
+    shm_size: 2g
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: '2g'
+
+  ray-worker:
+    build: ./ray
+    image: anyforecast/ray
+    depends_on: 
+      - ray-head
+    env_file:
+      - .env
+    command: bash -c "ray start --address=ray-head:${REDISPORT} --redis-password=${REDISPASSWORD} --num-cpus=${NUM_CPU_WORKER} --block" 
+    shm_size: 2g
+    deploy:
+      mode: replicated
+      replicas: ${NUM_WORKERS} 
+      resources:
+        limits:
+          cpus: ${NUM_CPU_WORKER}
+          memory: '2g'
+
 volumes:
   pg_data:
   minio_data:
-  
-

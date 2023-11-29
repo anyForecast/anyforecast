@@ -13,6 +13,12 @@ def find_dotenv(name) -> str:
     return dotenv.find_dotenv(name)
 
 
+class EnvFile(BaseSettings):
+    """Specifies the environment file to use."""
+
+    env_file: str = ".env"
+
+
 class TokenSettings(BaseSettings):
     """JWT token settings.
 
@@ -49,6 +55,14 @@ class DBSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="DB_")
 
 
+class RaySettings(BaseSettings):
+    """Ray settings."""
+
+    address: str = "ray://ray-head:10001"
+
+    model_config = SettingsConfigDict(env_prefix="RAY_")
+
+
 class CelerySettings(BaseSettings):
     """Celery settings."""
 
@@ -60,78 +74,35 @@ class CelerySettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="CELERY_")
 
 
-class EnvSettings(BaseSettings):
-    """Specifies the environment file to use."""
-
-    env_file: str = ".env"
-
-
-class AppPublicInfo(BaseSettings):
-    """App general info.
-
-    Parameters
-    ----------
-    name : str
-        Application name.
-
-    author : str
-        Application author.
-
-    email : str
-        Application contact email.
-    """
-
-    name: str = "anyforecast"
-    author: str = "ramonamezquita"
-    email: str = "contact@anyforecast.com"
-
-
-def get_public_info() -> AppPublicInfo:
-    """Returns app public info.
-
-    Api settings contains general and public information about the application.
-    """
-    return AppPublicInfo()
-
-
 def get_dotenv() -> str:
     """Returns dotenv filename."""
-    env_settings = EnvSettings()
-    return find_dotenv(env_settings.env_file)
-
-
-def get_settings(name):
-    """Returns settings object.
-
-    Environment file is set dynamically depending on the "env_file"
-    environment variable.
-
-    Parameters
-    ----------
-    name : str
-    """
-    settings = {
-        "db": DBSettings,
-        "token": TokenSettings,
-        "celery": CelerySettings,
-    }
-
-    return settings[name](_env_file=get_dotenv())
+    return find_dotenv(EnvFile().env_file)
 
 
 class AnyForecastConfigParser:
-    """Returns anyForecast settings."""
+    """Returns anyForecast settings.
+
+    Use get_* methods to retrieve settings.
+    Environment file is set dynamically depending on the "env_file"
+    environment variable.
+    """
+
+    def __init__(self) -> None:
+        self._env_file = get_dotenv()
 
     def get_token_settings(self) -> TokenSettings:
         """Returns token settings."""
-        return get_settings("token")
+        return TokenSettings(_env_file=self._env_file)
 
     def get_db_settings(self) -> DBSettings:
         """Returns database settings."""
-        return get_settings("db")
+        return DBSettings(_env_file=self._env_file)
 
     def get_celery_settings(self) -> CelerySettings:
-        return get_settings("celery")
+        return CelerySettings(_env_file=self._env_file)
+
+    def get_ray_settings(self) -> RaySettings:
+        return RaySettings(_env_file=self._env_file)
 
 
 conf: AnyForecastConfigParser = AnyForecastConfigParser()

@@ -1,12 +1,17 @@
 import ray
 
+from anyforecast.settings import conf
+
 from . import base
+
+ray_settings = conf.get_ray_settings()
+ray.init(address=ray_settings.address)
 
 
 @ray.remote
 def execute_task(executor: base.Executor):
     """Runs given task."""
-    return executor.execute
+    return executor.execute()
 
 
 class RayFuture(base.BackendFuture):

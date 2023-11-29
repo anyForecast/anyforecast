@@ -17,10 +17,9 @@ def test_get_info():
     }
 
 
-def test_add_numbers():
-    json = {"x": 5, "y": 5}
-    response = client.post("/tasks/add", json=json)
-    result = response.json()
+def test_get_root():
+    response = client.get("/")
+    data = response.json()
 
     assert response.status_code == 200
-    assert result == 10
+    assert data == {"message": "Hello World"}

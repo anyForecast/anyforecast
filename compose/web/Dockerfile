@@ -16,4 +16,4 @@ RUN pip install .
 
 USER nonroot
 EXPOSE ${PORT}
-CMD exec anyforecast web start --host 0.0.0.0 --port ${PORT}
+CMD anyforecast web start --host 0.0.0.0 --port ${PORT}

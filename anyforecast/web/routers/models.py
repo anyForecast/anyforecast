@@ -13,9 +13,9 @@ class Seq2SeqParams(BaseModel):
     group_ids: str
     timestamp: str
     target: str
-    time_varying_known: str | None = (None,)
-    time_varying_unknown: str | None = (None,)
-    static_categoricals: str | None = (None,)
+    time_varying_known: str | None = None
+    time_varying_unknown: str | None = None
+    static_categoricals: str | None = None
     static_reals: str | None = None
     max_prediction_length: int = 6
     max_encoder_length: int = 24

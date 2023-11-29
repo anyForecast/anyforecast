@@ -33,4 +33,5 @@ env/
 .env
 mlruns/
 cloudbuild.yaml
+.dockerignore
 

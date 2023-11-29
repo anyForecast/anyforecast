@@ -1,0 +1,4 @@
+pandas
+scikit-learn>=1.0.0
+click
+mlflow>=2.0.1
