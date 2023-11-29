@@ -29,7 +29,7 @@ class InvalidTaskError(BaseError):
 
 
 class DatabaseDoesNotExist(BaseError):
-    fmt = "AnyForecast databse does not exist in the given url: {url}"
+    fmt = "anyforecast database does not exist in the given url: {url}"
 
 
 class RunningTasksDoesNotExist(BaseError):

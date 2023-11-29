@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from kombu.utils.uuid import uuid
 
-from anyforecast.backend import BackendExecutor, LocalBackend
+from anyforecast.backend import (
+    BackendExecutor,
+    LocalBackend,
+    check_backend_exec,
+)
 from anyforecast.callbacks import Callback
 from anyforecast.tasks import Task, TasksFactory
 
@@ -17,6 +21,7 @@ class TasksExecutor:
         self._backend_exec = backend_exec
 
     def set_backend_exec(self, backend_exec: BackendExecutor) -> None:
+        check_backend_exec(backend_exec)
         self._backend_exec = backend_exec
 
     def get_backend_exec(self) -> BackendExecutor:
@@ -68,5 +73,5 @@ class TasksExecutor:
         task.set_callbacks(callbacks)
         task_id = task_id or uuid()
         runner = TaskRunner(task, args, kwargs, task_id)
-        future = self._backend_exec.run(runner)
-        return TaskPromise(task_id=task_id, future=future)
+        backend_future = self._backend_exec.run(runner)
+        return TaskPromise(task_id, backend_future)

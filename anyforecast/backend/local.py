@@ -1,18 +1,34 @@
-from concurrent.futures import Future as PythonFuture
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor, wait
+from typing import Any
 
 from . import base
 
 
+def _execute(
+    fn,
+    args: tuple = (),
+    kwargs: dict | None = None,
+    max_workers: int | None = None,
+) -> Future:
+    if kwargs is None:
+        kwargs = {}
+
+    executor = ThreadPoolExecutor(max_workers=max_workers)
+    return executor.submit(fn, *args, **kwargs)
+
+
 class LocalFuture(base.BackendFuture):
-    def __init__(self, python_future: PythonFuture) -> None:
+    def __init__(self, python_future: Future) -> None:
         self.python_future = python_future
 
-    def get_id(self) -> str:
-        pass
+    def result(self) -> Any:
+        return self.python_future.result()
 
-    def get_state(self) -> str:
-        pass
+    def wait(self):
+        return wait([self.python_future])
+
+    def done(self) -> bool:
+        return self.python_future.done()
 
 
 class LocalBackend(base.BackendExecutor):
@@ -23,11 +39,11 @@ class LocalBackend(base.BackendExecutor):
     """
 
     def __init__(self, max_workers: int | None = None):
-        self._executor = ProcessPoolExecutor(max_workers=max_workers)
+        self.max_workers = max_workers
 
     def run(self, runner: base.BackendRunner) -> LocalFuture:
-        future = self._executor.submit(runner.run)
-        return LocalFuture(future)
+        python_future = _execute(fn=runner.run, max_workers=self.max_workers)
+        return LocalFuture(python_future)
 
     def get_future_cls(self):
         return LocalFuture

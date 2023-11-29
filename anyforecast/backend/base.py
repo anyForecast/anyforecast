@@ -4,6 +4,14 @@ from abc import ABC, abstractmethod
 from typing import Any, Protocol, Type
 
 
+def check_backend_exec(backend_exec: BackendExecutor):
+    if not isinstance(backend_exec, BackendExecutor):
+        raise ValueError(
+            "Passed `backend_exec` is not an instance of `BackendExecutor`. "
+            f"Instead got {type(backend_exec).__name__}."
+        )
+
+
 class BackendRunner(Protocol):
     """Runner interface.
 
@@ -23,16 +31,19 @@ class BackendFuture(ABC):
     """
 
     @abstractmethod
-    def get_state(self) -> str:
+    def result(self) -> Any:
+        """Return the result of the call that the future represents."""
         pass
 
     @abstractmethod
-    def get_id(self) -> str:
+    def wait(self) -> None:
+        """Waits for task to complete."""
         pass
 
-    @classmethod
-    def from_id(cls, id: str):
-        raise NotImplementedError()
+    @abstractmethod
+    def done(self) -> bool:
+        """Return True if the future was cancelled or finished executing."""
+        pass
 
 
 class BackendExecutor(ABC):
