@@ -65,7 +65,3 @@ class BackendExecutor(ABC):
         executor : Executor
             Object with :meth:`execute`.
         """
-
-    def get_future_cls(self) -> Type[BackendFuture]:
-        """Returns executor backend's associated future class."""
-        return self._future_cls
