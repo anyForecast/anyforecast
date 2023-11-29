@@ -2,6 +2,7 @@ import click
 import mlflow
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder
 
 
 @click.command()
@@ -14,10 +15,13 @@ from sklearn.ensemble import RandomForestClassifier
     type=str,
     help="Target column.",
 )
-@click.option("--max_depth", type=int, default=7)
+@click.option("--max-depth", type=int, default=7)
 def train(train, target, max_depth):
     X = pd.read_csv(train)
     y = X.pop(target)
+
+    # Encode labels in target column.
+    y = LabelEncoder().fit_transform(y)
 
     clf = RandomForestClassifier(max_depth=max_depth, random_state=0)
 

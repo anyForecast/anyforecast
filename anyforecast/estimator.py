@@ -1,15 +1,14 @@
-import os
 from abc import ABC, abstractmethod
 from typing import Any, Literal
 
-from mlflow.projects.submitted_run import SubmittedRun
-
+from anyforecast.backend import BackendExecutor, LocalBackend
+from anyforecast.callbacks import Callback
 from anyforecast.deployments import Deployer, get_deployer
-from anyforecast.execution import RegisteredTasksExecutor, TaskPromise
+from anyforecast.execution import TaskPromise, TasksExecutor
 
 
 class MLFlowEstimator(ABC):
-    """Handle end-to-end training and deployment of MLFlow projects.
+    """Handle training and deployment of MLFlow projects.
 
     Parameters
     ----------
@@ -34,6 +33,14 @@ class MLFlowEstimator(ABC):
         and install project dependencies within that environment. If
         unspecified, MLflow automatically determines the environment manager to
         use by inspecting files in the project directory.
+
+    callbacks : list of Callback instances, default=()
+        Which callbacks to enable.
+
+
+    Attributes
+    ----------
+    promise_ : TaskPromise
     """
 
     #: Name of the task to be executed.
@@ -47,6 +54,8 @@ class MLFlowEstimator(ABC):
         experiment_id: str | None = None,
         run_name: str | None = None,
         env_manager: Literal["local", "virtualenv", "conda"] | None = None,
+        callbacks: list[Callback] = (),
+        backend_exec: BackendExecutor = LocalBackend(),
     ):
         self.project_uri = project_uri
         self.entry_point = entry_point
@@ -54,8 +63,8 @@ class MLFlowEstimator(ABC):
         self.experiment_id = experiment_id
         self.run_name = run_name
         self.env_manager = env_manager
-
-        self.executor = RegisteredTasksExecutor()
+        self.callbacks = callbacks
+        self._executor = TasksExecutor(backend_exec=backend_exec)
 
     @abstractmethod
     def get_parameters(self) -> dict:
@@ -72,38 +81,24 @@ class MLFlowEstimator(ABC):
             "env_manager": self.env_manager,
         }
 
-    def fit_async(self, backend_exec: str = "local") -> TaskPromise:
-        """Fits estimator asynchronously.
-
-        Parameters
-        ----------
-        inputs : dict, str -> str
-            Location where training data is saved.
-
-        backend_exec : str
-            Backend executor.
-        """
-        return self.executor.execute_async(
-            name=self.task_name,
-            kwargs=self.get_kwargs(),
-            backend_exec=backend_exec,
-        )
+    def set_backend_exec(self, backend_exec: BackendExecutor) -> None:
+        """Sets backend executor."""
+        self._executor.set_backend_exec(backend_exec)
 
     def fit(self):
-        """Fits estimator.
-
-        Parameters
-        ----------
-        inputs : dict, str -> str
-            Location where training data is saved.
+        """Fits estimator on the configured backend executor.
 
         Returns
         -------
         self : object
+            This estimator.
         """
-        self.run_: SubmittedRun = self.executor.execute(
-            name=self.task_name, kwargs=self.get_kwargs()
+        self.promise_: TaskPromise = self._executor.execute(
+            name=self.task_name,
+            kwargs=self.get_kwargs(),
+            callbacks=self.callbacks,
         )
+
         return self
 
     def deploy(self, mode: str = "local", config: dict = None):

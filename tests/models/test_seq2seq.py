@@ -1,3 +1,4 @@
+import unittest
 from os.path import abspath, dirname, join
 
 from mlflow.projects.submitted_run import SubmittedRun
@@ -57,13 +58,15 @@ def create_seq2seq() -> Seq2Seq:
     )
 
 
-def test_seq2seq_fit() -> None:
-    seq2seq = create_seq2seq()
-    seq2seq.fit()
+class TestFit(unittest.TestCase):
+    def setUp(self) -> None:
+        self.model = create_seq2seq()
+        self.model.fit()
 
-    run = seq2seq.run_
-    cmd = get_run_cmd(run)
-    exit_code = get_exit_code(run)
+    def test_exit_code(self):
+        exit_code = get_exit_code(self.model.run_)
+        assert exit_code == 0
 
-    assert exit_code == 0
-    assert cmd == EXPECTED_CMD
+    def test_command(self):
+        command = get_run_cmd(self.model.run_)
+        assert command == EXPECTED_CMD

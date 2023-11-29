@@ -14,9 +14,9 @@ celery_app = Celery(celery_app_name, config_source=celery_settings)
 
 
 @celery_app.task(name="run_celery")
-def execute_task(executor: base.Executor):
+def execute_task(runner: base.BackendRunner):
     """Runs given task."""
-    return executor.execute()
+    return runner.run()
 
 
 class CeleryFuture(base.BackendFuture):
@@ -36,11 +36,10 @@ class CeleryFuture(base.BackendFuture):
         return cls(CeleryAsyncResult(id=id))
 
 
-@base.BackendExecutorFactory.register("celery")
 class CeleryExecutor(base.BackendExecutor):
     def __init__(self):
         super().__init__(future_cls=CeleryFuture)
 
-    def execute(self, executor: base.Executor, **opts):
-        celery_async_result = execute_task.apply_async(executor, **opts)
+    def execute(self, runner: base.BackendRunner):
+        celery_async_result = execute_task.apply_async(runner)
         return self.future_cls(celery_async_result)
