@@ -30,13 +30,13 @@ docker-compose -f compose-core.yml up
 ```
 
 You can also enable the Ray backend executor 
-(`anyforecast.backend.RayBackend`{:.python}) by deploying a Ray cluster using 
+(`anyforecast.backend.RayBackend`) by deploying a Ray cluster using 
 ``compose-ray.yml``
 ```
 docker-compose -f compose-core.yml -f compose-ray.yml up
 ```
 
-Or the Celery backend executor (:class`anyforecast.backend.CeleryBackend`)
+Or the Celery backend executor (`anyforecast.backend.CeleryBackend`)
 ```
 docker-compose -f compose-core.yml -f compose-celery.yml up
 ```
