@@ -5,7 +5,7 @@ series forecasting.
 
 
 # Run locally
-A docker-compose.yml file is provided for building the required services,
+A ``compose-core.yml`` file is provided for building the required services,
 which include
 
 | Name     | Description                          | GUI | Port |
@@ -23,8 +23,24 @@ First, clone this repo with
 git clone https://github.com/anyForecast/anyforecast.git
 ```
 
-CD into the project, build and run the services.
+`cd` into the compose dir inside the project, build and run the services.
 ```
-cd anyforecast
-docker-compose -f compose/docker-compose.yml up
+cd anyforecast/compose
+docker-compose -f compose-core.yml up
 ```
+
+You can also enable the ray backend executor by deploying a ray cluster using ``compose-ray.yml``
+```
+docker-compose -f compose-core.yml -f compose-ray.yml up
+```
+
+Or Celery
+```
+docker-compose -f compose-core.yml -f compose-celery.yml up
+```
+
+Or both
+```
+docker-compose -f compose-core.yml -f compose-ray.yml -f compose-celery.yml up
+```
+
