@@ -1,5 +1,7 @@
 from typing import Literal
 
+from anyforecast.backend import BackendExecutor, LocalBackend
+from anyforecast.callbacks import Callback
 from anyforecast.definitions import get_project_path
 from anyforecast.estimator import MLFlowEstimator
 
@@ -56,6 +58,8 @@ class Seq2Seq(MLFlowEstimator):
         experiment_id: str | None = None,
         run_name: str | None = None,
         env_manager: Literal["local", "virtualenv", "conda"] | None = None,
+        callbacks: list[Callback] = (),
+        backend_exec: BackendExecutor = LocalBackend(),
     ):
         self.train = train
         self.group_ids = group_ids
@@ -82,6 +86,8 @@ class Seq2Seq(MLFlowEstimator):
             experiment_id=experiment_id,
             run_name=run_name,
             env_manager=env_manager,
+            callbacks=callbacks,
+            backend_exec=backend_exec,
         )
 
     def get_parameters(self) -> dict:

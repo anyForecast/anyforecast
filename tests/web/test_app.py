@@ -1,8 +1,8 @@
 from fastapi.testclient import TestClient
 
-from anyforecast.web.app import webapp
+from anyforecast.web.app import app
 
-client = TestClient(webapp.fastapi)
+client = TestClient(app)
 
 
 def test_get_info():

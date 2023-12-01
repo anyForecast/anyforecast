@@ -41,6 +41,21 @@ class TasksExecutor:
         """
         return TasksFactory.get(name)
 
+    def create_task_runner(
+        self,
+        task: Task,
+        args: tuple = (),
+        kwargs: dict = None,
+        task_id: str | None = None,
+    ) -> TaskRunner:
+        """Creates :class:`TaskRunner` instance."""
+        task_id = task_id or uuid()
+        return TaskRunner(task, args, kwargs, task_id)
+
+    def start_backend_exec(self) -> None:
+        """Stars backend executor."""
+        self._backend_exec.start()
+
     def execute(
         self,
         name: str,
@@ -71,7 +86,6 @@ class TasksExecutor:
         """
         task = self.get_task(name)
         task.set_callbacks(callbacks)
-        task_id = task_id or uuid()
-        runner = TaskRunner(task, args, kwargs, task_id)
+        runner = self.create_task_runner(task, args, kwargs, task_id)
         backend_future = self._backend_exec.run(runner)
-        return TaskPromise(task_id, backend_future)
+        return TaskPromise(runner.task_id, backend_future)

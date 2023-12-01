@@ -4,9 +4,10 @@ import os
 import unittest
 from typing import Literal
 
+import ray
 from mlflow.projects.submitted_run import SubmittedRun
 
-from anyforecast.backend import BackendExecutor, LocalBackend
+from anyforecast.backend import BackendExecutor, LocalBackend, RayBackend
 from anyforecast.callbacks import Callback
 from anyforecast.estimator import MLFlowEstimator
 
@@ -32,9 +33,12 @@ def get_exit_code(run: SubmittedRun) -> int:
     return run.command_proc.returncode
 
 
-def create_estimator() -> RandomForestEstimator:
+def create_estimator(backend_exec: BackendExecutor) -> RandomForestEstimator:
     return RandomForestEstimator(
-        train=TRAIN, max_depth=MAX_DEPTH, target=TARGET
+        train=TRAIN,
+        max_depth=MAX_DEPTH,
+        target=TARGET,
+        backend_exec=backend_exec,
     )
 
 
@@ -73,25 +77,48 @@ class RandomForestEstimator(MLFlowEstimator):
         }
 
 
-class TestEstimator(unittest.TestCase):
+class BaseTestCases:
+    class TestEstimator(unittest.TestCase):
+        backend_exec: BackendExecutor = None
+
+        @classmethod
+        def setUpClass(cls):
+            if cls.backend_exec is None:
+                raise ValueError("``backend_exec cannot be None.")
+
+            cls.estimator = create_estimator(backend_exec=cls.backend_exec)
+            cls.estimator.fit()
+            #cls.estimator.promise_.wait()  # Block until finish.
+
+        def test_is_fitted(self) -> None:
+            assert hasattr(self.estimator, "promise_")
+
+        def test_exit_code(self) -> None:
+            run = self.estimator.promise_.result()
+            exit_code = get_exit_code(run)
+            assert exit_code == 0
+
+        def test_run_cmd(self) -> None:
+            run = self.estimator.promise_.result()
+            command = get_run_cmd(run)
+            assert command == EXPECTED_CMD
+
+        def test_is_registered(self) -> None:
+            pass
+
+
+class TestEstimatorOnLocalBackend(BaseTestCases.TestEstimator):
+    backend_exec = LocalBackend()
+
+
+class TestEstimatorOnRayBackend(BaseTestCases.TestEstimator):
+    backend_exec = RayBackend()
+
     @classmethod
     def setUpClass(cls):
-        cls.estimator = create_estimator()
-        cls.estimator.fit()
-        cls.estimator.promise_.wait()  # Block until finish.
+        ray.init(num_cpus=2, include_dashboard=False)
+        super().setUpClass()
 
-    def test_is_fitted(self) -> None:
-        assert hasattr(self.estimator, "promise_")
-
-    def test_exit_code(self) -> None:
-        run = self.estimator.promise_.result()
-        exit_code = get_exit_code(run)
-        assert exit_code == 0
-
-    def test_run_cmd(self) -> None:
-        run = self.estimator.promise_.result()
-        command = get_run_cmd(run)
-        assert command == EXPECTED_CMD
-
-    def test_is_registered(self) -> None:
-        pass
+    @classmethod
+    def tearDownClass(cls):
+        ray.shutdown()

@@ -1,11 +1,8 @@
+from typing import Any
+
 import ray
 
-from anyforecast.settings import conf
-
 from . import base
-
-ray_settings = conf.get_ray_settings()
-ray.init(address=ray_settings.address)
 
 
 @ray.remote
@@ -18,11 +15,17 @@ class RayFuture(base.BackendFuture):
     def __init__(self, ray_async_result):
         self.ray_async_result = ray_async_result
 
+    def result(self) -> Any:
+        return ray.get(self.ray_async_result)
 
-class RayExecutor(base.BackendExecutor):
-    def __init__(self):
-        super().__init__(future_cls=RayFuture)
+    def wait(self) -> None:
+        return ray.wait([self.ray_async_result])
 
-    def execute(self, runner: base.BackendExecutor) -> RayFuture:
+    def done(self) -> bool:
+        return super().done()
+
+
+class RayBackend(base.BackendExecutor):
+    def run(self, runner: base.BackendExecutor) -> RayFuture:
         ray_async_result = run.remote(runner)
         return RayFuture(ray_async_result)
