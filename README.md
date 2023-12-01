@@ -1,4 +1,4 @@
-Automated ⚙️ and distributed time series forecasting 🚀.
+wpdpdAutomated ⚙️ and distributed time series forecasting 🚀.
 
 anyforecast is a containerized machine learning end-to-end system for time 
 series forecasting. 
