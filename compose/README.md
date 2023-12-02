@@ -1,3 +1,7 @@
+# anyforecast on docker compose
+
+This directory contains the needed configuration files for running
+anyforecast on docker compose.
 
 A ``compose-core.yml`` file is provided for building the required services,
 which include
@@ -12,30 +16,36 @@ which include
 > [!NOTE]
 > Port values correspond to the ones published to the **host** and can be customized through the .env file.
 
-First, clone this repo with
-```
-git clone https://github.com/anyForecast/anyforecast.git
-```
+## Getting started
 
-`cd` into the compose dir inside the project, build and run the services.
-```
-cd anyforecast/compose
-docker-compose -f compose-core.yml up
-```
+1. Clone anyforecast repo
+    
+    ```bash
+    git clone https://github.com/anyForecast/anyforecast.git
+    ```
 
-You can also enable the Ray backend executor 
-(`anyforecast.backend.RayBackend`) by deploying a Ray cluster using 
-``compose-ray.yml``
-```
-docker-compose -f compose-core.yml -f compose-ray.yml up
-```
+2. `cd` into the compose dir inside the project, build and run the services.
+    
+    ```bash
+    cd anyforecast/compose
+    docker-compose -f compose-core.yml up
+    ```
 
-Or the Celery backend executor (`anyforecast.backend.CeleryBackend`)
-```
-docker-compose -f compose-core.yml -f compose-celery.yml up
-```
+    You can also enable the Ray backend executor 
+    (`anyforecast.backend.RayBackend`) by deploying a Ray cluster using 
+    ``compose-ray.yml``
+    
+    ```bash
+    docker-compose -f compose-core.yml -f compose-ray.yml up
+    ```
 
-Or both
-```
-docker-compose -f compose-core.yml -f compose-ray.yml -f compose-celery.yml up
-```
+    Or the Celery backend executor (`anyforecast.backend.CeleryBackend`)
+    
+    ```bash
+    docker-compose -f compose-core.yml -f compose-celery.yml up
+    ```
+
+    Or both
+    ```bash
+    docker-compose -f compose-core.yml -f compose-ray.yml -f compose-celery.yml up
+    ```
