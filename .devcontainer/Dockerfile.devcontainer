@@ -23,8 +23,16 @@ RUN bash -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/fb66
 COPY .devcontainer/codespaces.zsh-theme /root/.oh-my-zsh/custom/themes/codespaces.zsh-theme
 ENV ZSH_THEME=codespaces
 
+# Install pyenv
+# v2.3.6 is the latest release as of 2022-11-14
+RUN git clone --depth 1 --single-branch --branch v2.3.6 https://github.com/pyenv/pyenv.git /root/.pyenv \
+    && echo 'eval "$(pyenv init --path)"' >> /root/.zshrc
+ENV PYENV_ROOT="/root/.pyenv"
+ENV PATH="$PYENV_ROOT/bin:$PATH"
+
 # Install anyforecast dependencies
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -e .
 
 # Install GitHub CLI (https://github.com/cli/cli/blob/trunk/docs/install_linux.md#debian-ubuntu-linux-raspberry-pi-os-apt)
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \

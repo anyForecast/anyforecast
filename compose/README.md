@@ -1,12 +1,3 @@
-Automated ⚙️ and distributed time series forecasting 🚀.
-
-anyforecast is a containerized machine learning end-to-end system for time 
-series forecasting 📈. 
-
-
-# Run locally
-Instructions for running anyforecast locally with docker compose can be
-found in the [compose](compose/README.md) directory in this repo.
 
 A ``compose-core.yml`` file is provided for building the required services,
 which include
@@ -48,4 +39,3 @@ Or both
 ```
 docker-compose -f compose-core.yml -f compose-ray.yml -f compose-celery.yml up
 ```
-
