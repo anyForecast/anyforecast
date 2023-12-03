@@ -14,7 +14,8 @@ which include
 | postgres | Backend storage.                     | ❌   | 6543 |
 
 > [!NOTE]
-> Port values correspond to the ones published to the **host** and can be customized through the .env file.
+> Port values correspond to the ones published to the **host** and can be 
+customized through the *compose.env* file.
 
 ## Getting started
 
@@ -28,7 +29,7 @@ which include
     
     ```bash
     cd anyforecast/compose
-    docker-compose -f compose-core.yml up
+    docker-compose --env-file compose.env -f compose-core.yml up
     ```
 
 3. **(Optional)** You can also enable the Ray backend executor 
@@ -36,16 +37,16 @@ which include
     ``compose-ray.yml``
     
     ```bash
-    docker-compose -f compose-core.yml -f compose-ray.yml up
+    docker-compose env-file compose.env -f compose-core.yml -f compose-ray.yml up
     ```
 
     Or the Celery backend executor (`anyforecast.backend.CeleryBackend`)
     
     ```bash
-    docker-compose -f compose-core.yml -f compose-celery.yml up
+    docker-compose env-file compose.env -f compose-core.yml -f compose-celery.yml up
     ```
 
     Or both
     ```bash
-    docker-compose -f compose-core.yml -f compose-ray.yml -f compose-celery.yml up
+    docker-compose env-file compose.env -f compose-core.yml -f compose-ray.yml -f compose-celery.yml up
     ```
