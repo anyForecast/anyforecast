@@ -31,7 +31,7 @@ which include
     docker-compose -f compose-core.yml up
     ```
 
-3. (Optional) You can also enable the Ray backend executor 
+3. **(Optional)** You can also enable the Ray backend executor 
     (`anyforecast.backend.RayBackend`) by deploying a Ray cluster using 
     ``compose-ray.yml``
     
