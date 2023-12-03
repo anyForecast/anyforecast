@@ -19,6 +19,14 @@ class EnvFile(BaseSettings):
     env_file: str = ".env"
 
 
+class AppInfo(BaseSettings):
+    """Application general information."""
+
+    name: str = "anyforecast"
+    author: str = "ramonamezquita"
+    email: str = "contact@anyforecast.com"
+
+
 class TokenSettings(BaseSettings):
     """JWT token settings.
 
@@ -58,7 +66,7 @@ class DBSettings(BaseSettings):
 class RaySettings(BaseSettings):
     """Ray settings."""
 
-    address: str = "ray://ray-head:10001"
+    address: str | None = None
 
     model_config = SettingsConfigDict(env_prefix="RAY_")
 

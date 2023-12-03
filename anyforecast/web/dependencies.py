@@ -3,10 +3,17 @@ from typing import Annotated
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 
+from anyforecast.settings import AppInfo
+
 from .auth import JWTAuth
 from .models import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+
+def get_app_info() -> AppInfo:
+    """Returns application general information."""
+    return AppInfo()
 
 
 async def get_current_user(
