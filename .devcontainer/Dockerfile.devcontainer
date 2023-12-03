@@ -7,7 +7,7 @@ RUN apt update -y \
     && apt install -y sudo \
     && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC \
     sudo -E apt-get install --no-install-recommends -y \
-    git curl wget less jq vim tree zsh \
+    git git-flow curl wget less jq vim tree zsh \
     # pyenv dependencies
     make build-essential libssl-dev zlib1g-dev \
     libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
