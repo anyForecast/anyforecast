@@ -2,8 +2,9 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI
 
-from anyforecast.settings import AppPublicInfo, get_public_info
+from anyforecast.settings import AppInfo
 
+from .dependencies import get_app_info
 from .routers import login, models, users
 
 
@@ -25,6 +26,6 @@ async def root():
 
 
 @app.get("/info")
-async def info(info: Annotated[AppPublicInfo, Depends(get_public_info)]):
+async def info(info: Annotated[AppInfo, Depends(get_app_info)]):
     """Application general information."""
     return info.model_dump()

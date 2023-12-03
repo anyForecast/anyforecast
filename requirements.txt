@@ -17,7 +17,7 @@ sqlalchemy_utils
 pandas
 pydantic-settings
 click
-ray[air]
+ray[default]
 docker
-mlflow-skinny
+mlflow-skinny==2.8
 pytest

@@ -56,6 +56,9 @@ class BackendExecutor(ABC):
         This class should not be used directly. Use derived classes instead.
     """
 
+    def start(self) -> None:
+        """Backend executors might need things to get started."""
+
     @abstractmethod
     def run(self, runner: BackendRunner) -> BackendFuture:
         """Runs task.
@@ -65,7 +68,3 @@ class BackendExecutor(ABC):
         executor : Executor
             Object with :meth:`execute`.
         """
-
-    def get_future_cls(self) -> Type[BackendFuture]:
-        """Returns executor backend's associated future class."""
-        return self._future_cls

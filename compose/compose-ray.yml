@@ -1,0 +1,41 @@
+##
+# compose-ray.yml
+# 
+# Starts local ray cluster.
+#
+# Usage:
+#   docker-compose -f compose-core.yml -f compose-ray.yml
+##
+
+version: "3"
+services:
+
+  ray-head:
+    build: ./ray
+    image: anyforecast/ray
+    ports:
+      - ${REDISPORT}:${REDISPORT}
+      - ${DASHBOARDPORT}:${DASHBOARDPORT}
+      - ${HEADNODEPORT}:${HEADNODEPORT}
+    command: bash -c "ray start --head --dashboard-host=0.0.0.0 --dashboard-port=${DASHBOARDPORT} --port=${REDISPORT} --redis-password=${REDISPASSWORD} --block"
+    shm_size: 2g
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: '2g'
+
+  ray-worker:
+    build: ./ray
+    image: anyforecast/ray
+    depends_on: 
+      - ray-head
+    command: bash -c "ray start --address=ray-head:${REDISPORT} --redis-password=${REDISPASSWORD} --num-cpus=${NUM_CPU_WORKER} --block" 
+    shm_size: 2g
+    deploy:
+      mode: replicated
+      replicas: ${NUM_WORKERS} 
+      resources:
+        limits:
+          cpus: ${NUM_CPU_WORKER}
+          memory: '2g'

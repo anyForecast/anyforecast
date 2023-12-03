@@ -4,7 +4,7 @@ from typing import Any
 from . import base
 
 
-def _execute(
+def _run(
     fn,
     args: tuple = (),
     kwargs: dict | None = None,
@@ -34,7 +34,7 @@ class LocalFuture(base.BackendFuture):
 class LocalBackend(base.BackendExecutor):
     """Local executor.
 
-    The local executor uses the built-in :class:`ProcessPoolExecutor` located
+    The local executor uses the built-in :class:`ThreadPoolExecutor` located
     in the ``concurrent`` python package.
     """
 
@@ -42,8 +42,5 @@ class LocalBackend(base.BackendExecutor):
         self.max_workers = max_workers
 
     def run(self, runner: base.BackendRunner) -> LocalFuture:
-        python_future = _execute(fn=runner.run, max_workers=self.max_workers)
+        python_future = _run(fn=runner.run, max_workers=self.max_workers)
         return LocalFuture(python_future)
-
-    def get_future_cls(self):
-        return LocalFuture

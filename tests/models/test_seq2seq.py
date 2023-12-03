@@ -5,7 +5,7 @@ from mlflow.projects.submitted_run import SubmittedRun
 
 from anyforecast.models import Seq2Seq
 
-TESTS_DIR = dirname(dirname(dirname(abspath(__file__))))
+TESTS_DIR = dirname(dirname(abspath(__file__)))
 DATA_DIR = join(TESTS_DIR, "data")
 STALLION_CSV = join(DATA_DIR, "stallion.csv")
 
@@ -58,15 +58,22 @@ def create_seq2seq() -> Seq2Seq:
     )
 
 
-class TestFit(unittest.TestCase):
-    def setUp(self) -> None:
-        self.model = create_seq2seq()
-        self.model.fit()
+class TestSeq2Seq(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.model = create_seq2seq()
+        cls.model.fit()
+        cls.model.promise_.wait()  # Block until finish.
 
-    def test_exit_code(self):
-        exit_code = get_exit_code(self.model.run_)
+    def test_is_fitted(self) -> None:
+        assert hasattr(self.model, "promise_")
+
+    def test_exit_code(self) -> None:
+        run = self.model.promise_.result()
+        exit_code = get_exit_code(run)
         assert exit_code == 0
 
-    def test_command(self):
-        command = get_run_cmd(self.model.run_)
+    def test_run_cmd(self) -> None:
+        run = self.model.promise_.result()
+        command = get_run_cmd(run)
         assert command == EXPECTED_CMD
