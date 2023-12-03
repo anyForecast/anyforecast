@@ -19,19 +19,13 @@ lib64/
 parts/
 sdist/
 var/
+env/
 *.egg-info/
 .installed.cfg
 *.egg
 
-# Sphinx documentation
-docs/_build/
-
-# Extra
-.vscode/
-venv/
-env/
-.env
+# MLFlow runs
 mlruns/
-cloudbuild.yaml
-.dockerignore
+
+
 

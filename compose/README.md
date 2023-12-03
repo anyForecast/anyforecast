@@ -15,7 +15,7 @@ which include
 
 > [!NOTE]
 > Port values correspond to the ones published to the **host** and can be 
-customized through the *.compose.env* file.
+customized through the `.env` file.
 
 ## Getting started
 
