@@ -15,7 +15,7 @@ which include
 
 > [!NOTE]
 > Port values correspond to the ones published to the **host** and can be 
-customized through the *compose.env* file.
+customized through the *.compose.env* file.
 
 ## Getting started
 
@@ -29,7 +29,7 @@ customized through the *compose.env* file.
     
     ```bash
     cd anyforecast/compose
-    docker-compose --env-file compose.env -f compose-core.yml up
+    docker-compose --env-file .compose.env -f compose-core.yml up
     ```
 
 3. **(Optional)** You can also enable the Ray backend executor 
@@ -37,16 +37,16 @@ customized through the *compose.env* file.
     ``compose-ray.yml``
     
     ```bash
-    docker-compose env-file compose.env -f compose-core.yml -f compose-ray.yml up
+    docker-compose --env-file .compose.env -f compose-core.yml -f compose-ray.yml up
     ```
 
     Or the Celery backend executor (`anyforecast.backend.CeleryBackend`)
     
     ```bash
-    docker-compose env-file compose.env -f compose-core.yml -f compose-celery.yml up
+    docker-compose --env-file .compose.env -f compose-core.yml -f compose-celery.yml up
     ```
 
     Or both
     ```bash
-    docker-compose env-file compose.env -f compose-core.yml -f compose-ray.yml -f compose-celery.yml up
+    docker-compose --env-file .compose.env -f compose-core.yml -f compose-ray.yml -f compose-celery.yml up
     ```
