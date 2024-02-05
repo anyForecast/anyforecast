@@ -1,9 +1,0 @@
-name: test_project
-python_env: python_env.yaml
-entry_points:
-  main:
-    parameters:
-      train: {type: str}
-      max-depth: {type: int}
-    
-    command: "python main.py --train {train} --max-depth {max-depth}"

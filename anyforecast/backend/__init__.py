@@ -1,16 +1,13 @@
-from .base import (
+from anyforecast.backend.base import (
     BackendExecutor,
     BackendFuture,
     BackendRunner,
     check_backend_exec,
 )
-from .local import LocalBackend
-from .ray import RayBackend
+from anyforecast.backend.local import LocalBackend
+from anyforecast.backend.ray import RayBackend
 
 __all__ = [
-    "celery",
-    "local",
-    "ray",
     "check_backend_exec",
     "BackendExecutor",
     "BackendFuture",

@@ -1,20 +1,19 @@
+import os
 import unittest
-from os.path import abspath, dirname, join
 
 from mlflow.projects.submitted_run import SubmittedRun
 
-from anyforecast.models import Seq2Seq
+from anyforecast.datasets import load_stallion
+from anyforecast.projects import Seq2SeqParams, Seq2SeqProject
 
-TESTS_DIR = dirname(dirname(abspath(__file__)))
-DATA_DIR = join(TESTS_DIR, "data")
-STALLION_CSV = join(DATA_DIR, "stallion.csv")
+STALLION_DS = load_stallion()
+TESTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 EXPECTED_CMD = (
     "python train_seq2seq.py "
-    f"--train {STALLION_CSV} "
-    "--group-ids agency,sku "
-    "--timestamp date "
+    "--group-cols agency,sku "
+    "--datetime date "
     "--target volume "
     "--time-varying-known None "
     "--time-varying-unknown volume "
@@ -39,16 +38,15 @@ def get_exit_code(run: SubmittedRun) -> int:
     return run.command_proc.returncode
 
 
-def create_seq2seq() -> Seq2Seq:
-    """Creates Seq2Seq.
+def create_seq2seq_project() -> Seq2SeqProject:
+    """Creates Seq2SeqProject.
 
-    The returned :class:`Seq2Seq` instance is ready to be fitted on the test
-    data in ``STALLION_CSV``.
+    The returned :class:`Seq2SeqProject` instance is ready to be fitted on the
+    ``STALLION_CSV``.
     """
-    return Seq2Seq(
-        train=STALLION_CSV,
-        group_ids="agency,sku",
-        timestamp="date",
+    model_params = Seq2SeqParams(
+        group_cols="agency,sku",
+        datetime="date",
         target="volume",
         time_varying_unknown="volume",
         static_categoricals="agency,sku",
@@ -57,23 +55,25 @@ def create_seq2seq() -> Seq2Seq:
         verbose=0,
     )
 
+    return Seq2SeqProject(model_params)
+
 
 class TestSeq2Seq(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.model = create_seq2seq()
-        cls.model.fit()
-        cls.model.promise_.wait()  # Block until finish.
+        cls.project = create_seq2seq_project()
+        cls.project.run()
+        cls.project.promise_.wait()  # Block until finish.
 
     def test_is_fitted(self) -> None:
-        assert hasattr(self.model, "promise_")
+        assert hasattr(self.project, "promise_")
 
     def test_exit_code(self) -> None:
-        run = self.model.promise_.result()
+        run = self.project.promise_.result()
         exit_code = get_exit_code(run)
         assert exit_code == 0
 
     def test_run_cmd(self) -> None:
-        run = self.model.promise_.result()
+        run = self.project.promise_.result()
         command = get_run_cmd(run)
         assert command == EXPECTED_CMD

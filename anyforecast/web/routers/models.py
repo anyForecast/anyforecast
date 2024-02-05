@@ -3,7 +3,7 @@ from typing import Literal
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from anyforecast.models import Seq2Seq
+from anyforecast.projects import Seq2SeqProject
 
 router = APIRouter(prefix="/models", tags=["models"])
 
@@ -36,6 +36,6 @@ class AsyncResponse(BaseModel):
 @router.post("/seq2seq", response_model=AsyncResponse)
 async def seq2seq(seq2seq_params: Seq2SeqParams):
     """Trains Seq2Seq model."""
-    seq2seq = Seq2Seq(**seq2seq_params.model_dump())
+    seq2seq = Seq2SeqProject(**seq2seq_params.model_dump())
     promise = seq2seq.fit_async()
     return AsyncResponse(task_id=promise.task_id)

@@ -63,6 +63,14 @@ class DBSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="DB_")
 
 
+class MLFlowSettings(BaseSettings):
+    """MLFlow settings."""
+
+    tracking_uri: str | None = None
+
+    model_config = SettingsConfigDict(env_prefix="MLFLOW_")
+
+
 class RaySettings(BaseSettings):
     """Ray settings."""
 
@@ -111,6 +119,9 @@ class AnyForecastConfigParser:
 
     def get_ray_settings(self) -> RaySettings:
         return RaySettings(_env_file=self._env_file)
+
+    def get_mlflow_settings(self) -> RaySettings:
+        return MLFlowSettings(_env_file=self._env_file)
 
 
 conf: AnyForecastConfigParser = AnyForecastConfigParser()

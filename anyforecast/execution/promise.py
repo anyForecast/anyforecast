@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from anyforecast.backend import BackendFuture
+from anyforecast import backend
 from anyforecast.db.models import TaskExecution
 
 
-def get_future(task_id: str) -> BackendFuture:
+def get_future(task_id: str) -> backend.BackendFuture:
     """Returns :class:`Future` instance from task_id.
 
     Parameters
@@ -30,7 +30,7 @@ class TaskPromise:
     """
 
     def __init__(
-        self, task_id: str, backend_future: BackendFuture | None = None
+        self, task_id: str, backend_future: backend.BackendFuture | None = None
     ):
         self.task_id = task_id
         self.backend_future = backend_future

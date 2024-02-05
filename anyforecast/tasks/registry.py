@@ -9,9 +9,6 @@ class TasksRegistry(dict):
 
     def register(self, name, task):
         """Register a task in the task registry.
-
-        The task will be automatically instantiated if not already an
-        instance. Name must be configured prior to registration.
         """
         self[name] = task
 

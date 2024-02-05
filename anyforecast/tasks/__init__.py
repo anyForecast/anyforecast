@@ -1,6 +1,16 @@
-from .base import Task, TasksFactory
-from .examples import add
-from .mlflow import run_mlflow_project
-from .registry import TasksRegistry
+import importlib
 
-__all__ = ["Task", "TasksFactory", "TasksRegistry"]
+from anyforecast.tasks.base import Task, TasksFactory
+
+
+def discover_tasks() -> None:
+    MODULES = ["examples", "mlflow"]
+
+    for mod in MODULES:
+        importlib.import_module(name=f"anyforecast.tasks.{mod}")
+
+
+discover_tasks()
+
+
+__all__ = ["Task", "TasksFactory"]
