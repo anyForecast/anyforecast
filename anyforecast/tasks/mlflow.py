@@ -1,12 +1,22 @@
+import os
 from typing import Any, Literal
 
 import mlflow
 
-from .base import TasksFactory
+from anyforecast.tasks import TasksFactory
+
+
+class EnvVarsSetter:
+    def __init__(self, vars: dict[str, Any]) -> None:
+        self.vars = vars
+
+    def set(self) -> None:
+        for k, v in self.vars.items():
+            os.environ[k] = v
 
 
 @TasksFactory.register()
-def run_mlflow_project(
+def run_mlflow(
     uri: str | None = None,
     entry_point: str = "main",
     parameters: dict[str, Any] | None = None,
@@ -15,7 +25,11 @@ def run_mlflow_project(
     storage_dir: str | None = None,
     run_name: str | None = None,
     env_manager: Literal["local", "virtualenv", "conda"] | None = None,
+    env_vars: dict[str, Any] | None = None,
 ) -> mlflow.projects.SubmittedRun:
+    if env_vars is not None:
+        EnvVarsSetter(env_vars).set()
+
     return mlflow.projects.run(
         uri=uri,
         entry_point=entry_point,

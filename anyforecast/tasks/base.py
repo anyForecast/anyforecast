@@ -1,20 +1,19 @@
 from __future__ import annotations
 
 from anyforecast.callbacks import Callback
+from anyforecast.tasks import registry
 
-from .registry import TasksRegistry
 
-
-def gen_task_name(name, module_name):
+def gen_task_name(name, module_name) -> str:
     return ".".join([module_name, name])
 
 
 def unpickle_task(name) -> Task:
-    return TasksFactory.registry[name]
+    return TasksFactory._registry[name]
 
 
 class TasksFactory:
-    registry = TasksRegistry()
+    _registry = registry.TasksRegistry()
 
     @classmethod
     def register(cls, name: str | None = None) -> callable:
@@ -33,11 +32,9 @@ class TasksFactory:
         """
 
         def decorator(fun: callable) -> callable:
-            """Registers :class:`Task` instances to the internal registry under
-            the given name.
-            """
+            """Registers :class:`Task` instances to the internal registry."""
             task = Task.from_callable(fun, name)
-            cls.registry.register(task.name, task)
+            cls._registry.register(task.name, task)
             return task
 
         return decorator
@@ -56,7 +53,7 @@ class TasksFactory:
         task : Task
             An instance of the task that is created.
         """
-        return cls.registry[name]
+        return cls._registry[name]
 
 
 class Task:

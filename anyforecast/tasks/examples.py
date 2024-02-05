@@ -1,4 +1,4 @@
-from .base import TasksFactory
+from anyforecast.tasks import TasksFactory
 
 
 @TasksFactory.register()

@@ -1,0 +1,9 @@
+name: test_project
+python_env: python_env.yaml
+entry_points:
+  main:
+    parameters:
+      target: { type: str }
+      max_depth: { type: int }
+
+    command: "python main.py --target {target} --max_depth {max_depth}"
