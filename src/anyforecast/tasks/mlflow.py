@@ -6,13 +6,14 @@ import mlflow
 from anyforecast.tasks import TasksFactory
 
 
-class EnvVarsSetter:
-    def __init__(self, vars: dict[str, Any]) -> None:
-        self.vars = vars
-
-    def set(self) -> None:
-        for k, v in self.vars.items():
-            os.environ[k] = v
+def set_environmet(
+    enviroment: dict[str, Any], upper_case: bool = False
+) -> None:
+    """Sets enviroment variables."""
+    for k, v in enviroment.items():
+        if upper_case:
+            k = k.upper()
+        os.environ[k] = v
 
 
 @TasksFactory.register()
@@ -25,10 +26,10 @@ def run_mlflow(
     storage_dir: str | None = None,
     run_name: str | None = None,
     env_manager: Literal["local", "virtualenv", "conda"] | None = None,
-    env_vars: dict[str, Any] | None = None,
+    environment: dict[str, Any] | None = None,
 ) -> mlflow.projects.SubmittedRun:
-    if env_vars is not None:
-        EnvVarsSetter(env_vars).set()
+    if environment is not None:
+        set_environmet(environment, upper_case=True)
 
     return mlflow.projects.run(
         uri=uri,

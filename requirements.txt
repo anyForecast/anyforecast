@@ -21,3 +21,4 @@ ray[default]
 docker
 mlflow-skinny==2.10
 pytest
+anyforecast-datasets @ git+https://github.com/anyForecast/anyforecast-datasets.git

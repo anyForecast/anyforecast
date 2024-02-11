@@ -8,15 +8,11 @@ from sklearn.preprocessing import LabelEncoder
 
 
 @click.command()
-@click.option("--target", required=True, type=str, help="Target column.")
-@click.option("--max_depth", type=int, default=5, help="Forest max depth.")
-@click.option(
-    "--train",
-    type=str,
-    help="Path for training data.",
-    default=os.environ["train"],
-)
+@click.option("--target", required=True, type=str)
+@click.option("--max_depth", type=int, default=5)
+@click.option("--train", type=str, default=os.environ["TRAIN"])
 def train(target, max_depth, train):
+    """Simple RandomForecast classification script."""
     X = pd.read_csv(train)
     y = X.pop(target)
 
