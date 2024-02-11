@@ -1,31 +1,11 @@
-import os
 import unittest
 
+from anyforecast_datasets.loaders import load_stallion
 from mlflow.projects.submitted_run import SubmittedRun
 
-from anyforecast.datasets import load_stallion
-from anyforecast.projects import Seq2SeqParams, Seq2SeqProject
+from anyforecast.projects import Seq2SeqProject
 
 STALLION_DS = load_stallion()
-TESTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-
-EXPECTED_CMD = (
-    "python train_seq2seq.py "
-    "--group-cols agency,sku "
-    "--datetime date "
-    "--target volume "
-    "--time-varying-known None "
-    "--time-varying-unknown volume "
-    "--static-categoricals agency,sku "
-    "--static-reals None "
-    "--max-prediction-length 6 "
-    "--max-encoder-length 24 "
-    "--freq MS "
-    "--device cpu "
-    "--max-epochs 1 "
-    "--verbose 0 "
-)
 
 
 def get_run_cmd(run: SubmittedRun) -> str:
@@ -39,12 +19,12 @@ def get_exit_code(run: SubmittedRun) -> int:
 
 
 def create_seq2seq_project() -> Seq2SeqProject:
-    """Creates Seq2SeqProject.
+    """Creates Seq2SeqProject.|
 
     The returned :class:`Seq2SeqProject` instance is ready to be fitted on the
     ``STALLION_CSV``.
     """
-    model_params = Seq2SeqParams(
+    return Seq2SeqProject(
         group_cols="agency,sku",
         datetime="date",
         target="volume",
@@ -55,14 +35,12 @@ def create_seq2seq_project() -> Seq2SeqProject:
         verbose=0,
     )
 
-    return Seq2SeqProject(model_params)
-
 
 class TestSeq2Seq(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.project = create_seq2seq_project()
-        cls.project.run()
+        cls.project.run(input_channels={"train": STALLION_DS.filepath})
         cls.project.promise_.wait()  # Block until finish.
 
     def test_is_fitted(self) -> None:
@@ -74,6 +52,23 @@ class TestSeq2Seq(unittest.TestCase):
         assert exit_code == 0
 
     def test_run_cmd(self) -> None:
+        expected_cmd = (
+            "python train_seq2seq.py "
+            "--group-cols agency,sku "
+            "--datetime date "
+            "--target volume "
+            "--time-varying-known None "
+            "--time-varying-unknown volume "
+            "--static-categoricals agency,sku "
+            "--static-reals None "
+            "--max-prediction-length 6 "
+            "--max-encoder-length 24 "
+            "--freq MS "
+            "--device cpu "
+            "--max-epochs 1 "
+            "--verbose 0 "
+        )
+
         run = self.project.promise_.result()
         command = get_run_cmd(run)
-        assert command == EXPECTED_CMD
+        assert command == expected_cmd

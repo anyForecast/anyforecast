@@ -1,15 +1,12 @@
-from __future__ import annotations
-
-import os
 import unittest
+from typing import Any
 
+from anyforecast_datasets.loaders import load_iris
 from mlflow.projects.submitted_run import SubmittedRun
 
-from anyforecast import backend, datasets, projects
+from anyforecast import backend, projects, testing
 
-IRIS_DS = datasets.load_iris()
-TESTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PROJECT_DIR = os.path.join(TESTS_DIR, "sample_project")
+IRIS_DS = load_iris()
 
 
 def get_run_cmd(run: SubmittedRun) -> str:
@@ -22,25 +19,23 @@ def get_exit_code(run: SubmittedRun) -> int:
     return run.command_proc.returncode
 
 
-class RandomForestProject(projects.MLFlowProject):
+class RandomForestProject(projects.MLflowProject):
     """Random Forecast sample project."""
 
-    def __init__(
-        self,
-        model_params: dict,
-        backend_exec: backend.BackendExecutor = backend.LocalBackend(),
-    ):
-        super().__init__(
-            uri=PROJECT_DIR,
-            model_params=model_params,
-            backend_exec=backend_exec,
-        )
+    def __init__(self, target: str, max_depth: int = 5):
+        super().__init__(uri=testing.PROJECT_DIR)
+
+        self.target = target
+        self.max_depth = max_depth
+
+    def get_parameters(self) -> dict[str, Any]:
+        return {"target": self.target, "max_depth": self.max_depth}
 
 
 class BaseTestCases:
     class TestProject(unittest.TestCase):
+
         #: Default arguments.
-        model_params = {"max_depth": 5, "target": IRIS_DS.target}
         backend_exec: backend.BackendExecutor = None
 
         @classmethod
@@ -48,12 +43,12 @@ class BaseTestCases:
             if cls.backend_exec is None:
                 raise ValueError("``backend_exec cannot be None.")
 
-            cls.project = RandomForestProject(
-                model_params=cls.model_params,
-                backend_exec=cls.backend_exec,
-            )
+            cls.project = RandomForestProject(target=IRIS_DS.target)
 
-            cls.project.run({"train": IRIS_DS.filepath})
+            cls.project.run(
+                input_channels={"train": IRIS_DS.filepath},
+                backend=cls.backend_exec,
+            )
             # cls.estimator.promise_.wait()  # Block until finish.
 
         def test_is_fitted(self) -> None:
@@ -65,10 +60,12 @@ class BaseTestCases:
             assert exit_code == 0
 
         def test_run_cmd(self) -> None:
+            parameters = self.project.get_parameters()
+
             expected_cmd = (
                 f"python main.py "
-                f"--target {self.model_params['target']} "
-                f"--max_depth {self.model_params['max_depth']}"
+                f"--target {parameters['target']} "
+                f"--max_depth {parameters['max_depth']}"
             )
 
             run = self.project.promise_.result()

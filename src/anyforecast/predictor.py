@@ -16,7 +16,7 @@ class Predictor:
 
     def __init__(
         self,
-        endpoint_name,
+        endpoint_name: str,
         serializer: Serializer = IdentitySerializer(),
         session: requests.Session = requests.Session(),
     ):
