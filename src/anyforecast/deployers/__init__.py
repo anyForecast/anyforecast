@@ -1,6 +1,5 @@
-from .base import Deployer
-from .docker import DockerDeployer
-from .local import LocalDeployer
+from anyforecast.deployers.docker import DockerDeployer
+from anyforecast.deployers.local import LocalDeployer
 
 
 def get_deployer(name: str, **kwargs):
@@ -8,4 +7,4 @@ def get_deployer(name: str, **kwargs):
     return deployers[name](**kwargs)
 
 
-__all__ = ["get_deployer", "Deployer"]
+__all__ = ["get_deployer"]

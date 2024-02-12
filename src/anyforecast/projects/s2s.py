@@ -1,6 +1,6 @@
 from typing import TypedDict
 
-from anyforecast.projects import base
+from anyforecast import project
 
 
 class Seq2SeqParameters(TypedDict):
@@ -19,7 +19,7 @@ class Seq2SeqParameters(TypedDict):
     verbose: int
 
 
-class Seq2SeqProject(base.MLflowProject):
+class Seq2SeqProject(project.MLflowProject):
     """Handles end-to-end training and deployment of Seq2Seq model.
 
 
@@ -61,7 +61,7 @@ class Seq2SeqProject(base.MLflowProject):
         max_epochs: int = 10,
         verbose: int = 1,
     ):
-        super().__init__(uri=base.get_script_uri("seq2seq"))
+        super().__init__(uri=project.create_script_uri("seq2seq"))
 
         self.group_cols = group_cols
         self.datetime = datetime

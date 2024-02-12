@@ -3,7 +3,7 @@ from typing import Literal
 
 from mlflow.models.flavor_backend_registry import get_flavor_backend
 
-from .base import Deployer
+from anyforecast import deployer
 
 
 def run_mlflow_server(
@@ -23,7 +23,7 @@ def run_mlflow_server(
     )
 
 
-class LocalDeployer(Deployer):
+class LocalDeployer(deployer.Deployer):
     def __init__(
         self,
         port: int = 8080,
@@ -40,7 +40,7 @@ class LocalDeployer(Deployer):
         self.env_manager = env_manager
         self.enable_mlserver = enable_mlserver
 
-    def deploy(self, name: str, model_uri: str):
+    def _deploy(self, model_uri: str):
         kwargs = {
             "model_uri": model_uri,
             "env_manager": self.env_manager,
@@ -52,7 +52,7 @@ class LocalDeployer(Deployer):
         }
 
         process = multiprocessing.Process(
-            target=run_mlflow_server, name=name, kwargs=kwargs
+            target=run_mlflow_server, kwargs=kwargs
         )
 
         return process.start()

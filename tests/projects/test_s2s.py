@@ -53,19 +53,19 @@ class TestSeq2Seq(unittest.TestCase):
 
     def test_run_cmd(self) -> None:
         expected_cmd = (
-            "python train_seq2seq.py "
-            "--group-cols agency,sku "
+            "python train.py "
+            "--group_cols agency,sku "
             "--datetime date "
             "--target volume "
-            "--time-varying-known None "
-            "--time-varying-unknown volume "
-            "--static-categoricals agency,sku "
-            "--static-reals None "
-            "--max-prediction-length 6 "
-            "--max-encoder-length 24 "
+            "--time_varying_known None "
+            "--time_varying_unknown volume "
+            "--static_categoricals agency,sku "
+            "--static_reals None "
+            "--max_prediction_length 6 "
+            "--max_encoder_length 24 "
             "--freq MS "
             "--device cpu "
-            "--max-epochs 1 "
+            "--max_epochs 1 "
             "--verbose 0 "
         )
 

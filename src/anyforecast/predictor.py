@@ -12,7 +12,7 @@ class Serializer(Protocol):
 
 
 class Predictor:
-    """Real time inference for MLFlow hosted models."""
+    """Real time inference for MLflow hosted models."""
 
     def __init__(
         self,

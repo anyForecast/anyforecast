@@ -4,7 +4,7 @@ from typing import Any
 from anyforecast_datasets.loaders import load_iris
 from mlflow.projects.submitted_run import SubmittedRun
 
-from anyforecast import backend, projects, testing
+from anyforecast import backend, project, testing
 
 IRIS_DS = load_iris()
 
@@ -19,7 +19,7 @@ def get_exit_code(run: SubmittedRun) -> int:
     return run.command_proc.returncode
 
 
-class RandomForestProject(projects.MLflowProject):
+class RandomForestProject(project.MLflowProject):
     """Random Forecast sample project."""
 
     def __init__(self, target: str, max_depth: int = 5):

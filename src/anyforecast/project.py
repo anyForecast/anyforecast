@@ -1,11 +1,12 @@
 import abc
-import os
 from typing import Any, Literal, TypedDict
 
-from anyforecast import backend, callbacks, definitions, execution
+from anyforecast import backend, callbacks, execution, settings
+
+scripts_settings = settings.conf.get_scripts_settings()
 
 
-def get_script_uri(name: str):
+def create_script_uri(name: str) -> str:
     """Returns script complete uri.
 
     Parameters
@@ -13,13 +14,13 @@ def get_script_uri(name: str):
     name : str
         Script name.
     """
-    endpoint = f"#anyforecast_scripts/{name}"
-    return os.path.join(definitions.SCRIPTS_REPO, endpoint)
+    return scripts_settings.create_uri(name)
 
 
 class RunProjectSignature(TypedDict):
     uri: str | None
     entry_point: str
+    version: str | None
     parameters: dict[str, Any] | None
     experiment_name: str | None
     experiment_id: str | None

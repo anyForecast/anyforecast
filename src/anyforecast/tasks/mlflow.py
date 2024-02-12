@@ -20,6 +20,7 @@ def set_environmet(
 def run_mlflow(
     uri: str | None = None,
     entry_point: str = "main",
+    version: str | None = None,
     parameters: dict[str, Any] | None = None,
     experiment_name: str | None = None,
     experiment_id: str | None = None,
@@ -34,6 +35,7 @@ def run_mlflow(
     return mlflow.projects.run(
         uri=uri,
         entry_point=entry_point,
+        version=version,
         parameters=parameters,
         experiment_name=experiment_name,
         experiment_id=experiment_id,

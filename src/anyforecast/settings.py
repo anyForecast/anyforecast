@@ -27,6 +27,27 @@ class AppInfo(BaseSettings):
     email: str = "contact@anyforecast.com"
 
 
+class ScriptsSettings(BaseSettings):
+    """Training scripts settings."""
+
+    repo: str = "https://github.com/anyForecast/anyforecast-scripts"
+    package: str = "anyforecast_scripts"
+    version: str = "main"
+
+    model_config = SettingsConfigDict(env_prefix="SCRIPTS_")
+
+    def create_uri(self, name: str) -> str:
+        """Returns script complete uri.
+
+        Parameters
+        ----------
+        name : str
+            Script name.
+        """
+        template = "{repo}#{package}/{name}"
+        return template.format(repo=self.repo, package=self.package, name=name)
+
+
 class TokenSettings(BaseSettings):
     """JWT token settings.
 
@@ -63,7 +84,7 @@ class DBSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="DB_")
 
 
-class MLFlowSettings(BaseSettings):
+class MLflowSettings(BaseSettings):
     """MLFlow settings."""
 
     tracking_uri: str | None = None
@@ -120,8 +141,11 @@ class AnyForecastConfigParser:
     def get_ray_settings(self) -> RaySettings:
         return RaySettings(_env_file=self._env_file)
 
-    def get_mlflow_settings(self) -> RaySettings:
-        return MLFlowSettings(_env_file=self._env_file)
+    def get_mlflow_settings(self) -> MLflowSettings:
+        return MLflowSettings(_env_file=self._env_file)
+
+    def get_scripts_settings(self) -> ScriptsSettings:
+        return ScriptsSettings(_env_file=self._env_file)
 
 
 conf: AnyForecastConfigParser = AnyForecastConfigParser()
