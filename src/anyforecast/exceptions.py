@@ -11,17 +11,22 @@ class BaseError(Exception):
 
     fmt = "An unspecified error occurred"
 
-    def __init__(self, **kwargs):
-        msg = self.fmt.format(**kwargs)
+    def __init__(self, *args, **kwargs):
+        msg = self.fmt.format(*self.args, **kwargs)
         Exception.__init__(self, msg)
+        self.args = args
         self.kwargs = kwargs
 
     def __reduce__(self):
-        return _exception_from_packed_args, (self.__class__, None, self.kwargs)
+        return _exception_from_packed_args, (
+            self.__class__,
+            self.args,
+            self.kwargs,
+        )
 
 
 class TaskNotRegistered(BaseError):
-    fmt = 'Task with name "{name}" is not registered.'
+    fmt = 'Task with name "{0}" is not registered.'
 
 
 class InvalidTaskError(BaseError):

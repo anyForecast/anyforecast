@@ -1,6 +1,6 @@
 from typing import Any
 
-from anyforecast.tasks import Task
+from anyforecast import task
 
 
 class TaskRunner:
@@ -23,7 +23,7 @@ class TaskRunner:
 
     def __init__(
         self,
-        task: Task,
+        task: task.Task,
         args: tuple = (),
         kwargs: dict = None,
         task_id: str | None = None,

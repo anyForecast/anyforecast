@@ -3,7 +3,9 @@ from typing import Any, Literal
 
 import mlflow
 
-from anyforecast.tasks import TasksFactory
+from anyforecast.registry import Registry
+
+registry = Registry()
 
 
 def set_environmet(
@@ -16,7 +18,7 @@ def set_environmet(
         os.environ[k] = v
 
 
-@TasksFactory.register()
+@registry()
 def run_mlflow(
     uri: str | None = None,
     entry_point: str = "main",

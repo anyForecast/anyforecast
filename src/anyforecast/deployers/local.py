@@ -1,8 +1,7 @@
-import multiprocessing
+import threading
 from typing import Literal
 
 from mlflow.models.flavor_backend_registry import get_flavor_backend
-
 from anyforecast import deployer
 
 
@@ -40,7 +39,7 @@ class LocalDeployer(deployer.Deployer):
         self.env_manager = env_manager
         self.enable_mlserver = enable_mlserver
 
-    def _deploy(self, model_uri: str):
+    def endpoint(self, model_uri: str):
         kwargs = {
             "model_uri": model_uri,
             "env_manager": self.env_manager,
@@ -51,8 +50,5 @@ class LocalDeployer(deployer.Deployer):
             "enable_mlserver": self.enable_mlserver,
         }
 
-        process = multiprocessing.Process(
-            target=run_mlflow_server, kwargs=kwargs
-        )
-
-        return process.start()
+        thread = threading.Thread(target=run_mlflow_server, kwargs=kwargs)
+        return thread.start()

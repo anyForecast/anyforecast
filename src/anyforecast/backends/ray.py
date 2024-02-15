@@ -2,16 +2,16 @@ from typing import Any
 
 import ray
 
-from . import base
+from anyforecast import backend
 
 
 @ray.remote
-def run(runner: base.BackendRunner):
+def run(runner: backend.Runner):
     """Runs given task."""
     return runner.run()
 
 
-class RayFuture(base.BackendFuture):
+class RayPromise(backend.Promise):
     def __init__(self, ray_async_result):
         self.ray_async_result = ray_async_result
 
@@ -25,7 +25,7 @@ class RayFuture(base.BackendFuture):
         return super().done()
 
 
-class RayBackend(base.BackendExecutor):
-    def run(self, runner: base.BackendExecutor) -> RayFuture:
+class RayBackend(backend.BackendExecutor):
+    def run(self, runner: backend.BackendExecutor) -> RayPromise:
         ray_async_result = run.remote(runner)
-        return RayFuture(ray_async_result)
+        return RayPromise(ray_async_result)

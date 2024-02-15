@@ -1,7 +1,14 @@
 import abc
 from typing import Any, Literal, TypedDict
 
-from anyforecast import backend, callbacks, execution, settings
+from anyforecast import (
+    backends,
+    callbacks,
+    deployer,
+    execution,
+    predictor,
+    settings,
+)
 
 scripts_settings = settings.conf.get_scripts_settings()
 
@@ -46,19 +53,35 @@ class MLflowProject(abc.ABC):
     #: Name of the task to be executed.
     task_name: str = "anyforecast.tasks.mlflow.run_mlflow"
 
-    def __init__(self, uri: str) -> None:
-        self.uri = uri
+    def is_run(self) -> bool:
+        """Returns True if project has been run.
 
-    @abc.abstractmethod
-    def get_parameters(self) -> dict[str, Any]:
-        """Returns MLflow project parameters."""
-        pass
+        Returns
+        -------
+        is_run : bool
+        """
+        return hasattr(self, "promise_")
+
+    def check_is_run(self) -> None:
+        """Checks project has been run.
+
+        Raises
+        ------
+        ValueError if project has not been run.
+        """
+        if not self.is_run():
+            raise ValueError(
+                "This instance is not run yet. Call 'run' with "
+                "appropriate arguments before using it."
+            )
 
     def run(
         self,
+        uri: str,
+        parameters: dict[str, Any],
         input_channels: dict[str, str],
         callbacks: list[callbacks.Callback] = (),
-        backend: backend.BackendExecutor = backend.LocalBackend(),
+        backend: backends.BackendExecutor = backends.LocalBackend(),
         entry_point: str = "main",
         experiment_name: str | None = None,
         experiment_id: str | None = None,
@@ -91,8 +114,7 @@ class MLflowProject(abc.ABC):
             MLflow experiment id.
 
         storage_dir : str, default=None
-            pass
-
+            MLflow storage dir.
 
         enviroment : dict
             Enviroment variables to set for the run.
@@ -108,9 +130,9 @@ class MLflowProject(abc.ABC):
         environment.update(input_channels)
 
         kwargs = RunProjectSignature(
-            uri=self.uri,
+            uri=uri,
             entry_point=entry_point,
-            parameters=self.get_parameters(),
+            parameters=parameters,
             environment=environment,
             experiment_name=experiment_name,
             experiment_id=experiment_id,
@@ -126,6 +148,16 @@ class MLflowProject(abc.ABC):
         )
 
         return self
+
+    def deploy(self, deployer: deployer.Deployer) -> predictor.Predictor:
+        self.check_is_run()
+
+
+        self.promise_.result()
+
+        self.promise_.result()
+        return deployer.deploy()
+        pass
 
     def check_input_channels(self, input_channels: dict[str, str]) -> None:
         """Checks inpunt channel names/keys.

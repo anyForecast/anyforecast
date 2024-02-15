@@ -1,14 +1,10 @@
-import os
 from typing import Any, Protocol
 
-import requests
-
-from .serializers import IdentitySerializer
+from anyforecast import endpoint, serializers
 
 
 class Serializer(Protocol):
-    def serialize(self, data: Any) -> Any:
-        ...
+    def serialize(self, data: Any) -> Any: ...
 
 
 class Predictor:
@@ -16,17 +12,11 @@ class Predictor:
 
     def __init__(
         self,
-        endpoint_name: str,
-        serializer: Serializer = IdentitySerializer(),
-        session: requests.Session = requests.Session(),
+        endpoint: endpoint.Endpoint,
+        serializer: Serializer = serializers.IdentitySerializer(),
     ):
-        self.endpoint_name = endpoint_name
+        self.endpoint = endpoint
         self.serializer = serializer
-        self.session = session
-
-    @property
-    def url(self) -> str:
-        return os.path.join(self.endpoint_name, "invocations")
 
     def predict(self, data: Any):
         """Returns the inference from the specified endpoint.
@@ -41,7 +31,7 @@ class Predictor:
             data in the request body as is.
         """
         data = self.serializer.serialize(data)
-        response: requests.Response = self.session.post(self.url, json=data)
+        response = self.endpoint.make_request(json=data)
         response.raise_for_status()
 
         return response.json()

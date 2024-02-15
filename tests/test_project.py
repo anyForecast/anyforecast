@@ -4,7 +4,7 @@ from typing import Any
 from anyforecast_datasets.loaders import load_iris
 from mlflow.projects.submitted_run import SubmittedRun
 
-from anyforecast import backend, project, testing
+from anyforecast import backends, project, testing
 
 IRIS_DS = load_iris()
 
@@ -77,7 +77,7 @@ class BaseTestCases:
 
 
 class TestProjectOnLocalBackend(BaseTestCases.TestProject):
-    backend_exec = backend.LocalBackend()
+    backend_exec = backends.LocalBackend()
 
 
 # class TestEstimatorOnRayBackend(BaseTestCases.TestEstimator):

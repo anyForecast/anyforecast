@@ -1,7 +1,7 @@
-from concurrent.futures import Future, ThreadPoolExecutor, wait
+from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Any
 
-from . import base
+from anyforecast import backend
 
 
 def _run(
@@ -17,21 +17,18 @@ def _run(
     return executor.submit(fn, *args, **kwargs)
 
 
-class LocalFuture(base.BackendFuture):
+class LocalPromise(backend.Promise):
     def __init__(self, python_future: Future) -> None:
         self.python_future = python_future
 
     def result(self) -> Any:
         return self.python_future.result()
 
-    def wait(self):
-        return wait([self.python_future])
-
     def done(self) -> bool:
         return self.python_future.done()
 
 
-class LocalBackend(base.BackendExecutor):
+class LocalBackend(backend.BackendExecutor):
     """Local executor.
 
     The local executor uses the built-in :class:`ThreadPoolExecutor` located
@@ -41,6 +38,6 @@ class LocalBackend(base.BackendExecutor):
     def __init__(self, max_workers: int | None = None):
         self.max_workers = max_workers
 
-    def run(self, runner: base.BackendRunner) -> LocalFuture:
+    def run(self, runner: backend.Runner) -> LocalPromise:
         python_future = _run(fn=runner.run, max_workers=self.max_workers)
-        return LocalFuture(python_future)
+        return LocalPromise(python_future)

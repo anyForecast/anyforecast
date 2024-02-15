@@ -1,5 +1,3 @@
-from .base import Callback
-from .db import DatabaseCallback
+from anyforecast.callbacks.db import DatabaseCallback
 
-
-__all__ = ["DatabaseCallback", "Callback"]
+__all__ = ["DatabaseCallback"]

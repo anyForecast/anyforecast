@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from anyforecast.callbacks import Callback
-from anyforecast.tasks import registry
+from anyforecast import callback, registry
 
 
 def gen_task_name(name, module_name) -> str:
@@ -9,51 +8,19 @@ def gen_task_name(name, module_name) -> str:
 
 
 def unpickle_task(name) -> Task:
-    return TasksFactory._registry[name]
+    return factory.create(name)
 
 
-class TasksFactory:
-    _registry = registry.TasksRegistry()
+def create_factory() -> TasksFactory:
 
-    @classmethod
-    def register(cls, name: str | None = None) -> callable:
-        """Use is as decorator to register tasks in the internal registry.
+    from anyforecast.tasks import mlflow
+    from anyforecast.testing import test_tasks
 
-        Parameters
-        ----------
-        name : str, default = None
-            The name of the task.
+    factory = TasksFactory()
+    factory.include_registry(test_tasks.registry)
+    factory.include_registry(mlflow.registry)
 
-        Returns
-        -------
-        decorator : callable
-            Actual decorator that registers :class:`Task` instances to the
-            internal registry under the given name.
-        """
-
-        def decorator(fun: callable) -> callable:
-            """Registers :class:`Task` instances to the internal registry."""
-            task = Task.from_callable(fun, name)
-            cls._registry.register(task.name, task)
-            return task
-
-        return decorator
-
-    @classmethod
-    def get(cls, name: str) -> Task:
-        """Tasks factory.
-
-        Parameters
-        ----------
-        name : str
-            The name of the task to create.
-
-        Returns
-        -------
-        task : Task
-            An instance of the task that is created.
-        """
-        return cls._registry[name]
+    return factory
 
 
 class Task:
@@ -70,7 +37,7 @@ class Task:
     name: str = None
 
     #: Run behavior. Do nothing by default,
-    callbacks: list[Callback] = []
+    callbacks: list[callback.Callback] = ()
 
     def run(self, *args, **kwargs):
         """The body of the task executed by workers."""
@@ -86,7 +53,7 @@ class Task:
         for cb in self.callbacks:
             getattr(cb, method_name)(**kwargs)
 
-    def set_callbacks(self, callbacks: list[Callback]) -> Task:
+    def set_callbacks(self, callbacks: list[callback.Callback]) -> Task:
         self.callbacks = callbacks
 
     @classmethod
@@ -107,3 +74,47 @@ class Task:
         task = type(fun.__name__, (base,), kwargs)
 
         return task()
+
+
+class TasksFactory:
+    """Tasks registry.
+
+    Example
+    -------
+    registry = TasksRegistry()
+
+    @registry()
+        def sample_task():
+            ...
+    """
+
+    registry: registry.Registry = registry.Registry()
+
+    def include_registry(self, registry: registry.Registry) -> None:
+        self.registry.update(registry)
+
+    def list(self) -> list[str]:
+        return list(self.registry)
+
+    def get_registry(self) -> registry.Registry:
+        return self.registry
+
+    def create(self, name: str) -> Task:
+        """Tasks factory.
+
+        Parameters
+        ----------
+        name : str
+            The name of the task to create.
+
+        Returns
+        -------
+        task : Task
+            An instance of the task that is created.
+        """
+        fun = self.registry[name]
+        return Task.from_callable(fun, name)
+
+
+#: Tasks factory
+factory = create_factory()

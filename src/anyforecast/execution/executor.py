@@ -1,31 +1,18 @@
-from __future__ import annotations
-
 from kombu.utils.uuid import uuid
 
-from anyforecast import backend, callbacks, tasks
-from anyforecast.execution import promise, runner
+from anyforecast import backend, backends, callback, task
+from anyforecast.execution.promise import TaskPromise
+from anyforecast.execution.runner import TaskRunner
 
 
 class TasksExecutor:
-    """Bridges client and task execution."""
-
-    def __init__(
-        self, backend_exec: backend.BackendExecutor = backend.LocalBackend()
-    ):
-        self._backend_exec = backend_exec
-
-    def set_backend_exec(self, backend_exec: backend.BackendExecutor) -> None:
-        backend.check_backend_exec(backend_exec)
-        self._backend_exec = backend_exec
-
-    def get_backend_exec(self) -> backend.BackendExecutor:
-        return self._backend_exec
+    """Executes registered tasks on the given backend executor."""
 
     def list_tasks(self) -> list[str]:
         """Returns available tasks"""
-        return list(tasks.TasksFactory.registry)
+        return task.factory.list()
 
-    def get_task(self, name: str) -> tasks.Task:
+    def get_task(self, name: str) -> task.Task:
         """Returns single task by name.
 
         Parameters
@@ -33,22 +20,18 @@ class TasksExecutor:
         name : str
             Name of the task.
         """
-        return tasks.TasksFactory.get(name)
+        return task.factory.create(name)
 
     def create_task_runner(
         self,
-        task: tasks.Task,
+        task: task.Task,
         args: tuple = (),
         kwargs: dict = None,
         task_id: str | None = None,
-    ) -> runner.TaskRunner:
+    ) -> TaskRunner:
         """Creates :class:`TaskRunner` instance."""
         task_id = task_id or uuid()
-        return runner.TaskRunner(task, args, kwargs, task_id)
-
-    def start_backend_exec(self) -> None:
-        """Stars backend executor."""
-        self._backend_exec.start()
+        return TaskRunner(task, args, kwargs, task_id)
 
     def execute(
         self,
@@ -56,8 +39,9 @@ class TasksExecutor:
         args: tuple = (),
         kwargs: dict | None = None,
         task_id: str | None = None,
-        callbacks: list[callbacks.Callback] = (),
-    ) -> promise.TaskPromise:
+        callbacks: list[callback.Callback] = (),
+        backend: backend.BackendExecutor = backends.LocalBackend(),
+    ) -> TaskPromise:
         """Executes tasks on the configured backend executor.
 
         Parameters
@@ -81,5 +65,5 @@ class TasksExecutor:
         task = self.get_task(name)
         task.set_callbacks(callbacks)
         runner = self.create_task_runner(task, args, kwargs, task_id)
-        backend_future = self._backend_exec.run(runner)
-        return promise.TaskPromise(runner.task_id, backend_future)
+        backend_promise = backend.run(runner)
+        return TaskPromise(runner.task_id, backend_promise)
